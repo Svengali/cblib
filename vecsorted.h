@@ -50,9 +50,10 @@ namespace vecsorted_construct
 
 //=======================================================================================
 
-template <class t_vector,
-			class t_compare = std::less<t_vector::value_type>,
-			int t_multi = 1 >	class vecsorted
+template <typename t_vector,
+	typename t_compare = std::less<t_vector::value_type>,
+	int t_multi = 1 >
+class vecsorted
 {
 public:
 	//---------------------------------------------------------------------------
@@ -62,6 +63,7 @@ public:
 	typedef typename t_vector::const_iterator	const_iterator;
 	typedef typename t_vector::const_reference	const_reference;
 	typedef typename t_vector::size_type			size_type;
+	typedef typename t_compare                  t_compare;
 
 	typedef vecsorted<t_vector,t_compare,t_multi> this_type;
 
@@ -100,7 +102,7 @@ public:
 		std::sort(m_vector.begin(),m_vector.end(),m_compare);
 		if ( t_multi == vecsorted_type::unique )
 		{
-			t_vector::iterator itend = std::unique(m_vector.begin(),m_vector.end(),m_equivalent);
+			typename t_vector::iterator itend = std::unique(m_vector.begin(),m_vector.end(),m_equivalent);
 			m_vector.erase(itend,m_vector.end());
 		}
 		ASSERT( is_valid() );
@@ -113,7 +115,7 @@ public:
 		ASSERT( is_sorted() );
 		if ( t_multi == vecsorted_type::unique )
 		{
-			t_vector::iterator itend = std::unique(m_vector.begin(),m_vector.end(),m_equivalent);
+			typename t_vector::iterator itend = std::unique(m_vector.begin(),m_vector.end(),m_equivalent);
 			m_vector.erase(itend,m_vector.end());
 		}
 		ASSERT( is_valid() );
@@ -244,7 +246,7 @@ public:
 		if ( cit == end() ) // std container don't tolerate this, but I do
 			return;
 		// turn the const iterator into non-const on the parent :
-		t_vector::iterator it = m_vector.begin() + (cit - begin());
+		typename t_vector::iterator it = m_vector.begin() + (cit - begin());
 		m_vector.erase(it);
 	}
 
@@ -253,8 +255,8 @@ public:
 		if ( cfirst == end() )
 			return;
 		// turn the const iterator into non-const on the parent :
-		t_vector::iterator itfirst = m_vector.begin() + (cfirst - begin());
-		t_vector::iterator itlast  = m_vector.begin() + (clast  - begin());
+		typename t_vector::iterator itfirst = m_vector.begin() + (cfirst - begin());
+		typename t_vector::iterator itlast  = m_vector.begin() + (clast  - begin());
 		m_vector.erase(itfirst,itlast);
 	}
 
@@ -334,7 +336,7 @@ private:
 		{
 			const t_vector::iterator b = m_vector.begin();
 			const t_vector::iterator e = m_vector.end();
-			t_vector::iterator it = std::lower_bound(b,e,val,m_compare);
+			typename t_vector::iterator it = std::lower_bound(b,e,val,m_compare);
 			
 			// don't insert if found
 			
@@ -359,7 +361,7 @@ private:
 	{
 		const t_vector::iterator b = m_vector.begin();
 		const t_vector::iterator e = m_vector.end();
-		t_vector::iterator it = std::lower_bound(b,e,val,m_compare);
+		typename t_vector::iterator it = std::lower_bound(b,e,val,m_compare);
 		m_vector.insert(it,val);
 	}
 
@@ -466,12 +468,14 @@ private:
 
 //=======================================================================================
 
-template <class t_vector,
-			class t_compare = std::less<t_vector::value_type> >	class multivecsorted
-	: public vecsorted<t_vector,t_compare,vecsorted_type::multi>
+template <typename t_vector,
+	typename t_compare = std::less<t_vector::value_type> >
+class multivecsorted
+	: 
+	public vecsorted<t_vector,t_compare,vecsorted_type::multi>
 {
 public:
-	typedef vecsorted<t_vector,t_compare,vecsorted_type::multi> parent_type;
+	typedef typename vecsorted<t_vector,t_compare,vecsorted_type::multi> parent_type;
 
 	//---------------------------------------------------------------------------
 	// must redefine constructors
@@ -479,18 +483,20 @@ public:
 	multivecsorted()
 	{ }
 
+	/*
 	multivecsorted(const this_type & other) : parent_type(other)
 	{
 		ASSERT( is_valid() ); 
 	}
+	*/
 
-	template <class input_iterator>
+	template <typename input_iterator>
 	multivecsorted(const input_iterator first,const input_iterator last,const vecsorted_construct::EConstructNonSorted e) :
 			parent_type(first,last,e)
 	{;
 	}
 	
-	template <class input_iterator>
+	template <typename input_iterator>
 	multivecsorted(const input_iterator first,const input_iterator last,const vecsorted_construct::EConstructSorted e) :
 			parent_type(first,last,e)
 	{

@@ -91,8 +91,8 @@ SEE ALSO "CommonPrefs.h"
 
 SPtrFwd(PrefFile);
 
-template <class T> void ReadFromText(T * pValue, const char * const text);
-template <class T> void WriteToText(const T & val, String * pInto);
+template <typename T> void ReadFromText(T * pValue, const char * const text);
+template <typename T> void WriteToText(const T & val, String * pInto);
 
 //-----------------------------------------------------------------
 
@@ -113,7 +113,7 @@ public:
 	void Reset() { m_data.Clear(); }
 	const String & GetBuffer() const { return m_data; }
 
-	template <class T> void IO( const char * const name, T * pValue )
+	template <typename T> void IO( const char * const name, T * pValue )
 	{
 		m_data += name;
 		m_data += ':';
@@ -121,7 +121,7 @@ public:
 		m_data += '\n';
 	}
 
-	template <class T> void IOV( const char * const name, vector<T> * pVector )
+	template <typename T> void IOV( const char * const name, vector<T> * pVector )
 	{
 		m_data += name;
 		m_data += ':';
@@ -152,7 +152,7 @@ public:
 
 	typedef vecsortedpair< vector< std::pair<Token,String> > >	t_vec;
 
-	template <class T> void IO( const char * const name, T * pValue ) const
+	template <typename T> void IO( const char * const name, T * pValue ) const
 	{
 		const Token token(name);
 		ASSERT( pValue != NULL );
@@ -169,7 +169,7 @@ public:
 		}
 	}
 
-	template <class T> void IOV( const char * const name, vector<T> * pVector ) const
+	template <typename T> void IOV( const char * const name, vector<T> * pVector ) const
 	{
 		const Token token(name);
 		ASSERT( pVector != NULL );
@@ -227,14 +227,14 @@ public:
 	void FinishWriting();
 	bool IsWriting() const { return m_pWriter != NULL; }
 
-	template <class T> void IO( const char * const name, T * pValue ) const
+	template <typename T> void IO( const char * const name, T * pValue ) const
 	{
 		if ( m_pReader )	m_pReader->IO(name,pValue);
 		else				m_pWriter->IO(name,pValue);
 	}
 	
 	// IOAsInt is for enums and shorts and such that can be converted to int
-	template <class T> void IOAsInt( const char * const name, T * pValue ) const
+	template <typename T> void IOAsInt( const char * const name, T * pValue ) const
 	{
 		int x = (int) *pValue;
 		if ( m_pReader )	m_pReader->IO(name,&x);
@@ -242,7 +242,7 @@ public:
 		*pValue = (T) x;
 	}
 
-	template <class T> void IOV( const char * const name, vector<T> * pVector ) const
+	template <typename T> void IOV( const char * const name, vector<T> * pVector ) const
 	{
 		if ( m_pReader )	m_pReader->IOV(name,pVector);
 		else				m_pWriter->IOV(name,pVector);

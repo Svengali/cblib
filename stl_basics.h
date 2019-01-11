@@ -16,6 +16,17 @@ START_CB
 extern void * MyStlAlloc(size_t size);
 extern void MyStlFree(void * ptr,size_t size);
 
+template<typename _Arg1,
+	typename _Arg2,
+	typename _Result>
+struct binary_function
+{	// base class for binary functions
+	typedef _Arg1 first_argument_type;
+	typedef  _Arg2 second_argument_type;
+	typedef  _Result result_type;
+};
+
+
 END_CB
 
 #define StlAlloc(size)		NS_CB::MyStlAlloc(size)
@@ -75,7 +86,7 @@ END_CB
 	this adapts a Functor which works on "first" to work on a pair
 */
 template<typename Pair,typename Functor> struct pair_first_bool_binary_functor : 
-	public std::binary_function<Pair,Pair,bool>
+	public cb::binary_function<Pair,Pair,bool>
 {
 	bool operator()(const Pair & __x, const Pair & __y) const
 	{
@@ -88,7 +99,7 @@ template<typename Pair,typename Functor> struct pair_first_bool_binary_functor :
 	this adapts a Functor which works on "second" to work on a pair
 */
 template<typename Pair,typename Functor> struct pair_second_bool_binary_functor : 
-	public std::binary_function<Pair,Pair,bool>
+	public cb::binary_function<Pair,Pair,bool>
 {
 	bool operator()(const Pair & __x, const Pair & __y) const
 	{
@@ -98,7 +109,7 @@ template<typename Pair,typename Functor> struct pair_second_bool_binary_functor 
 
 //! pair_key_bool_binary_functor
 template<class Pair,class Functor> struct pair_key_bool_binary_functor : 
-	public std::binary_function<Pair,typename Pair::first_type,bool>
+	public cb::binary_function<Pair,typename Pair::first_type,bool>
 {
 	bool operator()(const Pair & __x, const typename Pair::first_type & __y) const
 	{
@@ -108,7 +119,7 @@ template<class Pair,class Functor> struct pair_key_bool_binary_functor :
 
 //! pair_data_bool_binary_functor
 template<class Pair,class Functor> struct pair_data_bool_binary_functor : 
-	public std::binary_function<Pair,typename Pair::second_type,bool>
+	public cb::binary_function<Pair,typename Pair::second_type,bool>
 {
 	bool operator()(const Pair & __x, const typename Pair::second_type & __y) const
 	{
@@ -124,7 +135,7 @@ template<class Pair,class Functor> struct pair_data_bool_binary_functor :
 	 says they are not different
 */
 template<class Comparison> struct equivalent_functor : 
-	public std::binary_function<typename Comparison::first_argument_type,typename Comparison::second_argument_type,bool>
+	public cb::binary_function<typename Comparison::first_argument_type,typename Comparison::second_argument_type,bool>
 {
 	bool operator()(const typename Comparison::first_argument_type & __x, const typename Comparison::second_argument_type & __y) const
 	{
@@ -135,7 +146,7 @@ template<class Comparison> struct equivalent_functor :
 //============================================================================
 
 struct str_compare :
-		public std::binary_function<const char *, const char *, bool>
+		public cb::binary_function<const char *, const char *, bool>
 {
 	bool operator()(const char *p1, const char *p2) const
 	{
@@ -144,7 +155,7 @@ struct str_compare :
 };
 
 struct str_compare_i :
-		public std::binary_function<const char *, const char *, bool>
+		public cb::binary_function<const char *, const char *, bool>
 {
 	bool operator()(const char *p1, const char *p2) const
 	{

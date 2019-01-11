@@ -110,7 +110,7 @@ namespace
 
 	// compare_ProfilerEntry_by_ticks puts larger ticks first
 	struct compare_ProfilerEntry_by_seconds :
-			public std::binary_function<ProfilerEntry, ProfilerEntry, bool>
+			public cb::binary_function<ProfilerEntry, ProfilerEntry, bool>
 	{
 		bool operator()(const ProfilerEntry & e1, const ProfilerEntry & e2) const
 		{
@@ -200,7 +200,7 @@ namespace
 
 	// compare_ProfileNode_by_seconds puts larger seconds first
 	struct compare_ProfileNode_by_seconds :
-			public std::binary_function<ProfileNode, ProfileNode, bool>
+			public cb::binary_function<ProfileNode, ProfileNode, bool>
 	{
 		bool operator()(const ProfileNode & e1, const ProfileNode & e2) const
 		{

@@ -100,7 +100,8 @@ namespace entry_array
 		for(int i=0;i<size;i++)
 		{
 			ASSERT(pArray);
-			destruct(pArray+i);
+			//destruct(pArray+i);
+			pArray[i].~Entry();
 		}
 	}
 
@@ -178,7 +179,8 @@ namespace entry_array
 	{
 		while (first != last)
 		{
-			new (ePlacementNew, result) FwdClass(*first);
+			//new ( ePlacementNew, result ) FwdClass( *first );
+			new ( result ) FwdClass( *first );
 			first++;
 			result++;
 		}

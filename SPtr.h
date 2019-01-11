@@ -410,7 +410,7 @@ template <class ToPtr,class From> ToPtr SPtrDynamicCast(const SPtr<From> & from)
 
 	ASSERT( from.IsValidSPtr() );
 
-	ToPtr::base_class * const to = dynamic_cast<ToPtr::base_class * const>(pfrom);
+	typename ToPtr::base_class * const to = dynamic_cast<typename ToPtr::base_class * const>(pfrom);
 	return ToPtr(to);
 }
 
@@ -437,7 +437,7 @@ template <class ToPtr, class From> ToPtr SPtrStaticCast(const SPtr<From>& from)
 {
 	ASSERT(from == NULL || SPtrDynamicCast<ToPtr>(from) != NULL);
 
-	return ToPtr(static_cast<ToPtr::base_class*>(from.GetPtr()));
+	return ToPtr(static_cast<typename ToPtr::base_class*>(from.GetPtr()));
 }
 
 /*

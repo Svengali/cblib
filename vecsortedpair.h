@@ -32,27 +32,29 @@ START_CB
 
 
 //! pair_key_bool_binary_functor
-template<class Pair,class Functor> 
-struct pair_key_both_bool_binary_functor : public std::binary_function<Pair,typename Pair::first_type,bool>
+template<typename Pair, typename Functor>
+struct pair_key_both_bool_binary_functor 
+	: 
+	public cb::binary_function<typename Pair,typename Pair::first_type,bool>
 {
-	bool operator()(const Pair & __x, const Pair & __y) const
+	bool operator()(const typename Pair & __x, const typename Pair & __y) const
 	{
 		return Functor()(__x.first,__y.first); 
 	}
 
-	bool operator()(const Pair & __x, const typename Pair::first_type & __y) const
+	bool operator()(const typename Pair & __x, const typename Pair::first_type & __y) const
 	{
 		return Functor()(__x.first,__y); 
 	}
 
-	bool operator()( const typename Pair::first_type & __x, const Pair & __y ) const
+	bool operator()( const typename Pair::first_type & __x, const typename Pair & __y ) const
 	{
 		return Functor()(__x,__y.first); 
 	}
 };
 
-template<class Pair> 
-struct pair_off_key_bool_binary_functor : public std::binary_function< Pair, Pair, bool >
+template<typename Pair> 
+struct pair_off_key_bool_binary_functor : public cb::binary_function< Pair, Pair, bool >
 {
 	bool operator()(const Pair & __x, const Pair & __y) const
 	{
@@ -60,18 +62,28 @@ struct pair_off_key_bool_binary_functor : public std::binary_function< Pair, Pai
 	}
 };
 
-template <class t_vector,
-			class t_comparefirst = std::less<t_vector::value_type::first_type>,
-			vecsorted_type::e t_multi = vecsorted_type::unique >	
-			
-			class vecsortedpair :
-
-			public vecsorted< t_vector , 
-				pair_first_bool_binary_functor<typename t_vector::value_type,t_comparefirst> ,
-				t_multi >
+template <typename t_vector,
+	typename t_comparefirst = std::less<typename t_vector::value_type::first_type>,
+	vecsorted_type::e t_multi = vecsorted_type::unique >
+class vecsortedpair
+	:
+	public vecsorted< t_vector, 
+	pair_first_bool_binary_functor<typename t_vector::value_type,t_comparefirst> ,
+	t_multi >
 {
 public:
 	// lots of typedefs from parent class
+
+	typedef typename t_vector::value_type		value_type;
+	typedef typename t_vector::const_iterator	const_iterator;
+	typedef typename t_vector::const_reference	const_reference;
+	typedef typename t_vector::size_type			size_type;
+	//typedef typename t_vector::t_compare		t_compare;
+
+	typedef vecsortedpair<t_vector, t_comparefirst, t_multi> this_type;
+
+	typedef std::pair<const_iterator, const_iterator> iterator_pair;
+
 	typedef typename value_type::first_type		key_type;
 	typedef typename value_type::second_type		data_type;
 
@@ -79,7 +91,6 @@ public:
 				pair_first_bool_binary_functor<value_type,t_comparefirst> ,
 				t_multi > parent_type;
 
-	typedef vecsortedpair<t_vector,t_comparefirst,t_multi> this_type;
 
 	//---------------------------------------------------------------------------
 	// all the basics are inherited,
@@ -89,8 +100,8 @@ public:
 
 	const_iterator	find(const key_type & key) const
 	{
-		const const_iterator b = begin();
-		const const_iterator e = end();
+		const const_iterator b = parent_type::begin();
+		const const_iterator e = parent_type::end();
 
 		const pair_key_both_bool_binary_functor< value_type, t_comparefirst > comparator;
 
@@ -119,7 +130,7 @@ public:
 	{
 		// could be slightly more efficient ala binary_search;
 		//	currently has redundant checks of "end"
-		return ( find(key) != end() );
+		return ( find(key) != parent_type::end() );
 	}
 
 	void insert(const key_type & key,const data_type & data)
@@ -146,22 +157,22 @@ public:
 	vecsortedpair(const this_type & other) : parent_type(other)
 	{ }
 
-	template <class input_iterator>
+	template <typename input_iterator>
 	vecsortedpair(const input_iterator first,const input_iterator last,const vecsorted_construct::EConstructNonSorted e) :
 			parent_type(first,last,e)
 	{ }
 	
-	template <class input_iterator>
+	template <typename input_iterator>
 	vecsortedpair(const input_iterator first,const input_iterator last,const vecsorted_construct::EConstructSorted e):
 			parent_type(first,last,e)
 	{ }
 
-	template <class input_iterator>
+	template <typename input_iterator>
 	vecsortedpair(const input_iterator first,const input_iterator last,const vecsorted_construct::EConstructNonUnique e):
 			parent_type(first,last,e)
 	{ }
 
-	template <class input_iterator>
+	template <typename input_iterator>
 	vecsortedpair(const input_iterator first,const input_iterator last,const vecsorted_construct::EConstructSortedNonUnique e):
 			parent_type(first,last,e)
 	{ }
@@ -182,8 +193,8 @@ private:
 
 	iterator_pair findrange_sub(const key_type & key, const BoolAsType_False & is_multi) const
 	{
-		const const_iterator b = begin();
-		const const_iterator e = end();
+		const const_iterator b = parent_type::begin();
+		const const_iterator e = parent_type::end();
 		const pair_key_both_bool_binary_functor< value_type , t_comparefirst > comparator;
 		const const_iterator it = std::lower_bound(b,e,key,comparator);
 		
@@ -219,9 +230,9 @@ private:
 
 //=======================================================================================
 
-template <class t_vector,
-			class t_comparefirst = std::less<t_vector::value_type::first_type> >
-		class multivecsortedpair : public vecsortedpair<t_vector,t_comparefirst,vecsorted_type::multi>
+template <typename t_vector,
+	typename t_comparefirst = std::less<t_vector::value_type::first_type> >
+	class multivecsortedpair : public vecsortedpair<t_vector,t_comparefirst,vecsorted_type::multi>
 {
 public:
 
@@ -237,22 +248,22 @@ public:
 	multivecsortedpair(const this_type & other) : parent_type(other)
 	{ }
 
-	template <class input_iterator>
+	template <typename input_iterator>
 	multivecsortedpair(const input_iterator first,const input_iterator last,const vecsorted_construct::EConstructNonSorted e) :
 			parent_type(first,last,e)
 	{ }
 	
-	template <class input_iterator>
+	template <typename input_iterator>
 	multivecsortedpair(const input_iterator first,const input_iterator last,const vecsorted_construct::EConstructSorted e):
 			parent_type(first,last,e)
 	{ }
 
-	template <class input_iterator>
+	template <typename input_iterator>
 	multivecsortedpair(const input_iterator first,const input_iterator last,const vecsorted_construct::EConstructNonUnique e):
 			parent_type(first,last,e)
 	{ }
 
-	template <class input_iterator>
+	template <typename input_iterator>
 	multivecsortedpair(const input_iterator first,const input_iterator last,const vecsorted_construct::EConstructSortedNonUnique e):
 			parent_type(first,last,e)
 	{ }

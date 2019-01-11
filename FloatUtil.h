@@ -531,7 +531,11 @@ inline void finvalidate(float & f)
 //	use on member variables of Vector, etc.
 //	makes sure that you don't touch non-validated
 //	stuff in debug build
+#ifdef _DEBUG
 inline void finvalidatedbg(float & f)
+#else
+inline void finvalidatedbg( float & )
+#endif
 {
 	#ifdef _DEBUG
 	finvalidate(f);

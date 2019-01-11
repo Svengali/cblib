@@ -146,10 +146,10 @@ public:
 	void extend_default(const int count)
 	{
 		const int oldsize = m_size;
-		if ( needmakefit(m_size+count) )
+		if ( parent_type::needmakefit(m_size+count) )
 		{
 			const int oldcapacity = capacity();
-			makefit2( makefit1(m_size + count) , m_size , oldcapacity);
+			parent_type::makefit2( makefit1(m_size + count) , m_size , oldcapacity);
 		}
 		m_size += count;
 		entry_array::construct(begin() + oldsize,count);
@@ -158,7 +158,7 @@ public:
 	// increase size and don't construct!!!!
 	void extend_no_construct(const int count)
 	{
-		if ( needmakefit(m_size+count) )
+		if ( parent_type::needmakefit(m_size+count) )
 		{
 			const int oldcapacity = capacity();
 			makefit2( makefit1(m_size + count) , m_size , oldcapacity);
@@ -172,14 +172,14 @@ public:
 	//	do any work between makefit1 and makefit2
 	void extend_copy(const t_entry * pFrom,const int count)
 	{
-		if ( needmakefit(m_size+count) )
+		if ( parent_type::needmakefit(m_size+count) )
 		{
 			const int oldsize = m_size;
 			const int oldcapacity = capacity();
 			t_entry * pOld = makefit1(m_size + count);
 			entry_array::copy_construct(begin() + m_size,pFrom,count);
 			m_size += count;
-			makefit2(pOld, oldsize, oldcapacity);
+			parent_type::makefit2(pOld, oldsize, oldcapacity);
 		}
 		else
 		{
@@ -191,14 +191,14 @@ public:
 	// fast specialization of extend_copy for one addition (for push_back)
 	__forceinline void extend_copy(const t_entry & from)
 	{
-		if ( needmakefit(m_size+1) )
+		if ( parent_type::needmakefit(m_size+1) )
 		{
 			const int oldsize = m_size;
 			const int oldcapacity = capacity();
 			t_entry * pOld = makefit1(m_size + 1);
 			entry_array::copy_construct(begin() + m_size,from);
 			m_size ++;
-			makefit2(pOld, oldsize, oldcapacity);
+			parent_type::makefit2(pOld, oldsize, oldcapacity);
 		}
 		else
 		{
@@ -210,7 +210,7 @@ public:
 	// see notes on base extend_copy
 	__forceinline void extend_copy(const t_entry & from,const int count)
 	{
-		if ( needmakefit(m_size+count) )
+		if ( parent_type::needmakefit(m_size+count) )
 		{
 			const int oldsize = m_size;
 			const int oldcapacity = capacity();
@@ -245,7 +245,7 @@ public:
 
 	void reserve(const int newcap)
 	{
-		if ( needmakefit(newcap) )
+		if ( parent_type::needmakefit(newcap) )
 		{
 			const int oldcapacity = capacity();
 			makefit2( makefit1( newcap ) , m_size, oldcapacity);
@@ -278,7 +278,7 @@ public:
 	{
 		VECTOR_ASSERT( m_size == 0 );
 		const int count = last - first;
-		if ( needmakefit(count) )
+		if ( parent_type::needmakefit(count) )
 		{
 			const int oldcapacity = capacity();
 			t_entry * pOld = makefit1(count);
@@ -298,7 +298,7 @@ public:
 	{
 		VECTOR_ASSERT( m_size == 0 );
 		const int count = last - first;
-		if ( needmakefit(count) )
+		if ( parent_type::needmakefit(count) )
 		{
 			const int oldcapacity = capacity();
 			t_entry * pOld = makefit1(count);
@@ -363,7 +363,7 @@ vector_base<t_entry,t_storage>::insert(const int n_pos,
 	const int oldcapacity = capacity();
 
 	t_entry * pOld;
-	if ( needmakefit(m_size+n_insert) )
+	if ( parent_type::needmakefit(m_size+n_insert) )
 		pOld = makefit1(m_size + n_insert);
 	else
 		pOld = NULL;
@@ -407,7 +407,10 @@ vector_base<t_entry,t_storage>::insert(const int n_pos,
 //}{=======================================================================================
 // vector_flex
 
-template <class t_entry,class t_storage> class vector_flex : protected vector_base<t_entry,t_storage>
+template <class t_entry,class t_storage> 
+class vector_flex 
+	: 
+	protected vector_base<t_entry,t_storage>
 {
 public:
 	//----------------------------------------------------------------------
@@ -625,7 +628,7 @@ public:
 		return end();
 	}
 
-	template <class _Predicate>
+	template <typename _Predicate>
 	iterator find_if(_Predicate __pred)
 	{
 		for(iterator it = begin();it < end();it++)

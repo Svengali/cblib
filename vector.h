@@ -208,12 +208,21 @@ private:
 //}{=======================================================================================
 // vector
 
-template <class t_entry> class vector : public vector_flex<t_entry,vector_storage<t_entry> >
+//template<typename T>
+//using vector = std::vector<T>;
+
+typedef std::size_t size_type;
+
+//*
+template <class t_entry> 
+class vector 
+	: 
+	public vector_flex<t_entry,vector_storage<t_entry>>
 {
 public:
 	//----------------------------------------------------------------------
-	typedef vector<t_entry>						this_type;
-	typedef vector_flex<t_entry,vector_storage<t_entry> >	parent_type;
+	typedef vector<t_entry>                                this_type;
+	typedef vector_flex<t_entry,vector_storage<t_entry> >  parent_type;
 
 	//----------------------------------------------------------------------
 	// constructors
@@ -222,7 +231,11 @@ public:
 	~vector() { }
 
 	// I don't have the normal (size_t) constructor, just this (size_t,value) constructor for clarity
-	vector(const size_type size,const t_entry & init) : parent_type(size,init)
+	vector(
+		const size_type size,
+		const t_entry & init) 
+		: 
+		parent_type(size,init)
 	{
 	}
 
@@ -236,6 +249,7 @@ public:
 	{
 	}
 };
+//*/
 
 //}{=======================================================================================
 

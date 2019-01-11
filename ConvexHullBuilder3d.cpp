@@ -267,7 +267,7 @@ static bool FindSeedTetrahedron(
 
 //---------------------------------------------------------------------------
 
-struct EqualFlippedFunc : public std::binary_function<Edgei,Edgei,bool>
+struct EqualFlippedFunc : public cb::binary_function<Edgei,Edgei,bool>
 {
 	bool operator() (const Edgei &a,const Edgei &b) const
 	{
@@ -286,7 +286,13 @@ static void AddEdgeToHangingList(vector<Edgei> & hanging,
 	// see if it's in there already :
 	ASSERT( hanging.find(edge) == hanging.end() );
 	
-	vector<Edgei>::iterator it = hanging.find_if( std::bind1st( EqualFlippedFunc(), edge) );
+	//vector<Edgei>::iterator it = hanging.find_if( std::bind1st( EqualFlippedFunc(), edge) );
+
+	vector<Edgei>::iterator it = hanging.find_if( [&]( auto const& elem ) {
+		return edge == elem;
+	} );
+
+
 	if ( it == hanging.end() )
 	{
 		hanging.push_back(edge);

@@ -70,13 +70,13 @@ class Reflect : public CLASS
 public:
 };
 
+
 class HasReflection
 {
 public:
 	template< typename T >
-	void Reflection( const T &functor ) = 0;
+	void Reflection( T & );
 };
-
 
 /**
 
@@ -162,7 +162,7 @@ struct SizeMembers
 	template <class T>
 	void ZZ(const BoolAsType_True,const BoolAsType_False,T & value)
 	{
-		T::iterator it = value.begin();
+		typename T::iterator it = value.begin();
 		
 		while( it != value.end() )
 		{
