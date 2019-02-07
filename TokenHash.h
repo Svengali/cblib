@@ -40,6 +40,8 @@ _STLP_END_NAMESPACE
 #ifdef _XHASH_
 _STDEXT_BEGIN
 
+#define _HASH_SEED 0xdeadbeaf
+
 template<class _Kty> inline size_t hash_value(const _Kty& _Keyval);
 
 inline size_t hash_value(const cb::Token & _Keyval)
