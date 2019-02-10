@@ -35,7 +35,7 @@ public:
 		m_begin = NULL;
 	}
 
-	void swap(vector_storage_tight<t_entry> & other,const int maxsize)
+	void swap(vector_storage_tight<t_entry> & other,const int )
 	{
 		Swap(m_begin,other.m_begin);
 	}
@@ -86,7 +86,7 @@ public:
 		return pOld;
 	}
 
-	void makefit2(t_entry * pOld, const int oldsize, const int oldcapacity)
+	void makefit2(t_entry * pOld, const int oldsize, const int )
 	{
 		if ( pOld )
 		{

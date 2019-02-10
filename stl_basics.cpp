@@ -3,12 +3,12 @@
 
 START_CB
 
-void * MyStlAlloc(size_t size)
+void * MyStlAlloc(const size_t size)
 {
 	return SmallAllocator_Greedy::Allocate(size);
 }
 
-void MyStlFree(void * ptr,size_t size)
+void MyStlFree(void * ptr,const size_t size)
 {
 	SmallAllocator_Greedy::Free(ptr,size);
 }

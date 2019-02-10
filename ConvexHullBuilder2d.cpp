@@ -114,8 +114,7 @@ void ConvexHullBuilder2d::Make2d(
 	// first find the point with lowest X to start the hull
 	int iBase = 0;
 	
-	int i;
-	for(i=0;i<numVerts;i++)
+	for(int i=0;i<numVerts;i++)
 	{
 		if ( pVerts[i].x < pVerts[iBase].x )
 		{
@@ -148,7 +147,7 @@ void ConvexHullBuilder2d::Make2d(
 	vHullPolygon[0] = vas[0];
 	vHullPolygon[1] = vas[1];
 
-	for(i = 2;i<vas.size();)
+	for(int i = 2;i<vas.size();)
 	{
 		const int numHullVerts = vHullPolygon.size();
 		ASSERT(numHullVerts>=2);

@@ -365,6 +365,9 @@ void ResetFPU()
 	#define FE_ROUNDING		0x0C00
 	#define FE_ROUNDTOZERO	0x0C00
 
+	_controlfp( FE_ROUNDTOZERO, FE_ROUNDING );
+
+	/*
 	uint16 control_word;
 
 ///	__asm fwait
@@ -385,6 +388,8 @@ void ResetFPU()
 
 	UNUSED_PARAMETER(rounding);
 	UNUSED_PARAMETER(precision);
+	*/
+
 }
 
 //AT_STARTUP( ResetFPU(); );

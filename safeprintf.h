@@ -68,7 +68,7 @@ enum ESafePrintfType
 const char * c_safeprintftypenames[];
 
 template < typename t_arg >
-inline ESafePrintfType safeprintf_type(const t_arg arg)
+inline ESafePrintfType safeprintf_type(const t_arg)
 {
 	return safeprintf_unknown;
 }

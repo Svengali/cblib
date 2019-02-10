@@ -191,7 +191,7 @@ private:
 	}
 	/**/
 
-	iterator_pair findrange_sub(const key_type & key, const BoolAsType_False & is_multi) const
+	iterator_pair findrange_sub(const key_type & key, const BoolAsType_False &) const
 	{
 		const const_iterator b = parent_type::begin();
 		const const_iterator e = parent_type::end();

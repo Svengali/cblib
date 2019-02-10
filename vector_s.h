@@ -78,7 +78,7 @@ public:
 		return false;
 	}
 
-	__forceinline t_entry * makefit1(const int newsize,const int oldsize)
+	__forceinline t_entry * makefit1(const int newsize,const int)
 	{
 		ASSERT( newsize <= t_capacity );
 		return NULL;

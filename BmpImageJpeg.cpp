@@ -34,7 +34,7 @@ extern "C" {
 
 START_CB
 
-bool LoadJpeg(const char *filename, BmpImage *result) 
+bool LoadJpeg(const char *, BmpImage *) 
 {
 #ifdef USE_JPEGLIB
 

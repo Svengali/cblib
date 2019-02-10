@@ -363,8 +363,8 @@ char * TokToComma(char * ptr)
 		{
 			return NULL;
 		}
-		char * comma = strchr(brace2,',');
-		if ( comma == NULL )
+		char * next_comma = strchr(brace2,',');
+		if ( next_comma == NULL )
 			return NULL;
 	}
 

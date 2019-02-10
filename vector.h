@@ -62,7 +62,7 @@ public:
 		init();
 	}
 
-	void swap(vector_storage<t_entry> & other,const int maxsize)
+	void swap(vector_storage<t_entry> & other,const int )
 	{
 		Swap(m_capacity,other.m_capacity);
 		Swap(m_begin,other.m_begin);
