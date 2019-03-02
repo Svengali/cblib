@@ -49,7 +49,7 @@ namespace Profiler
 
 	//! default is "Disabled"
 	//	when you call SetEnabled() it doesn't actually start until you call a Frame()
-	void SetEnabled(const bool yesNo);
+	void ReqEnabled(const bool enabled);
 	bool GetEnabled();
 
 	extern bool g_enabled; // ugly variable tunnel for fast checks
@@ -121,8 +121,15 @@ static int s_index_##Name = cb::Profiler::Index(_Stringize(Name)); \
 if ( cb::Profiler::g_enabled ) cb::Profiler::Push(s_index_##Name,_Stringize(Name)); \
 cb::Profiler::AutoTimer profile_of_##Name
 
+
+#define PROFILE_FN(SUFFIX) \
+static int s_index_##__FUNCTION__##SUFFIX = cb::Profiler::Index(_Stringize(__FUNCTION__##SUFFIX)); \
+if ( cb::Profiler::g_enabled ) cb::Profiler::Push(s_index_##__FUNCTION__##SUFFIX,_Stringize(__FUNCTION__##SUFFIX)); \
+cb::Profiler::AutoTimer profile_of_##__FUNCTION__##SUFFIX
+
 #else //}{
 
 #define PROFILE(Name)
+#define PROFILE_FN(SUFFIX)
 
 #endif //} FINAL

@@ -126,15 +126,15 @@ namespace
 	{
 		const char *	m_name;
 		int				m_index;
-		double			m_seconds;
 		int				m_count;
 		int				m_recursion;
+		int				m_frame;
 		ProfileNode	*	m_parent;
 		ProfileNode	*	m_child;
 		ProfileNode *	m_sibling;
 
 		ProfileNode(const char * name,const int index, ProfileNode * parent) : 
-				m_index(index), m_name(name), m_parent(parent), m_seconds(0), m_count(0), m_recursion(0),
+				m_index(index), m_name(name), m_parent(parent), m_seconds{ 0 }, m_count(0), m_recursion(0), m_frame(0),
 				m_sibling(NULL), m_child(NULL)
 		{
 			s_numNodes++;
@@ -145,7 +145,9 @@ namespace
 
 		void Reset()
 		{
-			m_seconds = 0;
+			++m_frame;
+			m_seconds[m_frame&1] = 0;
+
 			m_count = 0;
 			m_recursion = 0;
 
@@ -172,7 +174,7 @@ namespace
 			ASSERT( m_recursion >= 0 );
 			if ( m_recursion > 0 )
 				return false;
-			m_seconds += seconds;
+			m_seconds[m_frame & 1] += seconds;
 			return true;
 		}
 
@@ -195,6 +197,20 @@ namespace
 			m_child = node;
 			return node;
 		}
+
+		double CurrentSeconds() const
+		{
+			return m_seconds[m_frame & 1];
+		}
+
+		double LastSeconds() const
+		{
+			return m_seconds[(m_frame + 1) & 1];
+		}
+
+	private:
+		double			m_seconds[2];
+
 		
 	};
 
@@ -204,9 +220,11 @@ namespace
 	{
 		bool operator()(const ProfileNode & e1, const ProfileNode & e2) const
 		{
-			return e1.m_seconds > e2.m_seconds;
+			return e1.CurrentSeconds() > e2.CurrentSeconds();
 		}
 	};
+
+	
 
 	struct ProfilerData
 	{
@@ -214,7 +232,7 @@ namespace
 
 		static ProfilerData & Instance()
 		{
-			static ProfilerData inst;
+			thread_local ProfilerData inst;
 			return inst;
 		}
 
@@ -278,7 +296,7 @@ namespace
 } // file-only namespace
 
 //! default is "Disabled"
-void Profiler::SetEnabled(const bool yesNo)
+void Profiler::ReqEnabled(const bool yesNo)
 {
 	ProfilerData::Instance().m_requestEnabled = yesNo;
 	// don't do it until next frame
@@ -420,6 +438,7 @@ void Profiler::ViewDescend(int which)
 
 /** Recursively add the given node, and all siblings and children, to
     the given vector. */
+/*
 static void	AddNodes(vecsorted< vector_s< ProfileNode, NUM_ENTRIES_TO_SHOW >, compare_ProfileNode_by_seconds >* result, const ProfileNode* node)
 {
 	if (node == NULL)
@@ -443,6 +462,7 @@ static void	AddNodes(vecsorted< vector_s< ProfileNode, NUM_ENTRIES_TO_SHOW >, co
 	// Add children.
 	AddNodes(result, node->m_child);
 }
+*/
 
 namespace Profiler
 {
@@ -538,7 +558,7 @@ void Profiler::ReportNodes(const ProfileNode * pNodeToShow,bool recurse)
 	}
 	else
 	{
-		secondsParent = pNodeToShow->m_seconds;
+		secondsParent = pNodeToShow->LastSeconds();
 	}
 
 	if ( recurse )
@@ -589,12 +609,12 @@ void Profiler::ReportNodes(const ProfileNode * pNodeToShow,bool recurse)
 	for(int i=0;i<entries.size();i++)
 	{
 		const ProfileNode & entry = *(entries[i]);
-		double seconds = entry.m_seconds;
+		double seconds = entry.LastSeconds();
 		double percentTotal = 100.0 * seconds / secondsSinceReset;
 		double percentParent = 100.0 * seconds / secondsParent;
 		double millisPerFrame = seconds * 1000.0 / double(frames);
 		double countsPerFrame = entry.m_count / double(frames);
-		double kclocksPerCount = ( entry.m_seconds / Timer::GetSecondsPerTick() ) / ( 1000.0 * (entry.m_count == 0 ? 1 : entry.m_count) );
+		double kclocksPerCount = ( entry.LastSeconds() / Timer::GetSecondsPerTick() ) / ( 1000.0 * (entry.m_count == 0 ? 1 : entry.m_count) );
 
 		lprintf("%-30s : %5.1f : %5.1f : %5.2f : %7.1f : %5.1f\n",
 			entry.m_name,
