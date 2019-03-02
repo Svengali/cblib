@@ -118,6 +118,14 @@ namespace
 		}
 	};
 	
+	struct ProfileNodeData
+	{
+		int				m_count;
+		int				m_recursion;
+		double			m_seconds;
+
+	};
+
 	/*
 	 ProfileNode is for counting the CHILD time by Index of
 	 a given PROFILE name
@@ -126,15 +134,16 @@ namespace
 	{
 		const char *	m_name;
 		int				m_index;
-		int				m_count;
-		int				m_recursion;
 		int				m_frame;
+
 		ProfileNode	*	m_parent;
 		ProfileNode	*	m_child;
 		ProfileNode *	m_sibling;
 
+
+
 		ProfileNode(const char * name,const int index, ProfileNode * parent) : 
-				m_index(index), m_name(name), m_parent(parent), m_seconds{ 0 }, m_count(0), m_recursion(0), m_frame(0),
+				m_index(index), m_name(name), m_parent(parent), m_data{ 0 }, m_frame(0),
 				m_sibling(NULL), m_child(NULL)
 		{
 			s_numNodes++;
@@ -146,10 +155,10 @@ namespace
 		void Reset()
 		{
 			++m_frame;
-			m_seconds[m_frame&1] = 0;
+			Cur().m_seconds = 0;
 
-			m_count = 0;
-			m_recursion = 0;
+			Cur().m_count = 0;
+			Cur().m_recursion = 0;
 
 			if ( m_sibling )
 			{
@@ -163,18 +172,18 @@ namespace
 
 		void Enter()
 		{
-			ASSERT( m_recursion >= 0 );
-			m_count ++;
-			m_recursion++;
+			ASSERT( Cur().m_recursion >= 0 );
+			Cur().m_count ++;
+			Cur().m_recursion++;
 		}
 
 		bool Leave(const double seconds)
 		{
-			m_recursion--;
-			ASSERT( m_recursion >= 0 );
-			if ( m_recursion > 0 )
+			Cur().m_recursion--;
+			ASSERT( Cur().m_recursion >= 0 );
+			if ( Cur().m_recursion > 0 )
 				return false;
-			m_seconds[m_frame & 1] += seconds;
+			Cur().m_seconds += seconds;
 			return true;
 		}
 
@@ -198,19 +207,23 @@ namespace
 			return node;
 		}
 
-		double CurrentSeconds() const
+		ProfileNodeData& Cur()
 		{
-			return m_seconds[m_frame & 1];
+			return m_data[m_frame & 1];
 		}
 
-		double LastSeconds() const
+		const ProfileNodeData& Cur() const
 		{
-			return m_seconds[(m_frame + 1) & 1];
+			return m_data[m_frame & 1];
+		}
+
+		const ProfileNodeData& Last() const
+		{
+			return m_data[( m_frame - 1 ) & 1];
 		}
 
 	private:
-		double			m_seconds[2];
-
+		ProfileNodeData m_data[2];
 		
 	};
 
@@ -220,7 +233,7 @@ namespace
 	{
 		bool operator()(const ProfileNode & e1, const ProfileNode & e2) const
 		{
-			return e1.CurrentSeconds() > e2.CurrentSeconds();
+			return e1.Last().m_seconds > e2.Last().m_seconds;
 		}
 	};
 
@@ -558,7 +571,7 @@ void Profiler::ReportNodes(const ProfileNode * pNodeToShow,bool recurse)
 	}
 	else
 	{
-		secondsParent = pNodeToShow->LastSeconds();
+		secondsParent = pNodeToShow->Last().m_seconds;
 	}
 
 	if ( recurse )
@@ -609,12 +622,12 @@ void Profiler::ReportNodes(const ProfileNode * pNodeToShow,bool recurse)
 	for(int i=0;i<entries.size();i++)
 	{
 		const ProfileNode & entry = *(entries[i]);
-		double seconds = entry.LastSeconds();
+		double seconds = entry.Last().m_seconds;
 		double percentTotal = 100.0 * seconds / secondsSinceReset;
 		double percentParent = 100.0 * seconds / secondsParent;
 		double millisPerFrame = seconds * 1000.0 / double(frames);
-		double countsPerFrame = entry.m_count / double(frames);
-		double kclocksPerCount = ( entry.LastSeconds() / Timer::GetSecondsPerTick() ) / ( 1000.0 * (entry.m_count == 0 ? 1 : entry.m_count) );
+		double countsPerFrame = entry.Last().m_count / double(frames);
+		double kclocksPerCount = ( entry.Last().m_seconds / Timer::GetSecondsPerTick() ) / ( 1000.0 * ( entry.Last().m_count == 0 ? 1 : entry.Last().m_count) );
 
 		lprintf("%-30s : %5.1f : %5.1f : %5.2f : %7.1f : %5.1f\n",
 			entry.m_name,
@@ -626,7 +639,7 @@ void Profiler::ReportNodes(const ProfileNode * pNodeToShow,bool recurse)
 
 		secondsSum += seconds;
 		
-		if ( recurse && entry.m_count > 0 )
+		if ( recurse && entry.Last().m_count > 0 )
 		{
 			if ( entry.m_child != NULL )
 			{
