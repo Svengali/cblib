@@ -145,6 +145,30 @@ namespace Profiler
 	static std::array< ProfilerData *, 512 > s_threads;
 	static std::atomic<unsigned int> s_threadCount = 0;
 
+	// This leaks memory, but its for the N few 
+	const char *GetRootName( const int num )
+	{
+		char * const pBuf = (char *)cb::mymalloc(32);
+
+		snprintf( pBuf, 32, "root_%i", num );
+
+		return pBuf;
+	}
+
+	int GetCurThreadIndex()
+	{
+		static std::mutex s_mut;
+		std::lock_guard lock( s_mut );
+
+		const auto cur = s_threadCount.load();
+
+		const auto curThreadIndex = cur;
+
+		++s_threadCount;
+
+		return curThreadIndex;
+	}
+
 	struct ProfilerData
 	{
 	public:
@@ -155,20 +179,12 @@ namespace Profiler
 			return inst;
 		}
 
-		ProfilerData() : m_root("root",-1,NULL)
+		ProfilerData()
+			:
+			m_threadIndex(GetCurThreadIndex()),
+			m_root( GetRootName( m_threadIndex ), -1, NULL )
 		{
-			{
-				static std::mutex s_mut;
-				std::lock_guard lock( s_mut );
-
-				const auto cur = s_threadCount.load();
-
-				m_threadIndex = cur;
-
-				s_threads[cur] = this;
-
-				++s_threadCount;
-			}
+			s_threads[m_threadIndex] = this;
 
 			m_requestEnabled = false;
 			m_requestReset = false;
