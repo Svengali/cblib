@@ -81,8 +81,8 @@ namespace Profiler
 	bool g_enabled = false;
 }
 
-namespace
-{
+//namespace
+//{
 	static int s_numNodes = 0;
 
 	/*
@@ -163,12 +163,15 @@ namespace
 
 				const auto cur = s_threadCount.load();
 
+				m_threadIndex = cur;
+
 				s_threads[cur] = this;
 
 				++s_threadCount;
 			}
 
 			m_requestEnabled = false;
+			m_requestReset = false;
 
 			m_secondsSinceStart = Profiler::GetSeconds();
 
@@ -176,12 +179,19 @@ namespace
 			m_showNodes = true;
 
 
-			Reset();
+			DoResetWork();
 		}
 
-		void Reset()
+		void ReqReset()
+		{
+			m_requestReset = true;
+		}
+
+		void DoResetWork()
 		{
 			m_root.Reset();
+
+			//lprintf("%i | ****** Reset\n", m_threadIndex);
 
 			m_curNode = &m_root;
 
@@ -204,12 +214,15 @@ namespace
 
 		//-------------------------------------
 
+		int						m_threadIndex;
+
 		double					m_lastSeconds;
 		double					m_secondsSinceReset;
 		double					m_secondsSinceStart;
 		int						m_framesSinceReset;
 		bool					m_showNodes;
 		bool					m_requestEnabled;
+		bool					m_requestReset;
 
 		ProfileNode *			m_inspectNode;
 		ProfileNode *			m_curNode;
@@ -224,7 +237,7 @@ namespace
 	#endif
 	};
 
-} // file-only namespace
+//} // file-only namespace
 
 //! default is "Disabled"
 void Profiler::ReqEnabled(const bool yesNo)
@@ -242,7 +255,10 @@ int Profiler::Index(const char * const name)
 {
 	// have to do this even when we're disabled, or we'll screw up the indexing for the future;
 	//  this should only be done in local statics, though, so it doesn't affect our cost
-	charptr_int_map & map = ProfilerData::Instance().m_nameMap;
+
+	auto &profiler = ProfilerData::Instance();
+
+	charptr_int_map & map = profiler.m_nameMap;
 	const charptr_int_map::const_iterator it = map.find(name);
 	if ( it != map.end() )
 	{
@@ -250,8 +266,8 @@ int Profiler::Index(const char * const name)
 	}
 	else
 	{
-		const int index = ProfilerData::Instance().m_entries.size();
-		ProfilerData::Instance().m_entries.push_back( ProfilerEntry(name) );
+		const int index = profiler.m_entries.size();
+		profiler.m_entries.push_back( ProfilerEntry(name) );
 		map.insert( charptr_int_pair(name,index) );
 		ASSERT( map.find(name) != map.end() );
 		return index;
@@ -263,18 +279,20 @@ void Profiler::Push(const int index,const char * const name)
 {
 	ASSERT( g_enabled );
 
-	ProfilerData & data = ProfilerData::Instance();
+	ProfilerData & profiler = ProfilerData::Instance();
+
+	//lprintf("%i | %s | Push\n", profiler.m_threadIndex, name);
 
 	// match strings by pointer !! requires merging of constant strings !!
-	if ( name != data.m_curNode->m_name )
+	if ( name != profiler.m_curNode->m_name )
 	{
-		data.m_curNode = data.m_curNode->GetChild(name,index);
+		profiler.m_curNode = profiler.m_curNode->GetChild(name,index);
 	}
 
-	data.m_curNode->Enter();
+	profiler.m_curNode->Enter();
 
 	// m_stack is a vector_s , so no allocation is possible	
-	ProfilerData::Instance().m_stack.push_back(index);
+	profiler.m_stack.push_back(index);
 }
 
 void Profiler::Pop(const double seconds)
@@ -282,70 +300,92 @@ void Profiler::Pop(const double seconds)
 	if ( ! g_enabled )
 		return;
 
-	ProfilerData & data = ProfilerData::Instance();
+	ProfilerData & profiler = ProfilerData::Instance();
 
-	if ( data.m_curNode->Leave(seconds) )
+	//lprintf( "%i | %s | Pop\n", profiler.m_threadIndex, profiler.m_curNode->m_name );
+
+
+	if ( profiler.m_curNode->Leave(seconds) )
 	{
-		data.m_curNode = data.m_curNode->m_parent;
-		ASSERT( data.m_curNode != NULL );
+		profiler.m_curNode = profiler.m_curNode->m_parent;
+		ASSERT( profiler.m_curNode != NULL );
 	}
 	
 	// this can happen due to enable toggles while the stack is active
-	if ( ! data.m_stack.empty() )
+	if ( ! profiler.m_stack.empty() )
 	{
-		int top = data.m_stack.back();
-		data.m_stack.pop_back();
+		int top = profiler.m_stack.back();
+		profiler.m_stack.pop_back();
 
-		data.m_entries[top].Increment(seconds);
+		profiler.m_entries[top].Increment(seconds);
 	}
 }
 
 void Profiler::Reset()
 {
-	ProfilerData & data = ProfilerData::Instance();
-	data.Reset();
+	/*
+	ProfilerData & profiler = ProfilerData::Instance();
+	profiler.ReqReset();
+	*/
+
+	const auto profilerCount = s_threadCount.load();
+
+	for( size_t i=0; i < profilerCount; ++i )
+	{
+		s_threads[i]->ReqReset();
+	}
 }
 
 void Profiler::Frame()
 {
-	ProfilerData & data = ProfilerData::Instance();
+	ProfilerData & profiler = ProfilerData::Instance();
+
+	//lprintf( "%i | ****** Frame\n", profiler.m_threadIndex );
+
+
 	if ( g_enabled )
 	{
-		data.m_framesSinceReset ++;
+		profiler.m_framesSinceReset ++;
 		double curSeconds = Profiler::GetSeconds();
-		data.m_secondsSinceReset += curSeconds - data.m_lastSeconds;
-		data.m_lastSeconds = curSeconds;
+		profiler.m_secondsSinceReset += curSeconds - profiler.m_lastSeconds;
+		profiler.m_lastSeconds = curSeconds;
 	}
 		
-	if ( data.m_requestEnabled != g_enabled )
+	if ( profiler.m_requestEnabled != g_enabled )
 	{
-		g_enabled = data.m_requestEnabled;
+		g_enabled = profiler.m_requestEnabled;
 		if ( g_enabled )
 		{
-			Reset();
+			profiler.m_requestReset = true;
 		}
+	}
+
+	if( profiler.m_requestReset )
+	{
+		profiler.DoResetWork();
+		profiler.m_requestReset = false;
 	}
 
 }
 
 void Profiler::ViewAscend()
 {
-	ProfilerData & data = ProfilerData::Instance();
-	if ( data.m_showNodes )
+	ProfilerData & profiler = ProfilerData::Instance();
+	if ( profiler.m_showNodes )
 	{
-		if ( data.m_inspectNode->m_parent )
+		if ( profiler.m_inspectNode->m_parent )
 		{
-			data.m_inspectNode = data.m_inspectNode->m_parent;
+			profiler.m_inspectNode = profiler.m_inspectNode->m_parent;
 		}
 	}
 }
 
 void Profiler::ViewDescend(int which)
 {
-	ProfilerData & data = ProfilerData::Instance();
-	if ( data.m_showNodes )
+	ProfilerData & profiler = ProfilerData::Instance();
+	if ( profiler.m_showNodes )
 	{	
-		ProfileNode * child = data.m_inspectNode->m_child;
+		ProfileNode * child = profiler.m_inspectNode->m_child;
 
 		ASSERT( which >= 0 );
 		if ( which < 0 )
@@ -357,7 +397,7 @@ void Profiler::ViewDescend(int which)
 				return;
 			if ( which == 0 )
 			{
-				data.m_inspectNode = child;
+				profiler.m_inspectNode = child;
 				return;
 			}
 			child = child->m_sibling;

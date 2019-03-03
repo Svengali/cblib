@@ -238,13 +238,13 @@ END_CB
 #ifdef PROFILE_ENABLED //{
 
 #define PROFILE(Name) \
-static int s_index_##Name = cb::Profiler::Index(_Stringize(Name)); \
+thread_local int s_index_##Name = cb::Profiler::Index(_Stringize(Name)); \
 if ( cb::Profiler::g_enabled ) cb::Profiler::Push(s_index_##Name,_Stringize(Name)); \
 cb::Profiler::AutoTimer profile_of_##Name
 
 
 #define PROFILE_FN(SUFFIX) \
-static int s_index_##__func__##SUFFIX = cb::Profiler::Index(__FUNCTION__ _Stringize(SUFFIX)); \
+thread_local int s_index_##__func__##SUFFIX = cb::Profiler::Index(__FUNCTION__ _Stringize(SUFFIX)); \
 if ( cb::Profiler::g_enabled ) cb::Profiler::Push(s_index_##__func__##SUFFIX,__FUNCTION__ _Stringize(SUFFIX)); \
 cb::Profiler::AutoTimer profile_of_##__func__##SUFFIX
 
