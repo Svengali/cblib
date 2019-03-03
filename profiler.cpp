@@ -5,6 +5,12 @@
 #include "cblib/Vector_s.h"
 #include "cblib/Log.h"
 
+#include <thread>
+#include <atomic>
+#include <array>
+#include <mutex>
+
+
 /*****************
 
 In-game real-time profiler
@@ -118,114 +124,8 @@ namespace
 		}
 	};
 	
-	struct ProfileNodeData
-	{
-		int				m_count;
-		int				m_recursion;
-		double			m_seconds;
-
-	};
-
-	/*
-	 ProfileNode is for counting the CHILD time by Index of
-	 a given PROFILE name
-	 */
-	struct ProfileNode
-	{
-		const char *	m_name;
-		int				m_index;
-		int				m_frame;
-
-		ProfileNode	*	m_parent;
-		ProfileNode	*	m_child;
-		ProfileNode *	m_sibling;
-
-
-
-		ProfileNode(const char * name,const int index, ProfileNode * parent) : 
-				m_index(index), m_name(name), m_parent(parent), m_data{ 0 }, m_frame(0),
-				m_sibling(NULL), m_child(NULL)
-		{
-			s_numNodes++;
-		}
-
-		// never goes away
-		//~ProfileNode()
-
-		void Reset()
-		{
-			++m_frame;
-			Cur().m_seconds = 0;
-
-			Cur().m_count = 0;
-			Cur().m_recursion = 0;
-
-			if ( m_sibling )
-			{
-				m_sibling->Reset();
-			}
-			if ( m_child )
-			{
-				m_child->Reset();
-			}
-		}
-
-		void Enter()
-		{
-			ASSERT( Cur().m_recursion >= 0 );
-			Cur().m_count ++;
-			Cur().m_recursion++;
-		}
-
-		bool Leave(const double seconds)
-		{
-			Cur().m_recursion--;
-			ASSERT( Cur().m_recursion >= 0 );
-			if ( Cur().m_recursion > 0 )
-				return false;
-			Cur().m_seconds += seconds;
-			return true;
-		}
-
-		ProfileNode * GetChild( const char * const name, const int index )
-		{
-			// Try to find this sub node
-			ProfileNode * child = m_child;
-			while ( child ) 
-			{
-				if ( child->m_name == name )
-				{
-					return child;
-				}
-				child = child->m_sibling;
-			}
-
-			// We didn't find it, so add it
-			ProfileNode * node = new ProfileNode( name,index, this );
-			node->m_sibling = m_child;
-			m_child = node;
-			return node;
-		}
-
-		ProfileNodeData& Cur()
-		{
-			return m_data[m_frame & 1];
-		}
-
-		const ProfileNodeData& Cur() const
-		{
-			return m_data[m_frame & 1];
-		}
-
-		const ProfileNodeData& Last() const
-		{
-			return m_data[( m_frame - 1 ) & 1];
-		}
-
-	private:
-		ProfileNodeData m_data[2];
-		
-	};
+	using Profiler::ProfileNode;
+	using Profiler::ProfileNodeData;
 
 	// compare_ProfileNode_by_seconds puts larger seconds first
 	struct compare_ProfileNode_by_seconds :
@@ -237,7 +137,13 @@ namespace
 		}
 	};
 
-	
+	//static std::vector<ProfilerData *> s_threads(1024);
+
+	struct ProfilerData;
+
+
+	static std::array< ProfilerData *, 512 > s_threads;
+	static std::atomic<unsigned int> s_threadCount = 0;
 
 	struct ProfilerData
 	{
@@ -251,12 +157,24 @@ namespace
 
 		ProfilerData() : m_root("root",-1,NULL)
 		{
+			{
+				static std::mutex s_mut;
+				std::lock_guard lock( s_mut );
+
+				const auto cur = s_threadCount.load();
+
+				s_threads[cur] = this;
+
+				++s_threadCount;
+			}
+
 			m_requestEnabled = false;
 
 			m_secondsSinceStart = Profiler::GetSeconds();
 
 			m_inspectNode = &m_root;
 			m_showNodes = true;
+
 
 			Reset();
 		}
@@ -492,6 +410,16 @@ bool Profiler::GetReportNodes()
 	return ProfilerData::Instance().m_showNodes;
 }
 	
+void Profiler::GetAllNodes( std::vector< ProfileNode* > * const pNodes )
+{
+	const auto threadCount = s_threadCount.load();
+
+	for( size_t i = 0; i < threadCount; ++i )
+	{
+		pNodes->push_back(&s_threads[i]->m_root);
+	}
+}
+
 //! Spew it out to a report
 void Profiler::Report(bool dumpAll /* = false */)
 {

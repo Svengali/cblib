@@ -3,6 +3,8 @@
 #include "cblib/Base.h"
 #include "cblib/Timer.h"
 
+#include <vector>
+
 /*****************
 
 In-game real-time profiler
@@ -36,6 +38,120 @@ START_CB
 
 namespace Profiler
 {
+
+
+	struct ProfileNodeData
+	{
+		int				m_count;
+		int				m_recursion;
+		double			m_seconds;
+
+	};
+
+
+	/*
+	 ProfileNode is for counting the CHILD time by Index of
+	 a given PROFILE name
+	 */
+	struct ProfileNode
+	{
+		const char* m_name;
+		int				m_index;
+		int				m_frame;
+
+		ProfileNode* m_parent;
+		ProfileNode* m_child;
+		ProfileNode* m_sibling;
+
+
+
+		ProfileNode( const char* name, const int index, ProfileNode* parent ):
+			m_index( index ), m_name( name ), m_parent( parent ), m_data{ 0 }, m_frame( 0 ),
+			m_sibling( NULL ), m_child( NULL )
+		{
+			//s_numNodes++;
+		}
+
+		// never goes away
+		//~ProfileNode()
+
+		void Reset()
+		{
+			++m_frame;
+			Cur().m_seconds = 0;
+
+			Cur().m_count = 0;
+			Cur().m_recursion = 0;
+
+			if( m_sibling )
+			{
+				m_sibling->Reset();
+			}
+			if( m_child )
+			{
+				m_child->Reset();
+			}
+		}
+
+		void Enter()
+		{
+			ASSERT( Cur().m_recursion >= 0 );
+			Cur().m_count++;
+			Cur().m_recursion++;
+		}
+
+		bool Leave( const double seconds )
+		{
+			Cur().m_recursion--;
+			ASSERT( Cur().m_recursion >= 0 );
+			if( Cur().m_recursion > 0 )
+				return false;
+			Cur().m_seconds += seconds;
+			return true;
+		}
+
+		ProfileNode * GetChild( const char* const name, const int index )
+		{
+			// Try to find this sub node
+			ProfileNode* child = m_child;
+			while( child )
+			{
+				if( child->m_name == name )
+				{
+					return child;
+				}
+				child = child->m_sibling;
+			}
+
+			// We didn't find it, so add it
+			ProfileNode* node = new ProfileNode( name, index, this );
+			node->m_sibling = m_child;
+			m_child = node;
+			return node;
+		}
+
+		ProfileNodeData& Cur()
+		{
+			return m_data[m_frame & 1];
+		}
+
+		const ProfileNodeData& Cur() const
+		{
+			return m_data[m_frame & 1];
+		}
+
+		const ProfileNodeData& Last() const
+		{
+			return m_data[( m_frame - 1 ) & 1];
+		}
+
+	private:
+		ProfileNodeData m_data[2];
+
+	};
+
+
+
 	//-------------------------------------------------------------------------------------------
 
 	#ifdef PROFILE_TSC
@@ -71,6 +187,9 @@ namespace Profiler
 	void ViewAscend();
 	void ViewDescend(int which);
 
+	void GetAllNodes( std::vector< ProfileNode* > * const pNodex );
+
+
 	//! clear the counts
 	void Reset();
 
@@ -85,6 +204,8 @@ namespace Profiler
 	*/
 	
 	//-------------------------------------------------------------------------------------------
+
+
 
 	//! Useful class for profiling code. Since this stuff is for profiling
 	//! everything should be inline.
@@ -123,9 +244,9 @@ cb::Profiler::AutoTimer profile_of_##Name
 
 
 #define PROFILE_FN(SUFFIX) \
-static int s_index_##__FUNCTION__##SUFFIX = cb::Profiler::Index(_Stringize(__FUNCTION__##SUFFIX)); \
-if ( cb::Profiler::g_enabled ) cb::Profiler::Push(s_index_##__FUNCTION__##SUFFIX,_Stringize(__FUNCTION__##SUFFIX)); \
-cb::Profiler::AutoTimer profile_of_##__FUNCTION__##SUFFIX
+static int s_index_##__func__##SUFFIX = cb::Profiler::Index(__FUNCTION__ _Stringize(SUFFIX)); \
+if ( cb::Profiler::g_enabled ) cb::Profiler::Push(s_index_##__func__##SUFFIX,__FUNCTION__ _Stringize(SUFFIX)); \
+cb::Profiler::AutoTimer profile_of_##__func__##SUFFIX
 
 #else //}{
 
