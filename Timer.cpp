@@ -34,18 +34,27 @@ void Timer::GetSample(Sample * ptr)
 	//	for the End sample I should read it first
 
 	ptr->tsc = rdtsc();
-	ptr->qpc = GetQPCSeconds();	
+	//ptr->qpc = GetQPCSeconds();	
 	//ptr->millis = GetTickCount();
 	
 	//s_lastSample = *ptr;
 }
+
+Timer::Sample Timer::Get()
+{
+	return Sample { rdtsc() };
+}
+
 
 //
 // CallNtPowerInformation provides lots of info about speedstep and mhz and such
 
 double Timer::DeltaSamples(const Sample & s1,const Sample & s2)
 {
-	return s2.qpc - s1.qpc;
+	const auto diff = s2.tsc - s1.tsc;
+
+	return diff / GetSecondsPerTick();
+	//return s2.qpc - s1.qpc;
 
 /*
 	double dMillis = s2.millis - s1.millis;
@@ -137,15 +146,15 @@ unsigned int Timer::GetMillis()
 double Timer::GetQPCSeconds()
 {
 	uint64 qpc;
-	QueryPerformanceCounter((LARGE_INTEGER*)&qpc);
-	
-	if ( s_qpf == 0 )
+	QueryPerformanceCounter( (LARGE_INTEGER*)& qpc );
+
+	if( s_qpf == 0 )
 	{
-		QueryPerformanceFrequency((LARGE_INTEGER*)&s_qpf);
-		s_secondsPerQPC = 1.0 / double(s_qpf);
+		QueryPerformanceFrequency( (LARGE_INTEGER*)& s_qpf );
+		s_secondsPerQPC = 1.0 / double( s_qpf );
 	}
-	
-	return qpc * s_secondsPerQPC;	
+
+	return qpc * s_secondsPerQPC;
 }
 
 //---------------------------------------------------------------
@@ -260,8 +269,9 @@ void Timer::ComputeMHZ()
 		}
 	}
 	
-	s_secondsPerTick = 1.0 / (s_mhz * 1000000.0);
-}	
+	s_secondsPerTick = 1.0 / ( s_mhz * 1000000.0 );
+	//s_ticksPerMilli = s_mhz * 1000.0;
+}
 
 void Timer::LogInfo() // call at startup if you like
 {

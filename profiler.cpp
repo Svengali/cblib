@@ -191,6 +191,8 @@ namespace Profiler
 		{
 			m_root.Reset();
 
+			m_ticks = 0;
+
 			//lprintf("%i | ****** Reset\n", m_threadIndex);
 
 			m_curNode = &m_root;
@@ -232,12 +234,38 @@ namespace Profiler
 		vector< ProfilerEntry > m_entries;
 		vector_s< int , 256 >	m_stack;
 
+		uint64_t				m_ticks;
+
 	#ifdef DEBUG_MEMORY
 		MemorySystem::Statistics	m_lastResetMemoryStats;
 	#endif
 	};
 
 //} // file-only namespace
+
+
+struct AddTicks
+{
+	AddTicks( uint64_t *pAccum )
+		:
+		m_pAccum(pAccum)
+	{
+		m_start = Timer::Get();
+	}
+
+	~AddTicks()
+	{
+		const auto end = Timer::Get();
+
+		const auto diff = end - m_start;
+
+		*m_pAccum += diff.tsc_diff;
+	}
+
+	Timer::Sample m_start;
+	uint64_t *m_pAccum;
+};
+
 
 //! default is "Disabled"
 void Profiler::ReqEnabled(const bool yesNo)
@@ -257,6 +285,8 @@ int Profiler::Index(const char * const name)
 	//  this should only be done in local statics, though, so it doesn't affect our cost
 
 	auto &profiler = ProfilerData::Instance();
+
+	AddTicks ticks(&profiler.m_ticks);
 
 	charptr_int_map & map = profiler.m_nameMap;
 	const charptr_int_map::const_iterator it = map.find(name);
@@ -281,6 +311,7 @@ void Profiler::Push(const int index,const char * const name)
 
 	ProfilerData & profiler = ProfilerData::Instance();
 
+	AddTicks ticks( &profiler.m_ticks );
 	//lprintf("%i | %s | Push\n", profiler.m_threadIndex, name);
 
 	// match strings by pointer !! requires merging of constant strings !!
@@ -302,6 +333,7 @@ void Profiler::Pop(const double seconds)
 
 	ProfilerData & profiler = ProfilerData::Instance();
 
+	AddTicks ticks( &profiler.m_ticks );
 	//lprintf( "%i | %s | Pop\n", profiler.m_threadIndex, profiler.m_curNode->m_name );
 
 
@@ -336,11 +368,23 @@ void Profiler::Reset()
 	}
 }
 
+double Profiler::Waste()
+{
+	ProfilerData& profiler = ProfilerData::Instance();
+
+	return profiler.m_ticks * Timer::GetSecondsPerTick();
+
+
+}
+
+
 void Profiler::Frame()
 {
 	ProfilerData & profiler = ProfilerData::Instance();
 
 	//lprintf( "%i | ****** Frame\n", profiler.m_threadIndex );
+	AddTicks ticks( &profiler.m_ticks );
+
 
 
 	if ( g_enabled )

@@ -11,16 +11,9 @@ namespace Timer
 	//---------------------------------------------------------------
 
 	void LogInfo(); // call at startup if you like
-	
-	//---------------------------------------------------------------
-	// Sample all three primary timers
-	struct Sample
-	{
-		tsc_type		tsc;
-		double			qpc; // seconds
-		//unsigned int	millis;
-	};
-	
+
+	struct Sample;
+
 	void GetSample(Sample * ptr);
 	
 	// delta(early,late)
@@ -53,6 +46,32 @@ namespace Timer
 	double		GetSecondsPerTick();
 	double		rdtscSeconds();
 	
+	struct Diff
+	{
+		tsc_type		tsc_diff;
+
+		int ms() const
+		{
+			return tsc_diff / 1000;
+		}
+	};
+
+	struct Sample
+	{
+		tsc_type		tsc;
+
+		Diff operator -( const Sample rhs ) const
+		{
+			const auto diff = tsc - rhs.tsc;
+
+			return Diff{ diff };
+		}
+	};
+
+
+	Sample Get();
+
+
 	//---------------------------------------------------------------
 	
 	inline void SampleAndAdd(const Timer::Sample start,double *pAccum)

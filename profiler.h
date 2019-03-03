@@ -189,6 +189,7 @@ namespace Profiler
 
 	void GetAllNodes( std::vector< ProfileNode* > * const pNodex );
 
+	double Waste();
 
 	//! clear the counts
 	void Reset();
