@@ -387,7 +387,7 @@ bool TryWindowKill(HANDLE hProcess,DWORD pid)
 		return true;
 }
 			
-void MyKillProcess (const char * szMyExeName) 
+void MyKillProcess (const WCHAR * szMyExeName) 
 {
     HANDLE         hProcessSnap = NULL; 
     BOOL           bRet      = FALSE; 
@@ -429,7 +429,10 @@ void MyKillProcess (const char * szMyExeName)
             //bGotModule = GetProcessModule(pe32.th32ProcessID, 
             //    pe32.th32ModuleID, &me32, sizeof(MODULEENTRY32)); 
 
-			if ( ! strisame(pe32.szExeFile,szMyExeName) )
+			std::wstring myName(szMyExeName);
+
+
+			if ( myName != pe32.szExeFile )
 			{
 				continue;
 			}
@@ -473,7 +476,7 @@ void MyKillProcess (const char * szMyExeName)
 }
 
 
-bool IsProcessAlreadyRunning(const char * szMyExeName) 
+bool IsProcessAlreadyRunning(const WCHAR * szMyExeName) 
 {
 	// @@ lots of code dupe with MyKillProcess
 
@@ -516,7 +519,10 @@ bool IsProcessAlreadyRunning(const char * szMyExeName)
             //bGotModule = GetProcessModule(pe32.th32ProcessID, 
             //    pe32.th32ModuleID, &me32, sizeof(MODULEENTRY32)); 
 
-			if ( ! strisame(pe32.szExeFile,szMyExeName) )
+			std::wstring myName( szMyExeName );
+
+
+			if ( myName != pe32.szExeFile )
 			{
 				continue;
 			}
@@ -957,17 +963,17 @@ void RespawnDetachedIfConsole()
 	{
 		// I'm consoled and I don't want to be
 	   
-	    STARTUPINFO si = { 0 };
+	    STARTUPINFOA si = { 0 };
 		PROCESS_INFORMATION pi = { 0 };
 		si.cb = sizeof(si);
 
-		LPSTR cmdLine = GetCommandLine();
+		LPSTR cmdLine = GetCommandLineA();
 
 		lprintf("Respawning detached : %s\n",cmdLine);
 		
 		LogFlush();
 		
-		BOOL ok = CreateProcess(
+		BOOL ok = CreateProcessA(
 			NULL, //__argv[0],
 			cmdLine,
 			NULL,
@@ -1001,7 +1007,7 @@ bool MakeConsoleIfNone(const char * title)
 	
 		if( title )
 		{
-			SetWindowText(w,title);
+			SetWindowTextA(w,title);
 		}
 			
 		//SetWindowLong(w, GWL_STYLE, WS_DLGFRAME | WS_SIZEBOX | WS_VSCROLL | WS_VISIBLE );
@@ -1054,7 +1060,7 @@ bool ShellOpenFile(HWND parent,const char * file)
 	TRY
 	{
 		//system("iexplore.exe gbhelp.html");
-		int ret = (int) ShellExecute(
+		int ret = (int) ShellExecuteA(
 			parent,
 			"open",
 			file,
@@ -1174,7 +1180,7 @@ BOOL MyIsHungAppWindow(HWND hwnd)
 	static t_IsHungAppWindow s_func = NULL;
 	if ( ! s_func )
 	{
-		HMODULE u32 = GetModuleHandle("user32.dll");
+		HMODULE u32 = GetModuleHandleA("user32.dll");
 		if ( u32 == NULL )
 		{
 			return FALSE;
