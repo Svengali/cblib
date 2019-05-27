@@ -386,7 +386,7 @@ void Mat4::SetProduct(const Mat4 &m1,const Mat4 &m2)
 	// this version can't work on self at all :
 	//ASSERT( &m1 != this && &m2 != this );
 	//RawProduct(GetData(),m1.GetData(),m2.GetData());
-	register float m3[16];
+	float m3[16];
 	RawProduct(m3,m1.GetData(),m2.GetData());
 	float * dest = GetData();
 	dest[0 ] = m3[0 ];
