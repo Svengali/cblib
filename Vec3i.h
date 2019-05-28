@@ -47,13 +47,13 @@ public:
 	//! common static vectors
 	//!	use like Vec3i::zero
 	
-	static Vec3i zero;
-	static Vec3i unitX;
-	static Vec3i unitY;
-	static Vec3i unitZ;
-	static Vec3i unitXneg;
-	static Vec3i unitYneg;
-	static Vec3i unitZneg;
+	static const Vec3i zero;
+	static const Vec3i unitX;
+	static const Vec3i unitY;
+	static const Vec3i unitZ;
+	static const Vec3i unitXneg;
+	static const Vec3i unitYneg;
+	static const Vec3i unitZneg;
 
 	//-------------------------------------------------------------------
 	// math operators on vectors
@@ -103,7 +103,7 @@ public:
 	//-------------------------------------------------------------------
 	// just IO as bytes
 
-	void	gLog() const; //!< writes xyz to gLog; does NOT add a \n !
+	void	Log() const; //!< writes xyz to Log; does NOT add a \n !
 
 }; // end of class Vec3i
 
@@ -225,9 +225,9 @@ inline void Vec3i::SetCross(const Vec3i & t,const Vec3i & v)
 inline void Vec3i::SetMin(const Vec3i &v)
 {
 	ASSERT( v.IsValid() && IsValid() );
-	x = MAX(x,v.x);
-	y = MAX(y,v.y);
-	z = MAX(z,v.z);
+	x = MIN(x,v.x);
+	y = MIN(y,v.y);
+	z = MIN(z,v.z);
 	ASSERT( IsValid() );
 }
 inline void Vec3i::SetMax(const Vec3i &v)
@@ -342,6 +342,52 @@ int64  Volume( const Vec3i & a, const Vec3i & b, const Vec3i & c, const Vec3i & 
 
 // VolumeSign returns 1,0,-1
 //int  VolumeSign( const Vec3i & a, const Vec3i & b, const Vec3i & c, const Vec3i & p );
+
+//}===========================================================================================
+
+// very limited 64-bit int vec :
+
+struct Vec3i64
+{
+	int64 x,y,z;
+	
+	//-------------------------------------------------------------------
+
+	__forceinline Vec3i64()
+	{
+		//! do-nada constructor; 
+		// can't invalidate ints, so just put something ugly in
+		DURING_ASSERT( x = 0xABADF00D );
+		DURING_ASSERT( y = 0xABADF00D );
+		DURING_ASSERT( z = 0xABADF00D );
+	}
+	
+	// important : do NOT declare copy constructors which are the default !
+	//	VC needs you to not declare them for it to do full return-value optimization!
+	// default operator = is fine
+
+	explicit __forceinline Vec3i64(const int ix,const int iy,const int iz) : 
+		x(ix), y(iy), z(iz)
+	{
+	}
+
+	//-----------------------------------------
+};
+
+__forceinline void SetCross(Vec3i64 * pVec, const Vec3i & u, const Vec3i & v)
+{
+	pVec->x = int64(u.y) * v.z - int64(u.z) * v.y;
+	pVec->y = int64(u.z) * v.x - int64(u.x) * v.z,
+	pVec->z = int64(u.x) * v.y - int64(u.y) * v.x;
+}
+
+__forceinline void SetTriangleCross(Vec3i64 * pVec, const Vec3i & a, const Vec3i & b, const Vec3i & c)
+{
+	const Vec3i e1 = b - a;
+	const Vec3i e2 = c - a;
+	
+	SetCross(pVec,e1,e2);
+}
 
 //}===========================================================================================
 

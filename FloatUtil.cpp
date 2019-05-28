@@ -1,4 +1,5 @@
 #include "FloatUtil.h"
+#include "Log.h"
 //#include <stdlib.h> // for rand
 
 START_CB
@@ -70,6 +71,42 @@ double acos_asserting(const double f)
 
 //-------------------------------------------------------------------
 
+float log2f_approx( const float X )
+{
+    ASSERT( X > 0.0 );
+    
+    FloatAnd32 fi;
+    fi.f = X;
+    
+    // get the float as an int, subtract off exponent bias        
+    float vv = (float) (fi.i - (127<<23));
+    
+    vv *= (1.f/8388608);
+
+    // vv is now like a fixed point with the exponent in the int
+    //  and the mantissa in the fraction
+    //
+    // that is actually already an approximate log2, but very inaccurate
+
+    // get the fractional part of vv :    
+    //float frac = vv - ftoi(vv);
+    
+    fi.i = (fi.i & 0x7FFFFF) | (127<<23);
+    float frac = fi.f - 1.f;
+
+    // use frac to apply a correction hump :    
+    const float C = 0.346573583f;
+        
+    float approx = vv + C * frac * (1.f - frac);
+
+//    DURING_ASSERT( double exact =  log2( X ) );
+//    ASSERT( fabs(exact - approx) <= 0.01 );
+    
+    return approx;
+}
+
+//-------------------------------------------------------------------
+
 /*
 	damping is usually 1.0 (critically damped)
 	frequency is usually in the range 1..16
@@ -84,8 +121,8 @@ float ComputePDAccel(const float fmValue,const float fmVelocity,
 	ASSERT( fisvalid(fmValue) );
 	ASSERT( fisvalid(fmVelocity) );
 	
-	const float ks = fsquare(frequency)*(9.f);
-	const float kd = frequency*damping*(4.5f);
+	const float ks = fsquare(frequency)*(36.f);
+	const float kd = frequency*damping*(9.f);
 
 	// scale factor for implicit integrator :
 	//	usually just slightly less than one
@@ -294,8 +331,50 @@ The denormal, underflow, overflow, invalid, and inexact precision exceptions are
 
 **/
 
+
+void SaveFPUState(FPUState * sptr)
+{
+	// 0 mask = change none
+	sptr->word  = _controlfp(0,0);
+}
+
+void RestoreFPUState(const FPUState * sptr)
+{
+	// -1 = set all
+	_controlfp(sptr->word,(unsigned int)-1);
+}
+
+static bool s_defaultFPU_saved = false;
+static FPUState s_defaultFPU = { 0 };
+
+void RestoreDefaultFPUState()
+{
+	if ( ! s_defaultFPU_saved )
+	{
+		lprintf("WARNING : called RestoreDefaultFPUState before Save\n");
+		SaveDefaultFPUState();
+	}
+	RestoreFPUState(&s_defaultFPU);
+}
+
+// SaveDefaultFPUState : should call this at startup :
+void SaveDefaultFPUState()
+{
+	// call a math routine to make clib set up fpu :
+	volatile double tt;
+	tt = cos(1.0);
+	// now save standard fpu state :
+	SaveFPUState(&s_defaultFPU);
+	//RestoreDefaultFPUState();
+	s_defaultFPU_saved = true;
+}
+
+
+
 void TurnOnFPUExceptions()
 {
+	#if 0
+	
 	// dmoore 9-4
 	//  turn on noisy fpu exceptions
 	// these FE flags mean "ignore this failure"
@@ -311,8 +390,8 @@ void TurnOnFPUExceptions()
 	uint16 control_word;
 	// the FWAIT instruction causes any pending exceptions
 	//	to be processed immediately
-///	__asm fwait
-///	__asm fnstcw control_word;
+	__asm fwait
+	__asm fnstcw control_word;
 	//__asm and control_word, ~(FE_DIVBYZERO | FE_INVALID)
 	control_word &= ~FE_DIVBYZERO;
 
@@ -324,11 +403,11 @@ void TurnOnFPUExceptions()
 	// OVERFLOW would be nuts
 	control_word &= ~FE_OVERFLOW;
 
-///	__asm fldcw control_word;
+	__asm fldcw control_word;
 
 	// setting the INVALID exception causes an immediate exception,
 	//	so I clear it here :
-///	__asm fnclex
+	__asm fnclex
 
 	/*
 	MCW_EM (Interrupt exception mask) 0x0008001F _EM_INVALID 
@@ -342,7 +421,7 @@ void TurnOnFPUExceptions()
 	// masking it on means ignore it :
  	//_control87( _EM_UNDERFLOW|_EM_INEXACT|_EM_DENORMAL , MCW_EM );
 	
-///	__asm fwait
+	__asm fwait
 	
 	/*
 	// test :
@@ -358,38 +437,65 @@ void TurnOnFPUExceptions()
 	
 	__asm fwait
 	*/
+	
+	#endif
 }
 
+/***
+
+ResetFPU is left over from when D3D used to
+fuck up your FPU mode
+
+not sure that's the case any more
+
+still useful just to make sure you are in the FPU
+mode you think you are
+
+***/
 void ResetFPU()
 {
+	// see _controlfp
+	//	not sure I want to do anything here
+	
+	// changing precision on x64 is forbidden !
+
+	// I should have a little class helper to Push/Pop FPU state
+	//	see VideoTest , it has better stuff
+
+	// use _clearfp too
+
+	#ifndef CB_64
 	#define FE_ROUNDING		0x0C00
 	#define FE_ROUNDTOZERO	0x0C00
 
-	_controlfp( FE_ROUNDTOZERO, FE_ROUNDING );
+		#define FE_PRECISION	0x0300
+		#define FE_PRECISION_64	0x0300
+		#define FE_PRECISION_53	0x0200
 
-	/*
-	uint16 control_word;
+		uint16 control_word;
 
-///	__asm fwait
-///	__asm fnstcw control_word;
+	__asm fwait
+	__asm fnstcw control_word;
 
-	const uint16 rounding = control_word & (3<<10);
+		//const uint16 rounding = control_word & FE_ROUNDING;
 	// default rounding = FPCW$NEAR  #0000  Round to nearest
 	// but don't assert cuz ResetFPU may be called at any time
-	const uint16 precision = control_word & (3<<8);
+		//const uint16 precision = control_word & FE_PRECISION;
 	// default precision = 	FPCW$53 #0200  53-bit precision
-	ASSERT( precision == 0x0200 );
+		//ASSERT( precision == FE_PRECISION_53 );
 
 	control_word &= ~FE_ROUNDING;
 	control_word |=  FE_ROUNDTOZERO;
 
-///	__asm fldcw control_word;
-///	__asm fwait
+		control_word &= ~FE_PRECISION;
+		control_word |=  FE_PRECISION_64;
 
-	UNUSED_PARAMETER(rounding);
-	UNUSED_PARAMETER(precision);
-	*/
+	__asm fldcw control_word;
+	__asm fwait
 
+		//UNUSED_PARAMETER(rounding);
+		//UNUSED_PARAMETER(precision);
+	#endif
 }
 
 //AT_STARTUP( ResetFPU(); );
@@ -558,4 +664,137 @@ uint32	FloatAsInt(const float f)
 	return u.i;
 }
 
+// spatial_i & wave_k from 0 to (dim-1)
+double ComputeDCTCoefficient(int spatial_i,int wave_k,int dim)
+{
+	if ( wave_k == 0 )
+		return sqrt(1.0/dim);
+	else
+		return sqrt(2.0/dim) * cos( (PI/dim)*(spatial_i + 0.5)*wave_k );
+}			
+
+//=========================================================
+
+float fsamplelerp_clamp(const float * array,const int size,const float t)
+{
+	if ( t <= 0.f )
+		return array[0];
+	if ( t >= (size-1) )
+		return array[size-1];
+	const int i = ftoi(t);
+	ASSERT( i >= 0 && i < (size-1) );
+	const float lerper = t - i;
+	return flerp( array[i], array[i+1], lerper );	
+}
+
+float fsamplelerp_wrap(const float * array,const int size,const float x)
+{
+	float t = x;
+	
+	while ( t < 0.f )
+		t += size;
+	while ( t >= size )
+		t -= size;
+
+	const int i = ftoi(t);
+	ASSERT( i >= 0 && i <= (size-1) );
+	
+	const float lerper = t - i;
+	
+	float lo = array[i];
+	
+	float hi = (i == size-1) ? array[0] : array[i+1];
+	
+	return flerp( lo, hi, lerper );	
+}
+
+float FloatTableLookupLerp( float t, const float * table, int size, bool wrap )
+{
+	// must make x >= 0 before we do the ftoi
+	//	because the int must be <= the float
+	if ( t < 0 )
+	{
+		if ( wrap ) { while( t < 0 ) t += size; }
+		else return table[0]; //clamp
+	}
+	
+	ASSERT( t >= 0 );
+	
+	int i = ftoi(t);
+	float frac = t - i;
+	
+	if ( i >= size )
+	{
+		if ( wrap ) { while( i >= size ) i -= size; }
+		else return table[size-1];
+	}
+	
+	float lo = table[i];
+	float hi;
+	
+	if ( i == size-1 )
+	{
+		if ( wrap ) hi = table[0];
+		else return table[size-1];	
+	}
+	else
+	{
+		hi = table[i+1];
+	}
+	
+	return flerp(lo,hi,frac);
+}
+
+// t in [0,1] interpolates from B to C ; A & D are next neighbors
+float CubicSpline( float A, float B, float C, float D, float t )
+{
+	float cA = t * (( 2.f - t)*t - 1.f);
+	float cB = t*t*(3.f*t - 5.f) + 2.f;
+	float cC = t*((4.f - 3.f*t)*t + 1.f);
+	float cD = t*t*(t-1.f);
+	
+	float out = cA * A + cB * B + cC * C + cD * D;
+	
+	return out * 0.5f;;
+}
+
+float FloatTableLookup( int i, const float * table, int size, bool wrap )
+{
+	if ( wrap )
+	{
+		while ( i < 0 ) i += size;
+		while ( i >= size ) i -= size;
+		return table[i];
+	}
+	else
+	{
+		i = Clamp(i,0,size-1);
+		return table[i];
+	}
+}
+
+float FloatTableLookupCubic( float x, const float * table, int size, bool wrap )
+{
+	// must make x >= 0 before we do the ftoi
+	//	because the int must be <= the float
+	if ( x < 0 )
+	{
+		if ( wrap ) { while( x < 0 ) x += size; }
+		else return table[0]; //clamp
+	}
+	
+	ASSERT( x >= 0 );
+	
+	int i = ftoi(x);
+	float frac = x - i;
+	
+	float A = FloatTableLookup(i-1,table,size,wrap);
+	float B = FloatTableLookup(i  ,table,size,wrap);
+	float C = FloatTableLookup(i+1,table,size,wrap);
+	float D = FloatTableLookup(i+2,table,size,wrap);
+
+	return CubicSpline(A,B,C,D,frac);
+}
+
 END_CB
+

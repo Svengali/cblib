@@ -40,7 +40,7 @@ namespace CallbackQueue
 // for CALLBACK_ON_DESTRUCT :
 //	the callbacks are destructed in reverse order they're made, which is what you want
 //	so you can do like :
-//		ptr = malloc();
+//		ptr = alloc();
 //		CallbackPtr cb1 = make_cb( free, ptr, CALLBACK_ON_DESTRUCT );
 //		junk = dostuff(ptr);
 //		CallBackPtr cb2 = make_cb( freestuff, junk, CALLBACK_ON_DESTRUCT );
@@ -53,7 +53,7 @@ namespace CallbackQueue
 
 #define CALLBACK_ON_DESTRUCT	(-128.0)
 
-class __declspec(novtable) Callback : public RefCounted
+CLASS_ABSTRACT_BASE Callback : public RefCounted
 {
 public:
 

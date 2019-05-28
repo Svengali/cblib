@@ -6,6 +6,7 @@
 #include "cblib/File.h"		// just for the IOMembers functor
 #include "cblib/PrefBlock.h" // just for the IOPrefs functor
 
+START_CB
 
 /***************
 
@@ -20,9 +21,13 @@ For a class to be Reflection-compatible, you just need a member like this :
 	template <class T>
 	void Reflection(T & functor)
 	{
+		parent_type::Reflection(functor);
 		REFLECT(m_a);
 		REFLECT(m_b);
 	}
+
+(if you are a derived class, call Reflection on your parent first)
+(you can also put any other code you want in your Reflection member)
 
 To implement a functor which works in the Reflection call, you do something
 like this :
@@ -52,42 +57,22 @@ of your class.  There are two options for that :
 1. A concrete-class dispatcher; see Prefs for example.
 
 2. Lots of virtual functions.  You just have to make a virtual function for each
-type of Reflection you want to do.  See TestClass in this cpp.
+  type of Reflection you want to do.  See TestClass in this cpp.
 
 The nice thing about the dispatcher is you don't have to do anything 
 in all your classes, it's done automatically for you via templates and such.
 
 *****************/
 
-#include "ReflectionMacros.h"
+//============================================================
 
+#define REFLECT(x)	functor(#x,x)
 
-START_CB
+#define REFLECT_ARRAYN(what,count)	do{ for(int i=0;i<(count);i++) { char str[80]; sprintf(str,"%s%d",#what,i); functor(str,(what)[i]); } }while(0)
 
-template< typename CLASS >
-class Reflect : public CLASS
-{
-public:
-};
-
-
-class HasReflection
-{
-public:
-	template< typename T >
-	void Reflection( T & );
-};
-
+#define REFLECT_ARRAY(what)	REFLECT_ARRAYN(what,ARRAY_SIZE(what))
+	
 /**
-
-required interface to be in Reflection :
-
-	template <class T>
-	void Reflection(T & functor)
-	{
-		REFLECT(m_a);
-		REFLECT(m_b);
-	}
 
 For static arrays you can just REFLECT_ARRAY , like
 
@@ -96,6 +81,43 @@ For static arrays you can just REFLECT_ARRAY , like
 you can just REFLECT_ARRAY(stuff); and it will make labels "stuff0" , "stuff1", etc.
 
 **/
+
+//===============================================================================
+/**
+
+AUTO_REFLECT() special tag :
+
+this create the Auto_Reflection function proto
+it also is a trigger to the AutoReflect parser to do its thing
+
+The AutoReflect parser creates :
+
+	"file.aup"
+	
+with Auto_Reflection and Auto_SetDefaults
+
+You should #include your .aup after your class generally, so it can see your protos.
+
+if you use AUTO_REFLECT , then it is your responsibilty to call Auto_Reflection and Auto_SetDefaults when you want to
+
+if you use AUTO_REFLECT_FULL , they are done for you
+
+you mark a variable for inclusion in autoreflection with //$
+
+NOTE : AUTO_REFLECT must be before the variables !
+
+***/
+
+#define AUTO_REFLECT(MyClass) \
+	FORBID_CLASS_STANDARDS(MyClass); \
+	template <class T> void Auto_Reflection(T & functor); \
+	void Auto_SetDefaults();
+
+#define AUTO_REFLECT_FULL(MyClass) \
+	AUTO_REFLECT(MyClass) \
+	template <class T> void Reflection(T & functor) { Auto_Reflection(functor); } \
+	MyClass() { Auto_SetDefaults(); } \
+	virtual ~MyClass() { }
 
 //============================================================
 
@@ -143,40 +165,20 @@ struct SizeMembers
 	}
 
 	template <class T>
-	void ZZ(const BoolAsType_False,const BoolAsType_False,T & value)
+	void ZZ(const BoolAsType_False,T & value)
 	{
 		m_total += sizeof(value);
 	}
-	
 	template <class T>
-	void ZZ(const BoolAsType_False,const BoolAsType_True,T & value)
+	void ZZ(const BoolAsType_True,T & value)
 	{
 		value.Reflection( *this );
-	}
-	template <class T>
-	void ZZ(const BoolAsType_False,const BoolAsType_True,T * value)
-	{
-		value->Reflection( *this );
-	}
-
-	template <class T>
-	void ZZ(const BoolAsType_True,const BoolAsType_False,T & value)
-	{
-		typename T::iterator it = value.begin();
-		
-		while( it != value.end() )
-		{
-			(*this)( "", *it );
-			
-			++it;
-		}
 	}
 
 	template <class T>
 	void operator() (const char * name,T & value)
 	{
-		UNUSED_PARAMETER( name );
-		ZZ( TypeTraits<T>().isContainer,TypeTraits<T>().hasReflection,value);
+		ZZ( TypeTraits<T>().hasReflection,value);
 	}
 
 };
@@ -192,6 +194,9 @@ struct IOMembers
 	{		
 	}
 
+	// IOMembers assumes a type can either be written as binary bits
+	//	or it has a Reflection member
+	// this is not really quite strong enough, you need IOZ at some point
 	template <class T>
 	void ZZ(const BoolAsType_False,T & value)
 	{

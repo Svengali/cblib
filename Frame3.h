@@ -15,16 +15,41 @@ START_CB
 
 a Frame3 is a Mat3 + a translation
 
-it's equivalent to a 3x4 Mat3
+it's equivalent to a 3x4 Mat3 (that's 3 rows, and 4 columns)
 
 In typical use, the Mat3 should be orthonormal, representing just a Rotation,
 but this class does not enforce that constraint (you must check it with
 IsOrthonormal).
 
-tulrich: Frame3 used to privately inherit from Mat3, which simplified
-passing through the Mat3::Get/SetRowX/Y/Z stuff, but also made it hard
-to wrap with CVAR.  So I changed it to the more conventional approach
-of using a Mat3 member.
+Note that the translation is stored like a row, but logically it is a column :
+
+RX RX RX T
+RY RY RY T
+RZ RZ RZ T
+0  0  0  1
+
+When you multiply a vector by a frame, you get :
+
+{ RX*V + T.x , RY*V + T.y, RZ*V + T.z }
+
+---------------
+
+GetRow is a bit broken BTW :
+
+  The matrix is laid out as follows:
+		
+		[ m_x.x  m_x.y  m_x.z  m_t.x ]
+		[ m_y.x  m_y.y  m_y.z  m_t.y ]
+		[ m_z.x  m_z.y  m_z.z  m_t.z ]
+		[   0      0      0      1   ]
+
+		So m_t is vertical, but m_x, m_y, m_z are horizontal.
+		Confusing, yes, but that's how we do it.  When you ask for a
+		"row", you're getting rows *except* if you ask for row 3, in
+		which case you're getting a column!!!
+
+		GetElement()/Element() and operator[] suffer from the same
+		confusion.
 
 */
 
@@ -59,39 +84,40 @@ public:
 	{
 	}
 	
-	explicit __forceinline Frame3(const EConstructorRows,const Vec3 & rx,const Vec3 & ry,const Vec3 & rz)
+	explicit __forceinline Frame3(const EConstructorRows e,const Vec3 & rx,const Vec3 & ry,const Vec3 & rz)
 		: m_mat(m_mat.eRows,rx,ry,rz) , m_t(0.f,0.f,0.f)
 	{
 	}
 
-	explicit __forceinline Frame3(const EConstructorRows,const Vec3 & rx,const Vec3 & ry,const Vec3 & rz,const Vec3 & t)
+	explicit __forceinline Frame3(const EConstructorRows e,const Vec3 & rx,const Vec3 & ry,const Vec3 & rz,const Vec3 & t)
 		: m_mat(Mat3::eRows,rx,ry,rz) , m_t(t)
 	{
 	}
 
-	explicit __forceinline Frame3(const EConstructorCols,const Vec3 & rx,const Vec3 & ry,const Vec3 & rz)
+	explicit __forceinline Frame3(const EConstructorCols e,const Vec3 & rx,const Vec3 & ry,const Vec3 & rz)
 		: m_mat(Mat3::eCols,rx,ry,rz) , m_t(0.f,0.f,0.f)
 	{
 	}
 
-	explicit __forceinline Frame3(const EConstructorCols,const Vec3 & rx,const Vec3 & ry,const Vec3 & rz,const Vec3 & t)
+	explicit __forceinline Frame3(const EConstructorCols e,const Vec3 & rx,const Vec3 & ry,const Vec3 & rz,const Vec3 & t)
 		: m_mat(Mat3::eCols,rx,ry,rz) , m_t(t)
 	{
 	}
 
 	//! use like this : Frame3(Frame3::eIdentity);
 	//!	(quite intentionally not using Vec3::unitX, etc. here)
-	explicit __forceinline Frame3(const EConstructorIdentity) 
+	explicit __forceinline Frame3(const EConstructorIdentity e) 
 		: m_mat(Mat3::eIdentity) , m_t(0.f,0.f,0.f)
 	{
 	}
 	
-	explicit __forceinline Frame3(const EConstructorZero) 
+	explicit __forceinline Frame3(const EConstructorZero e) 
 		: m_mat(Mat3::eZero) , m_t(0.f,0.f,0.f)
 	{
 	}
 
 	//----------------------------------------------
+	// IO as bytes
 
 	static const Frame3 identity;
 	static const Frame3 zero;
@@ -105,7 +131,8 @@ public:
 
 	void SetMatrix(const Mat3 & m);
 	const Mat3 & GetMatrix() const;
-	Mat3 & MutableMatrix();
+	Mat3 & MutableMatrix() { return m_mat; }
+	Mat3 & Matrix() { return m_mat; }
 
 	//----------------------------------------------
 	//!  Translation accessors
@@ -113,6 +140,7 @@ public:
 	const Vec3 & GetTranslation() const		{ ASSERT(m_t.IsValid()); return m_t; }
 	void SetTranslation(const Vec3 & v)		{ ASSERT(v.IsValid()); m_t = v; }
 	Vec3 & MutableTranslation()				{ /*ASSERT(m_t.IsValid());*/ return m_t; }
+	Vec3 & Translation()					{ /*ASSERT(m_t.IsValid());*/ return m_t; }
 
 	//----------------------------------------------
 	//! Frame3 a vector :
@@ -180,9 +208,9 @@ public:
 	const Vec3&	GetRowX() const { return m_mat.GetRowX(); }
 	const Vec3&	GetRowY() const { return m_mat.GetRowY(); }
 	const Vec3&	GetRowZ() const { return m_mat.GetRowZ(); }
-	const Vec3&	   RowX() 		{ return m_mat.RowX(); }
-	const Vec3&	   RowY() 		{ return m_mat.RowY(); }
-	const Vec3&	   RowZ() 		{ return m_mat.RowZ(); }
+	Vec3&			RowX() 		{ return m_mat.RowX(); }
+	Vec3&			RowY() 		{ return m_mat.RowY(); }
+	Vec3&			RowZ() 		{ return m_mat.RowZ(); }
 
 	void SetRowX(const Vec3& v) { m_mat.SetRowX(v); }
 	void SetRowY(const Vec3& v) { m_mat.SetRowY(v); }
@@ -254,13 +282,6 @@ inline void Frame3::SetMatrix(const Mat3 & m)
 inline const Mat3 & Frame3::GetMatrix() const
 {
 	ASSERT(IsValid());
-	return m_mat;
-}
-
-inline Mat3 & Frame3::MutableMatrix()
-{
-	// may not be valid at this point
-	///ASSERT(IsValid());
 	return m_mat;
 }
 

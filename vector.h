@@ -29,6 +29,12 @@ cost of tons of code.  I let my vector member functions be
 non-inline, which makes less code, but shows up slower in benchmarks.
 Hard to say what's best.
 
+---------------------------------------------------
+
+vector uses StlAlloc and StlFree
+
+there could be some merit to using an allocator that tells you the size you got
+
 *************************/
 
 #include "cblib/Base.h"
@@ -36,12 +42,26 @@ Hard to say what's best.
 #include "cblib/stl_basics.h"
 #include "cblib/Util.h"
 
+// you can define CB_VECTOR_MAX_GROW_BYTES yourself before including vector.h if you like
+#ifndef CB_VECTOR_MAX_GROW_BYTES
+#define CB_VECTOR_MAX_GROW_BYTES	(8*1024*1024)
+#endif CB_VECTOR_MAX_GROW_BYTES
+
 START_CB
+
+#pragma pack(push)
+#pragma pack(4)
+
+#pragma warning(push)
+#pragma warning(disable : 4328)
+ 
+//typedef ptrdiff_t vecsize_t;
+typedef int vecsize_t;
 
 //}{=======================================================================================
 // vector_storage
 
-template <class t_entry> class vector_storage
+template <typename t_entry,typename t_sizetype> class vector_storage
 {
 public:
 
@@ -61,24 +81,25 @@ public:
 		//CBFREE(m_begin);
 		init();
 	}
-
-	void swap(vector_storage<t_entry> & other,const int )
+ 
+ 
+	void swap(vector_storage<t_entry,t_sizetype> & other,const t_sizetype maxsize)
 	{
-		Swap(m_capacity,other.m_capacity);
 		Swap(m_begin,other.m_begin);
+		Swap(m_capacity,other.m_capacity);
 	}
-
+ 
 	//-----------------------------------------
 	// simple accessors :
 
 	t_entry *			begin()				{ return m_begin; }
 	const t_entry *		begin() const		{ return m_begin; }
-	int					capacity() const	{ return m_capacity; }
-	int					max_size() const	{ return (32UL)<<20; }
+	t_sizetype			capacity() const	{ return m_capacity; }
+	t_sizetype			max_size() const	{ return (32UL)<<20; }
 
 	//-------------------------------------------------------
 
-	__forceinline bool needmakefit(const int newsize) const
+	__forceinline bool needmakefit(const t_sizetype newsize) const
 	{
 		return (newsize > m_capacity);
 	}
@@ -86,94 +107,83 @@ public:
 	// makefit1
 	// returns the *old* pointer for passing into makefit2
 	//
-	t_entry * makefit1(const int newsize,const int oldsize)
+	t_entry * makefit1(const t_sizetype newsize,const t_sizetype oldsize)
 	{
 		ASSERT( needmakefit(newsize) );
 
 		t_entry * pOld = m_begin;
 
-		// On _XBOX, be much more careful about growing the memory conservatively.  This changes
-		//  push_back from amortized O(N) to O(N^2), but results in tighter vectors.  On Win32,
-		//  use the STL behavior of size doubling, which is O(N).
-#ifdef _XBOX
-		// growing
-		int newcapacity;
-		t_entry * pNew;
+		// Be much more careful about growing the memory conservatively.  This changes
+		//  push_back from amortized O(N) to O(N^2), but results in tighter vectors.
+
+		enum { c_maxGrowBytes = CB_VECTOR_MAX_GROW_BYTES };	// 1 MB
+		enum { c_maxGrowCount = c_maxGrowBytes/sizeof(t_entry) };
+		COMPILER_ASSERT( c_maxGrowCount > 1 );
+		// c_maxGrowCount should limit the doubling, but not the passed in newsize
+		
+		// m_capacity is 0 the first time we're called
+		// newsize can be passed in from reserve() so don't put a +1 on it
+
+		// grow by doubling until we get to max grow count, then grow linearly
+		t_sizetype newcapacity = MIN( m_capacity * 2 , (m_capacity + c_maxGrowCount) );
+		newcapacity = MAX( newcapacity, newsize );
 
 		// if on constant should optimize out
 		if ( sizeof(t_entry) == 1 )
 		{
-			int extra = m_capacity * 2 - newsize;
-			if ( extra < 0 )
-			{
-				// round up newcapacity to be a multiple of 8
-				newcapacity = (newsize+7)&(~7);
-			}
-			else if ( extra >= 2048 )
+			/*
+			// @@ make better use of pages ?
+			//	really should let the allocator tell me this
+			if ( newcapacity >= 1024 )
 			{
 				// round up newcapacity to be a multiple of 4096
-				newcapacity = (newsize+4095)&(~4095);
+				newcapacity = (newcapacity+4095)&(~4095);
 			}
 			else
+			*/
+			
 			{
 				// round up newcapacity to be a multiple of 8
-				newcapacity = (newsize+extra+7)&(~7);
+				newcapacity = (newcapacity+7)&(~7);
 			}
-
-			ASSERT( newcapacity >= newsize );
-			pNew = (t_entry *) StlAlloc( newcapacity );
 		}
 		else
 		{
-			enum { c_maxGrowBytes = 32768 };
-		
-			int extra = m_capacity * 2 - newsize;
-			if ( extra < 0 )
+			t_sizetype newbytes = newcapacity * sizeof(t_entry);
+			
+			if ( newbytes > 65536 )
 			{
-				newcapacity = newsize;
-			}
-			else if ( (extra * sizeof(t_entry)) < c_maxGrowBytes )
-			{
-				newcapacity = m_capacity * 2; // = newsize + extra
-				if ( (newcapacity * sizeof(t_entry)) > 512 )
-				{
-					// align up to 4096 :
-					int newbytes = (newcapacity * sizeof(t_entry) + 4095) & (~4095);
-					newcapacity = (newbytes + sizeof(t_entry)-1) / sizeof(t_entry);
-				}
+				// align newbytes up :
+				newbytes = (newbytes + 65535) & (~65535);
+				// align newcapacity down :
+				newcapacity = newbytes / sizeof(t_entry);
 			}
 			else
 			{
-				int newbytes = (newsize * sizeof(t_entry) + c_maxGrowBytes-1) & (~(c_maxGrowBytes-1));
-				newcapacity = (newbytes + sizeof(t_entry)-1) / sizeof(t_entry);
+				if ( newbytes < 512 )
+				{
+					// don't touch
+				}
+				else
+				{
+					// align up to 4096 :
+					newbytes = (newbytes + 4095) & (~4095);
+					newcapacity = newbytes / sizeof(t_entry);
+				}
 			}
-
-			ASSERT( newcapacity >= newsize );			
-			pNew = (t_entry *) StlAlloc( newcapacity * sizeof(t_entry) );
 		}
-#else
-		// growing
-		int newcapacity = MAX( m_capacity * 2, (newsize + 1) );
-		t_entry * pNew;
 
-		// if on constant should optimize out
-		if ( sizeof(t_entry) == 1 )
-		{
-			// round up newcapacity to be a multiple of 8
-			newcapacity = (newcapacity+7)&(~7);
+		ASSERT( newcapacity >= newsize );			
+		
+		t_entry * pNew = (t_entry *) StlAlloc( newcapacity * sizeof(t_entry) );
 
-			pNew = (t_entry *) StlAlloc( newcapacity );
-		}
-		else
-		{
-			pNew = (t_entry *) StlAlloc( newcapacity * sizeof(t_entry) );
-		}
-#endif // _XBOX
-
-		ASSERT_RELEASE_THROW( pNew );
+		ASSERT_RELEASE_THROW( pNew != NULL );
 
 		// copy existing :
 		entry_array::copy_construct(pNew,pOld,oldsize);
+		// @@ new : swap existing !
+		//	this requires entries to have a default constructor !!
+		//entry_array::swap_construct(pNew,pOld,oldsize);
 
 		m_begin = pNew;
 		m_capacity = newcapacity;
@@ -182,12 +192,12 @@ public:
 		return pOld;
 	}
 
-	void makefit2(t_entry * pOld, const int oldsize, const int oldcapacity)
+	void makefit2(t_entry * pOld, const t_sizetype oldsize, const t_sizetype oldcapacity)
 	{
 		if ( pOld )
 		{
 			entry_array::destruct(pOld,oldsize);
-			//CBFREE(pOld);
+
 			StlFree(pOld,oldcapacity*sizeof(t_entry));
 		}
 	}
@@ -196,7 +206,7 @@ public:
 
 private:
 	t_entry	*	m_begin;
-	int			m_capacity;	// how many allocated
+	t_sizetype	m_capacity;	// how many allocated
 
 	void init()
 	{
@@ -205,24 +215,20 @@ private:
 	}
 };
 
+#pragma pack(pop)
+#pragma warning(pop)
+
 //}{=======================================================================================
 // vector
 
-//template<typename T>
-//using vector = std::vector<T>;
-
-typedef std::size_t size_type;
-
-//*
-template <class t_entry> 
-class vector 
-	: 
-	public vector_flex<t_entry,vector_storage<t_entry>>
+template <class t_entry> class vector : public vector_flex<t_entry,vector_storage<t_entry,vecsize_t>,vecsize_t >
 {
 public:
 	//----------------------------------------------------------------------
-	typedef vector<t_entry>                                this_type;
-	typedef vector_flex<t_entry,vector_storage<t_entry> >  parent_type;
+	//typedef parent_type::size_type;				size_type;
+	//using typename parent_type::size_type;
+	typedef vector<t_entry>						this_type;
+	typedef vector_flex<t_entry,vector_storage<t_entry,vecsize_t>,vecsize_t >	parent_type;
 
 	//----------------------------------------------------------------------
 	// constructors
@@ -230,12 +236,8 @@ public:
 	 vector() { }
 	~vector() { }
 
-	// I don't have the normal (size_t) constructor, just this (size_t,value) constructor for clarity
-	vector(
-		const size_type size,
-		const t_entry & init) 
-		: 
-		parent_type(size,init)
+	// I don't have the normal (t_sizetype) constructor, just this (t_sizetype,value) constructor for clarity
+	vector(const size_type size,const t_entry & init) : parent_type(size,init)
 	{
 	}
 
@@ -249,24 +251,22 @@ public:
 	{
 	}
 };
-//*/
 
 //}{=======================================================================================
 
 END_CB
 
-// @@ how do you do this ?
-/*
-#include "cblib/stl_basics.h"
+START_CB
+// partial specialize swap_functor to all vectors
+//	for cb::Swap
 
-CB_STL_BEGIN
+template<class t_entry> 
+struct swap_functor< cb::vector<t_entry> >
+{
+	void operator () ( cb::vector<t_entry> & _Left, cb::vector<t_entry> & _Right)
+	{
+		_Left.swap(_Right);
+	}
+};
 
-//template<class t_entry> 
-template<> inline
-void swap<cb::vector<t_entry> >(cb::vector<t_entry> & _Left, cb::vector<t_entry> & _Right)
-{	// exchange values stored at _Left and _Right
-	_Left.Swap(&_Right);
-}
-
-CB_STL_END
-/**/
+END_CB

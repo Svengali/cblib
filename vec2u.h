@@ -60,6 +60,7 @@ START_CB
 	//-----------------------------------------
 
 	//! *pv = a random normal, with a correct circular distribution
+	void SetRandomNormal(Vec2 * pv);
 	const Vec2 MakeRandomNormal();
 
 	//----------------------------------------------------------------------------------
@@ -101,6 +102,13 @@ START_CB
 	const Vec2 MakeNormalFast(const Vec2 & fm,const Vec2 &to);
 	const Vec2 MakeNormalSafe(const Vec2 & fm,const Vec2 &to,const Vec2 & fallback = Vec2::unitX);
 	
+	//! Returns a random point around center that is in the AABB square bounding the circle given by the radius
+	const Vec2 MakeRandomInBox( const Vec2 &center, const float radius );
+	
+	//! Same as above except you can specify the radius for x and y seperately
+	const Vec2 MakeRandomInBox( const Vec2 &center, const Vec2 &halfSize );
+
+
 	const bool SetAngularRotated(Vec2 * pLerp,const Vec2 & normal1,const Vec2 & normal2,const float radians);
 
 	//! GetAngleBetweenNormals is expensive!
@@ -109,9 +117,8 @@ START_CB
 	const float GetSignOfAngleBetweenNormals(const Vec2 &a,const Vec2 & b);  // +clockwise, -counter
 
 	// Vec2 version of FloatUtil DampedDrive
-	// @@@@ DampedDrive is deprecated !! use ApplyDampedDrive instead !!
-	const Vec2 DampedDrive(const Vec2 & val,const Vec2 & towards,const float time_scale,const float time_step);
-	const Vec2 LerpedDrive(const Vec2 & val,const Vec2 & towards,const float speed,const float time_step);
+	const Vec2 LerpedDriveVec(const Vec2 & val,const Vec2 & towards,const float speed,const float time_step);
+	const Vec2 LerpedDriveComponents(const Vec2 & val,const Vec2 & towards,const float speed,const float time_step);
 	
 //}{========================================================================================
 // INLINE FUNCTIONS
@@ -336,18 +343,15 @@ START_CB
 		ret.NormalizeSafe(fallback);
 		return ret;
 	}
-	
-	// Vec2 version of FloatUtil DampedDrive
-	__forceinline const Vec2 DampedDrive(const Vec2 & val,const Vec2 & towards,const float time_scale,const float time_step)
+
+	__forceinline const Vec2 LerpedDriveComponents(const Vec2 & from,const Vec2 & to,const float speed,const float time_step)
 	{
-		const float z = expf( - time_step / time_scale );		
-		const float b = 1.f - z;
-		
-		return Vec2( val.x * z + towards.x * b,
-					 val.y * z + towards.y * b );
+		return Vec2(
+			LerpedDrive(from.x,to.x,speed,time_step),
+			LerpedDrive(from.y,to.y,speed,time_step));
 	}
-	
-	__forceinline const Vec2 LerpedDrive(const Vec2 & from,const Vec2 & to,const float speed,const float time_step)
+
+	__forceinline const Vec2 LerpedDriveVec(const Vec2 & from,const Vec2 & to,const float speed,const float time_step)
 	{
 		const float step = speed * time_step;        
 		ASSERT( step > 0.f );

@@ -1,10 +1,12 @@
 #pragma once
 
+#include "cblib/Reflection.h"
 #include "cblib/PrefBlock.h"
 #include "cblib/String.h"
 #include "cblib/SPtr.h"
 #include "cblib/FileUtil.h"
 
+#include <crtdefs.h>
 //typedef long time_t;
 
 START_CB
@@ -88,6 +90,7 @@ class Prefs : public RefCounted
 public:
 	
 	void SetDispatcher(PrefDispatcher * dispatcher) { m_dispatcher = dispatcher; }
+	PrefDispatcher * GetDispatcher() const { return m_dispatcher.GetPtr(); }
 
 	void SetResourceName(const char * const name) { m_resourceName = name; }
 	const char * const GetResourceName() const { return m_resourceName.CStr(); }
@@ -119,11 +122,13 @@ namespace PrefsMgr
 	void ReloadAll();
 	void SaveAll();
 
+	void GetDirsToWatch(vector<String> * pInto);
+		
 	//-----------------------------------------
 	// internal use only :
 
 	Prefs * GetExisting(const char * resourceName);
-	void Add(const PrefsPtr & pref,const char * resourceName);
+	void Add(const PrefsPtr & pref,const char * resourceName,bool doAutoSave);
 
 	//-----------------------------------------
 	// templated Get() is the primary accessor
@@ -154,10 +159,26 @@ namespace PrefsMgr
 		dispatcher->IO(block,ret.GetPtr());
 		//block.IO("prefs",ret.GetPtr());
 
-		Add(PrefsPtr(ret.GetPtr()),resourceName);
+		Add(PrefsPtr(ret.GetPtr()),resourceName,true);
 
 		return ret;
 	}
+	
+	template <class T>
+	SPtr<T>	CreateNull()
+	{
+		SPtr<T> ret(new T);
+
+		// remember the Dispatcher for later :
+		//PrefDispatcher<T>::PrefIOPtr ptr = PrefIO;
+		PrefDispatcherTyped<T> * dispatcher = new PrefDispatcherTyped<T>(); //ptr);
+		ret->SetDispatcher(dispatcher);
+		
+		return ret;
+	}
+	
 };
+
+//===============================================================================
 
 END_CB

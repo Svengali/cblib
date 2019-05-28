@@ -44,6 +44,10 @@ safeprintf_type()
 on your custom type.  Generally it's preferred to explicitly cast when you call, but in some cases if you
 have types that are drop-in replacements for basic types you may want to do this.
 
+eg. you could provide :
+
+template <> inline ESafePrintfType safeprintf_type(const HWND arg) { return safeprintf_int32; }
+
 ---------------------------------------------
 
 You can wrap your own varargs printing functions to make them safe using the "safeprintf.inc" include.
@@ -60,15 +64,20 @@ enum ESafePrintfType
 	safeprintf_none = 0,
 	safeprintf_unknown,
 	safeprintf_charptr,
-	safeprintf_int,
+	safeprintf_wcharptr,
 	safeprintf_float,
 	safeprintf_ptrint,
-	safeprintf_ptrvoid
+	safeprintf_ptrvoid,
+	safeprintf_int32,
+	safeprintf_int64,
+	safeprintf_uint32,
+	safeprintf_uint64
+	//safeprintf_basetypes_count
 };
 const char * c_safeprintftypenames[];
 
 template < typename t_arg >
-inline ESafePrintfType safeprintf_type(const t_arg)
+inline ESafePrintfType safeprintf_type(const t_arg arg)
 {
 	return safeprintf_unknown;
 }
@@ -76,119 +85,124 @@ inline ESafePrintfType safeprintf_type(const t_arg)
 template <>
 inline ESafePrintfType safeprintf_type(const int arg)
 {
-	UNUSED_PARAMETER( arg );
-	return safeprintf_int;
+	return safeprintf_int32;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const char arg)
 {
-	UNUSED_PARAMETER( arg );
-	return safeprintf_int;
+	return safeprintf_int32;
+}
+
+template <>
+inline ESafePrintfType safeprintf_type(const wchar_t arg)
+{
+	return safeprintf_int32;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const short arg)
 {
-	UNUSED_PARAMETER( arg );
-	return safeprintf_int;
+	return safeprintf_int32;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const long arg)
 {
-	UNUSED_PARAMETER( arg );
-	return safeprintf_int;
+	return safeprintf_int32;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const __int64 arg)
-{ 	UNUSED_PARAMETER( arg );
-	return safeprintf_int;
+{
+	return safeprintf_int64;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const unsigned int arg)
-{ 	UNUSED_PARAMETER( arg );
-	return safeprintf_int;
+{
+	return safeprintf_uint32;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const unsigned char arg)
-{ 	UNUSED_PARAMETER( arg );
-	return safeprintf_int;
+{
+	return safeprintf_int32;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const unsigned short arg)
-{ 	UNUSED_PARAMETER( arg );
-	return safeprintf_int;
+{
+	return safeprintf_int32;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const unsigned long arg)
-{ 	UNUSED_PARAMETER( arg );
-	return safeprintf_int;
+{
+	return safeprintf_uint32;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const unsigned __int64 arg)
-{ 	UNUSED_PARAMETER( arg );
-	return safeprintf_int;
+{
+	return safeprintf_uint64;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const float arg)
-{ 	UNUSED_PARAMETER( arg );
+{
 	return safeprintf_float;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const double arg)
-{ 	UNUSED_PARAMETER( arg );
+{
 	return safeprintf_float;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const char * arg)
-{ 	UNUSED_PARAMETER( arg );
+{
 	return safeprintf_charptr;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(const wchar_t * arg)
-{ 	UNUSED_PARAMETER( arg );
-	return safeprintf_charptr;
+{
+	return safeprintf_wcharptr;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(char * arg)
-{ 	UNUSED_PARAMETER( arg );
+{
 	return safeprintf_charptr;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(wchar_t * arg)
-{ 	UNUSED_PARAMETER( arg );
-	return safeprintf_charptr;
+{
+	return safeprintf_wcharptr;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(int * arg)
-{ 	UNUSED_PARAMETER( arg );
+{
 	return safeprintf_ptrint;
 }
 
 template <>
 inline ESafePrintfType safeprintf_type(void * arg)
-{ 	UNUSED_PARAMETER( arg );
+{
 	return safeprintf_ptrvoid;
 }
 
 //=======================================================================================
 
-extern ESafePrintfType safeprintf_fmttype(const char fmt);
-extern const char * safeprintf_fmtskipwidth(const char * ptr);
+//default setup is (true,true,false,false)
+extern void safeprintf_setoptions(bool noisy,bool checkintsize,bool checkintasfloat,bool checkintunsigned);
+
+extern ESafePrintfType safeprintf_fmttype(const char fmt, bool wide);
+extern const char * safeprintf_fmtskipwidth(const char * ptr, bool * pWide);
 extern ESafePrintfType safeprintf_findfmtandadvance(const char ** ptr);
 extern void safeprintf_throwerror(const char *fmt_base,const char *fmt,ESafePrintfType fmttype,ESafePrintfType argtype);
 extern void safeprintf_throwsyntaxerror(const char *fmt_base,const char *fmt);

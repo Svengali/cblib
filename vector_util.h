@@ -96,6 +96,28 @@ namespace vector_util
 		pVector->swap(other);
 	}
 
+	template <typename T>
+	void random_permute(T * order,int size)
+	{
+		for(int i=0;i<size;i++)
+		{
+			int r = i + irandmod(size - i);
+			std::swap( order[i], order[r] );
+		}
+	}	
+
+	template <typename V>
+	void random_permute(V * pVec)
+	{
+		int size = pVec->size32();
+		V::iterator order = pVec->begin();
+		for(int i=0;i<size;i++)
+		{
+			int r = i + irandmod(size - i);
+			std::swap( order[i], order[r] );
+		}
+	}	
+	
 } // namespace VectorUtil
 
 END_CB

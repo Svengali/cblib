@@ -4,7 +4,7 @@
 #include "cblib/Frame3Scaled.h"
 #include "cblib/Sphere.h"
 #include "cblib/AxialBox.h"
-//#include "cblib/Cylinder.h"
+#include "cblib/Cylinder.h"
 #include "cblib/OrientedBox.h"
 #include "cblib/Segment.h"
 #include "cblib/Mat3Util.h"
@@ -16,6 +16,8 @@ START_CB
 
 //---------------------------------------------------------------------------------
 
+//! the "Sphere" is treated as a cube; the "Cube" contains the actual "sphere"
+//!	 you may think of this as an approximation of the AxialBox-Sphere test
 bool BoxIntersectsCube(const AxialBox & ab, const Sphere & cube)
 {
 	return	( ab.GetMin().x <= cube.GetCenter().x + cube.GetRadius() && ab.GetMax().x >= cube.GetCenter().x - cube.GetRadius() ) &&
@@ -34,21 +36,6 @@ void MakeBoxAroundSphere( AxialBox * pb, const Sphere & s)
 	pb->SetMax( s.GetCenter() + vRadius );
 	ASSERT( pb->IsValid() );
 }
-
-/*
-void MakeBoxAroundCylinder( AxialBox * pb, const Cylinder & c)
-{
-	ASSERT(pb);
-	pb->SetToPoint( c.GetBase() );
-	pb->MutableMax().z += c.GetHeight();
-	const float radius = c.GetRadius();
-	pb->MutableMin().x -= radius;
-	pb->MutableMin().y -= radius;
-	pb->MutableMax().x += radius;
-	pb->MutableMax().y += radius;
-	ASSERT( pb->IsValid() );
-}
-*/
 
 void MakeSphereAroundBox( Sphere * ps, const AxialBox & b)
 {
@@ -169,21 +156,38 @@ bool Intersects(const Cylinder &s, const Sphere & b)
 //! Box contains Sphere
 bool BoxContainsSphere(const AxialBox & b, const Sphere &s)
 {
-	// sphere center must be inside radius of the box :
-	
-	AxialBox sphereBox( s.GetCenter(), s.GetRadius() );
-	ASSERT( sphereBox.IsValid() );
+	// @@ UNTESTED !
 
-	return b.Contains(sphereBox);
+	// Sphere center must be inside radius of the box :
+	
+	const float radius = s.GetRadius();
+	
+
+	// IsValid will check to see if the box was too small, so that
+	//	the new max is not greater than the min
+	
+	//isvalid asserts, that'll cause BCS tests to assert if the box is smaller than the Sphere. 
+	//if ( ! smallerb.IsValid() ) 
+	//	return false;
+
+	//I think want we want is this logic from the IsValid:
+	//ASSERT( m_max.x >= m_min.x );
+	//ASSERT( m_max.y >= m_min.y );
+	//ASSERT( m_max.z >= m_min.z );
+
+	const Vec3 smallerBMin(b.GetMin() + Vec3(radius,radius,radius));
+	const Vec3 smallerBMax(b.GetMax() - Vec3(radius,radius,radius));
+	if( smallerBMin[0] > smallerBMax[0] || 
+		smallerBMin[1] > smallerBMax[1] || 
+		smallerBMin[2] > smallerBMax[2])
+	{
+		return false;
 }
 
-bool BoxContainsSphereXY(const AxialBox & b, const Sphere &s)
-{
-	// sphere center must be inside radius of the box :
-	AxialBox sphereBox( s.GetCenter(), s.GetRadius() );
-	ASSERT( sphereBox.IsValid() );
+	const AxialBox smallerb( smallerBMin,smallerBMax );
+	ASSERT( smallerb.GetVolume() < b.GetVolume() );
 
-	return b.ContainsXY(sphereBox);
+	return smallerb.Contains(s.GetCenter());
 }
 
 //! Sphere contains Box
@@ -208,6 +212,25 @@ bool SphereContainsBox(const Sphere &s, const AxialBox & b)
 
 //---------------------------------------------------------------------------------
 
-//}; // gVolume
+bool Intersects(const Cylinder &s, const Sphere & b)
+{
+	float dSqr = s.GetDistanceSqr(b.GetCenter());
+	return dSqr <= fsquare( b.GetRadius() );
+}
+
+void MakeBoxAroundCylinder( AxialBox * pb, const Cylinder & c)
+{
+	ASSERT(pb);
+	pb->SetToPoint( c.GetBase() );
+	pb->MutableMax().z += c.GetHeight();
+	const float radius = c.GetRadius();
+	pb->MutableMin().x -= radius;
+	pb->MutableMin().y -= radius;
+	pb->MutableMax().x += radius;
+	pb->MutableMax().y += radius;
+	ASSERT( pb->IsValid() );
+}
+
+	
 
 END_CB

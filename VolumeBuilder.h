@@ -38,11 +38,13 @@ class RectF;
 				const Vec3 * pVerts,
 				const int numVerts);
 
-	// for a better sphere, use MiniBall
+	void MakeMiniSphere(Sphere * pS,
+				const Vec3 * pVerts,
+				const int numVerts);
 
 	//-----------------------------------------
 	// O(N)
-	void BoundinRectangle(RectF * pR,
+	void BoundingRectangle(RectF * pR,
 				const Vec2 * pVerts,
 				const int numVerts);
 
@@ -59,6 +61,12 @@ class RectF;
 				const Vec3 * pVerts,
 				const int numVerts);
 
+	void BuildBoxGivenAxes(
+			OrientedBox * pBox,
+			const Vec3 * pVerts,
+			const int numVerts,
+			const Mat3 & axes);
+			
 	enum EOBBCriterion
 	{
 		eOBB_Volume,
@@ -66,6 +74,9 @@ class RectF;
 		eOBB_ShortestMajorAxis
 	};
 
+	// lower rating is better
+	float RateOBB(const OrientedBox & obb,EOBBCriterion eCrit);
+					
 	// OptimalOBBByVolume :
 	//	the normals should be the normals of
 	//	the convex hull of the verts
@@ -84,8 +95,23 @@ class RectF;
 				const Vec3 * pVerts,
 				const int numVerts,
 				EOBBCriterion eCrit,
-				AxialBox * pAB = NULL);
+				bool optimize,
+				AxialBox * pAB);
 	
+	// OptimalOBBBarequetHarPeled optimizes always
+	void OptimalOBBBarequetHarPeled(OrientedBox * pBox,
+				const Vec3 * pVerts,
+				const int numVerts,
+				EOBBCriterion eCrit,
+				const int kLimit);
+				
+	void IterativeRefineOBB(OrientedBox * pBox,
+					const AxialBox & ab,
+					const Vec3 * pVerts,
+					const int numVerts,
+					EOBBCriterion eCrit,
+					const bool tryAxes);
+				
 	// OBBByCovariance
 	//	the "traditional" method using the covariance matrix
 	//	really just not very good
@@ -95,8 +121,21 @@ class RectF;
 
 	void OBBByCovarianceOptimized(OrientedBox * pBox,
 				const Vec3 * pVerts,
-				const int numVerts);
+				const int numVerts,
+				EOBBCriterion eCrit);
 
+	void OBBGoodHeuristic(OrientedBox * pBox,
+				const Vec3 * pVerts,
+				const int numVerts,
+				EOBBCriterion eCrit);
+				
+	void OBBGivenCOV(OrientedBox * pBox,
+				const Vec3 * pVerts,
+				const int numVerts,
+				const Mat3 & givenAxes,
+				EOBBCriterion eCrit,
+				bool optimize);
+			
 	//-----------------------------------------
 	// 2d and 3d versions of "FindOptimalRectangle"
 	//	find the minimum-area oriented rectangle 

@@ -2,13 +2,18 @@
 #ifndef GALAXY_GREEDYALLOCATOR_H
 #define GALAXY_GREEDYALLOCATOR_H
 
+#include <cblib/Base.h>
+
 START_CB
 
 namespace SmallAllocator_Greedy
 {
-	void *	Allocate(const int size);
-	void	Free(void * p,const int size);
+	void *	Allocate(const size_t size);
+	void	Free(void * p,const size_t size);
 
+	void	FreeNoSize(void * p);
+	int		GetMemSize(void * p);
+	
 	void	Destroy();
 	void	Log();
 };

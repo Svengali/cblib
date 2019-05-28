@@ -27,6 +27,8 @@ START_CB
 	bool IsShort(const Vec3 & v, const float len = EPSILON);
 	bool IsShort(const Vec3 & v1,const Vec3 & v2, const float len = EPSILON);
 	
+	float HorizontalSum(const Vec3 & v);
+	
 	//----------------------------------------------------------------------------------
 
 	//! length-based clampers :
@@ -52,6 +54,7 @@ START_CB
 	int GetLargestComponent(const Vec3 & v);
 	int GetSmallestComponent(const Vec3 & v);
 	
+	//! returns v[GetLargestComponent(v)]
 	float GetLargestComponentValue(const Vec3 & v);
 	
 	//! point in Z-cylinder
@@ -60,6 +63,7 @@ START_CB
 	
 	//! *pv = the cross of the edges of the triangle a,b,c
 	//!	its magnitude is twice the area of the triangle
+	// normal points out from *counter-clockwise* winding of the triangle
 	void SetTriangleCross(Vec3 * pv,const Vec3 &a,const Vec3 &b,const Vec3 &c);
 
 	float TriangleArea(const Vec3 &a,const Vec3 &b,const Vec3 &c);
@@ -74,7 +78,10 @@ START_CB
 	//! *pv = a random normal, with a correct spherical distribution
 	void SetRandomNormal(Vec3 * pv);
 
+	void SetRandomInUnitCube(Vec3 * pv);
+
 	//! Get the two polar coordinates that define a normal (asserts on isnormalized)
+	//!	(WARNING : by "theta" and "phi" names are the opposite of what some people use)
 	//!	 Theta in [-pi,pi] , Phi in [-pi/2,pi/2]
 	void GetPolarFromNormal(const Vec3 & normal,float * pTheta, float * pPhi);
 	void SetNormalFromPolar(Vec3 * pNormal,const float theta, const float phi);
@@ -82,6 +89,11 @@ START_CB
 	//! Does an angular lerp of two normals (using quats, btw, actually a slerp)
 	//!	 SLOW , but nice
 	void SetAngularLerp(Vec3 * pSlerp,const Vec3 & normal1,const Vec3 & normal2,const float t);
+
+	//! SetPolarLerp is like SetAngularLerp but uses Z-up to prevent
+	//!	 pitching of the normals
+	void SetPolarLerp(Vec3 * pSlerp,const Vec3 & normal1,const Vec3 & normal2,const float t);
+
 	//! SetAngularRotated is like SetAngularLerp, but it rotates a max "radians"
 	//!	 in the rotation sweep
 	//!	returns whether the end was reached
@@ -137,6 +149,7 @@ START_CB
 	const Vec3 MakeNormalizedFast(const Vec3 & v);
 	const Vec3 MakeNormalizedSafe(const Vec3 & v, const Vec3 & fallback = Vec3::unitZ);
 	const Vec3 MakeRandomInSphere(const float radius);
+	const Vec3 MakeRandomInSphereFast(const float radius);
 
 	const Vec3 MakeNormalFast(const Vec3 & fm,const Vec3 &to);
 	const Vec3 MakeNormalSafe(const Vec3 & fm,const Vec3 &to,const Vec3 & fallback = Vec3::unitZ);
@@ -150,9 +163,8 @@ START_CB
 	const Vec3 MakeUnitPreservingZFast( const float x, const float y, const float z ); 
 	const Vec3 MakeUnitPreservingZSafe( const float x, const float y, const float z, const Vec3& fallback = Vec3::unitZ ); 
 
-	// @@@@ DampedDrive is deprecated !! use ApplyDampedDrive instead !!
-	const Vec3 DampedDrive(const Vec3 & val,const Vec3 & towards,const float time_scale,const float time_step);
-	const Vec3 LerpedDrive(const Vec3 & from,const Vec3 & to,const float speed,const float time_step);
+	const Vec3 LerpedDriveVec(const Vec3 & from,const Vec3 & to,const float speed,const float time_step);
+	const Vec3 LerpedDriveComponents(const Vec3 & from,const Vec3 & to,const float speed,const float time_step);
 
 //}{========================================================================================
 // INLINE FUNCTIONS
@@ -179,6 +191,11 @@ START_CB
 		return sqrtf( DistanceSqrXY(a,b) );
 	}
 	
+	inline float HorizontalSum(const Vec3 & v)
+	{
+		return v.x + v.y + v.z;
+	}
+
 	//----------------------------------------------------------------------------------
 
 	inline void GetTwoPerpNormals(const Vec3 & v,Vec3 * pv1,Vec3 * pv2)
@@ -197,6 +214,7 @@ START_CB
 		return n.Length() * 0.5f;
 	}
 
+	// normal points out from *counter-clockwise* winding of the triangle
 	inline void SetTriangleCross(Vec3 * pv,const Vec3 &a,const Vec3 &b,const Vec3 &c)
 	{
 		// *pv = the cross of the edges of the triangle a,b,c
@@ -210,6 +228,7 @@ START_CB
 		ASSERT(pv->IsValid());
 	}
 
+	// normal points out from *counter-clockwise* winding of the triangle
 	inline float SetTriangleNormal(Vec3 * pv,const Vec3 &a,const Vec3 &b,const Vec3 &c)
 	{
 		// *pv = the normal of the triangle a,b,c
@@ -455,18 +474,6 @@ START_CB
 	}
 	//}========================================================================================
 
-	// Vec3 version of FloatUtil DampedDrive
-	// !!! CB : DampedDrive is crap, don't use it !!!
-	__forceinline const Vec3 DampedDrive(const Vec3 & val,const Vec3 & towards,const float time_scale,const float time_step)
-	{
-		const float z = expf( - time_step / time_scale );		
-		const float b = 1.f - z;
-		
-		return Vec3( val.x * z + towards.x * b,
-					 val.y * z + towards.y * b,
-					 val.z * z + towards.z * b );		
-	}
-
 	__forceinline const Vec3 LerpedDriveComponents(const Vec3 & from,const Vec3 & to,const float speed,const float time_step)
 	{
 		return Vec3(
@@ -476,7 +483,7 @@ START_CB
 	}
 	
 	// !! CB : LerpedDriveComponents is generally what you want, use it !!
-	__forceinline const Vec3 LerpedDrive(const Vec3 & from,const Vec3 & to,const float speed,const float time_step)
+	__forceinline const Vec3 LerpedDriveVec(const Vec3 & from,const Vec3 & to,const float speed,const float time_step)
 	{
 		const float step = speed * time_step;        
 		ASSERT( step > 0.f );

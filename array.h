@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cblib/Base.h"
+#include "cblib/Util.h"
 
 /*
 
@@ -96,7 +97,7 @@ public:
 	template <class input_iterator>
 	void assign(const input_iterator first,const input_iterator last)
 	{
-		const int count = last - first;
+		const int count = ptr_diff_32( last - first );
 		ASSERT( count <= t_size );
 		input_iterator it = first;
 		for(int i=0;i<count;i++)
@@ -109,7 +110,7 @@ public:
 	template <class input_iterator>
 	void assign(const int startIndex,const input_iterator first,const input_iterator last)
 	{
-		const int count = last - first;
+		const int count = ptr_diff_32( last - first );
 		input_iterator it = first;
 		ASSERT( startIndex >= 0 && (startIndex+count) < t_size );
 		for(int i=0;i<count;i++)

@@ -8,7 +8,7 @@ START_CB
 int64 Area(const vector<Vec2i> & verts,const vector<int> & polygon)
 {
 	int64 ret = 0;
-	for(int i=2;i<polygon.size();i++)
+	for(int i=2;i<polygon.size32();i++)
 	{
 		int64 a = Area( verts[ polygon[0] ], verts[ polygon[ i-1] ], verts[ polygon[i] ] );
 		ret += a;
@@ -19,7 +19,7 @@ int64 Area(const vector<Vec2i> & verts,const vector<int> & polygon)
 RectI Bound(const vector<Vec2i> & verts,const vector<int> & polygon)
 {
 	RectI ret( verts[ polygon[0] ].x, verts[polygon[0]].y );
-	for(int i=1;i<polygon.size();i++)
+	for(int i=1;i<polygon.size32();i++)
 	{
 		ret.ExtendToPoint( verts[ polygon[i] ].x , verts[ polygon[i] ].y );
 	}
@@ -35,7 +35,7 @@ bool Contains( const vector<Vec2i> & verts, const vector<int> & poly, const Vec2
 
 	bool inY = false;
 
-	int s = poly.size();
+	int s = poly.size32();
 	for(int i=0;i<s;i++)
 	{
 		int n = i+1;
@@ -81,7 +81,7 @@ bool Contains( const vector<Vec2i> & verts, const vector<int> & p1, const vector
 	// just check if any verts of p2 are not in p1
 	// "on" is counted as "in"
 
-	for(int i=0;i<p2.size();i++)
+	for(int i=0;i<p2.size32();i++)
 	{
 		if ( ! Contains(verts,p1, verts[p2[i]]) )
 			return false;
@@ -95,25 +95,25 @@ void MergeConvex( vector<int> * pTo, const vector<Vec2i> & verts, const vector<i
 	//@@@@ TODO : there should be fast way to do this, right?
 
 	vector<Vec2i> v;
-	{for(int i=0;i<p1.size();i++)
+	{for(int i=0;i<p1.size32();i++)
 	{
 		v.push_back( verts[p1[i]] );
 	}}
-	{for(int i=0;i<p2.size();i++)
+	{for(int i=0;i<p2.size32();i++)
 	{
 		v.push_back( verts[p2[i]] );
 	}}
 
 	vector<Vec2i> hull;
-	ConvexHullBuilder2d::Make2d(v.data(),v.size(), hull);
+	ConvexHullBuilder2d::Make2d(v.data(),v.size32(), hull);
 
-	pTo->resize(hull.size());
+	pTo->resize(hull.size32());
 
 	// re-index it :
-	{for(int i=0;i<hull.size();i++)
+	{for(int i=0;i<hull.size32();i++)
 	{
-		int index = verts.find( hull[i] ) - verts.begin();
-		ASSERT( index != verts.size() );
+		int index = ptr_diff_32( verts.find( hull[i] ) - verts.begin() );
+		ASSERT( index != verts.size32() );
 		pTo->at(i) = index;
 	}}
 }
@@ -123,7 +123,7 @@ void MergeConvex( vector<int> * pTo, const vector<Vec2i> & verts, const vector<i
 namespace ConvexHullTree
 {
 
-double RateMerge(const vector<Vec2i> & verts,const Node * p1,const Node * p2, double)
+double RateMerge(const vector<Vec2i> & verts,const Node * p1,const Node * p2, double curBest)
 {
 	// rate based on :
 	//	1) area of result (smaller is better)
@@ -166,9 +166,11 @@ Node * Build(const vector<Vec2i> & verts,vector< vector<int> > & polygons)
 	// I assume all the leaves don't overlap each over at all
 
 	vector<Node *>	nodes;
-	nodes.resize( polygons.size() );
+	nodes.resize( polygons.size32() );
 
-	for( int i=0;i<polygons.size();i++ )
+	int i;
+
+	for(i=0;i<polygons.size32();i++)
 	{
 		nodes[i] = new Node;
 		nodes[i]->outline.assignv( polygons[i] );
@@ -186,9 +188,9 @@ Node * Build(const vector<Vec2i> & verts,vector< vector<int> > & polygons)
 		// first see if any node contains another one :
 		//	(this will keep going while any node contains any other one)
 
-		{for(int i=0;i<nodes.size();i++)
+		{for(int i=0;i<nodes.size32();i++)
 		{
-			for(int j=0;j<nodes.size();j++)
+			for(int j=0;j<nodes.size32();j++)
 			{
 				// check for i contains j
 				if ( nodes[i]->area <= nodes[j]->area )
@@ -224,9 +226,9 @@ Node * Build(const vector<Vec2i> & verts,vector< vector<int> > & polygons)
 
 		double bestRating = -FLT_MAX;
 		int bestI=-1,bestJ=-1;
-		{for(int i=0;i<nodes.size();i++)
+		{for(int i=0;i<nodes.size32();i++)
 		{
-			for(int j=i+1;j<nodes.size();j++)
+			for(int j=i+1;j<nodes.size32();j++)
 			{
 				double rating = RateMerge(verts, nodes[i],nodes[j], bestRating);
 				if ( rating > bestRating )
@@ -301,7 +303,7 @@ const Node * Descend(const Node * pRoot,const vector<Vec2i> & verts,const Vec2i 
 }
 
 
-}; // gConvexHullTree
+}; // ConvexHullTree
 
 //---------------------------------------------------------------------------------------
 

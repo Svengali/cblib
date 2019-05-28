@@ -1,18 +1,23 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
+	Version="8.00"
 	Name="cblib"
 	ProjectGUID="{428C5BD5-D039-4373-81A2-42233350D84B}"
 	Keyword="Win32Proj"
-	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
 			Name="Win32"
 		/>
+		<Platform
+			Name="x64"
+		/>
 	</Platforms>
 	<ToolFiles>
+		<DefaultToolFile
+			FileName="masm.rules"
+		/>
 	</ToolFiles>
 	<Configurations>
 		<Configuration
@@ -30,6 +35,9 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
+				Name="MASM"
+			/>
+			<Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
@@ -41,16 +49,19 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..,C:\src\STLport-4.5.3\stlport"
+				AdditionalIncludeDirectories="c:\src,C:\src\STLport-5.1.5\stlport"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
+				BufferSecurityCheck="true"
+				EnableFunctionLevelLinking="true"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
 				UsePrecompiledHeader="0"
-				BrowseInformation="1"
-				WarningLevel="3"
+				BrowseInformation="0"
+				WarningLevel="4"
+				WarnAsError="false"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
@@ -65,7 +76,85 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="./cbd.lib"
+				AdditionalOptions="/IGNORE:4221"
+				OutputFile="./cbd32.lib"
+				IgnoreDefaultLibraryNames="libcmt"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug|x64"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="4"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="MASM"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				AdditionalIncludeDirectories="c:\src,C:\src\STLport-5.1.5\stlport"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="0"
+				RuntimeLibrary="1"
+				BufferSecurityCheck="false"
+				EnableFunctionLevelLinking="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
+				UsePrecompiledHeader="0"
+				BrowseInformation="0"
+				WarningLevel="4"
+				WarnAsError="false"
+				Detect64BitPortabilityProblems="false"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				AdditionalOptions="/IGNORE:4221"
+				OutputFile="./cbd64.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -98,6 +187,9 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
+				Name="MASM"
+			/>
+			<Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
@@ -108,14 +200,15 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..,C:\src\STLport-4.5.3\stlport"
+				AdditionalIncludeDirectories="c:\src,C:\src\STLport-5.1.5\stlport"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="0"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
 				UsePrecompiledHeader="0"
-				BrowseInformation="1"
-				WarningLevel="3"
+				BrowseInformation="0"
+				WarningLevel="4"
+				WarnAsError="false"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
 			/>
@@ -130,7 +223,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="./cb.lib"
+				AdditionalOptions="/IGNORE:4221"
+				OutputFile="./cb32.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -149,9 +243,9 @@
 			/>
 		</Configuration>
 		<Configuration
-			Name="Profile|Win32"
-			OutputDirectory="$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			Name="Release|x64"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
@@ -163,6 +257,9 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
+				Name="MASM"
+			/>
+			<Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
@@ -170,17 +267,19 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
+				TargetEnvironment="3"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..,C:\src\STLport-4.5.3\stlport"
+				AdditionalIncludeDirectories="c:\src,C:\src\STLport-5.1.5\stlport"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="0"
 				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
 				UsePrecompiledHeader="0"
-				BrowseInformation="1"
-				WarningLevel="3"
+				BrowseInformation="0"
+				WarningLevel="4"
+				WarnAsError="false"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
 			/>
@@ -195,7 +294,8 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="./cb.lib"
+				AdditionalOptions="/IGNORE:4221"
+				OutputFile="./cb64.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -223,11 +323,39 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\compression\ArithCoder.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\compression\ArithCoder.h"
+				>
+			</File>
+			<File
+				RelativePath=".\compression\ArithCoder.inl"
+				>
+			</File>
+			<File
 				RelativePath=".\array.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\array.h"
+				>
+			</File>
+			<File
+				RelativePath=".\autoprintf.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\autoprintf.h"
+				>
+			</File>
+			<File
+				RelativePath=".\autoprintf.inl"
+				>
+			</File>
+			<File
+				RelativePath=".\autoprintfsub.inc"
 				>
 			</File>
 			<File
@@ -244,6 +372,22 @@
 			</File>
 			<File
 				RelativePath=".\Base.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Bezier.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Bezier.h"
+				>
+			</File>
+			<File
+				RelativePath=".\BezierSpline.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\BezierSpline.h"
 				>
 			</File>
 			<File
@@ -279,6 +423,38 @@
 				>
 			</File>
 			<File
+				RelativePath=".\cblib_config.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\cblib_config.h"
+				>
+			</File>
+			<File
+				RelativePath=".\cblib_x64_asm.asm"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="MASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="MASM"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\cblib_x64_asm.h"
+				>
+			</File>
+			<File
 				RelativePath=".\circular_array.cpp"
 				>
 			</File>
@@ -295,11 +471,35 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ColorConversions.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ColorConversions.h"
+				>
+			</File>
+			<File
 				RelativePath=".\CommonPrefs.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\CommonPrefs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ComplexDouble.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ComplexDouble.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Cone.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Cone.h"
 				>
 			</File>
 			<File
@@ -343,6 +543,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Cylinder.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Cylinder.h"
+				>
+			</File>
+			<File
 				RelativePath=".\DirChangeWatcher.cpp"
 				>
 			</File>
@@ -367,6 +575,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\FileEnum.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\FileEnum.h"
+				>
+			</File>
+			<File
 				RelativePath=".\FileUtil.cpp"
 				>
 			</File>
@@ -383,11 +599,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Filter.h_t.h"
+				>
+			</File>
+			<File
 				RelativePath=".\FloatImage.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\FloatImage.h"
+				>
+			</File>
+			<File
+				RelativePath=".\FloatImageFilters.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\FloatImageFilters.h"
 				>
 			</File>
 			<File
@@ -431,6 +659,62 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Frustum.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Frustum.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GoogleChart.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GoogleChart.h"
+				>
+			</File>
+			<File
+				RelativePath=".\hash_function.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\hash_function.h"
+				>
+			</File>
+			<File
+				RelativePath=".\hash_table.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\hash_table.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Hashes.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Hashes.h"
+				>
+			</File>
+			<File
+				RelativePath=".\hashtable.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\hashtable.h"
+				>
+			</File>
+			<File
+				RelativePath=".\IKChain.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\IKChain.h"
+				>
+			</File>
+			<File
 				RelativePath=".\inc.cpp"
 				>
 			</File>
@@ -455,6 +739,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\LinearSpline.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\LinearSpline.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Link.cpp"
 				>
 			</File>
@@ -475,11 +767,27 @@
 				>
 			</File>
 			<File
-				RelativePath=".\lsqr.cpp"
+				RelativePath=".\LogUtil.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\lsqr.h"
+				RelativePath=".\LogUtil.h"
+				>
+			</File>
+			<File
+				RelativePath=".\LogWindow.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\LogWindow.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MallocDefine.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Mappers.h"
 				>
 			</File>
 			<File
@@ -515,6 +823,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\matchpat.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\matchpat.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MathFunctors.h"
+				>
+			</File>
+			<File
 				RelativePath=".\MatNM.cpp"
 				>
 			</File>
@@ -523,11 +843,47 @@
 				>
 			</File>
 			<File
-				RelativePath=".\MeteredSection.cpp"
+				RelativePath=".\Mem.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\MeteredSection.h"
+				RelativePath=".\Mem.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MemMapFile.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\MemMapFile.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MemTrack.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\MemTrack.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MoreUtil.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\MoreUtil.h"
+				>
+			</File>
+			<File
+				RelativePath=".\mydct.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\mydct.h"
+				>
+			</File>
+			<File
+				RelativePath=".\compression\O0ArithCoder.inl"
 				>
 			</File>
 			<File
@@ -536,6 +892,14 @@
 			</File>
 			<File
 				RelativePath=".\OrientedBox.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ParseArgs.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ParseArgs.h"
 				>
 			</File>
 			<File
@@ -552,6 +916,34 @@
 			</File>
 			<File
 				RelativePath=".\Plane2.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Poly2.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Poly2.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Poly3.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Poly3.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Polynomials.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Pool.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Pool.h"
 				>
 			</File>
 			<File
@@ -627,10 +1019,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ReflectionMacros.h"
-				>
-			</File>
-			<File
 				RelativePath=".\safeprintf.cpp"
 				>
 			</File>
@@ -643,6 +1031,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\search1d.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\search1d.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Segment.cpp"
 				>
 			</File>
@@ -651,11 +1047,31 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SegmentTriangle.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\SegmentTriangle.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SemiRandomGenerator.h"
+				>
+			</File>
+			<File
 				RelativePath=".\SmallAllocator_Greedy.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\SmallAllocator_Greedy.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SmoothDriver.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\SmoothDriver.h"
 				>
 			</File>
 			<File
@@ -683,6 +1099,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\StackTrace.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\StackTrace.h"
+				>
+			</File>
+			<File
 				RelativePath=".\stl_basics.cpp"
 				>
 			</File>
@@ -699,11 +1123,35 @@
 				>
 			</File>
 			<File
+				RelativePath=".\StrUtil.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\StrUtil.h"
+				>
+			</File>
+			<File
 				RelativePath=".\TextureInfo.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\TextureInfo.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Threading.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Threading.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ThreadLog.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ThreadLog.h"
 				>
 			</File>
 			<File
@@ -732,6 +1180,14 @@
 			</File>
 			<File
 				RelativePath=".\Triangulate2d.h"
+				>
+			</File>
+			<File
+				RelativePath=".\tweakvar.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\tweakvar.h"
 				>
 			</File>
 			<File
@@ -883,6 +1339,22 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Win32Hooks.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Win32Hooks.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Win32NameMapping.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Win32NameMapping.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Win32Util.cpp"
 				>
 			</File>
@@ -896,6 +1368,106 @@
 			</File>
 			<File
 				RelativePath=".\Wnd.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="External"
+			>
+			<File
+				RelativePath=".\External\HookImportedFunctionByName.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\External\HookImportedFunctionByName.h"
+				>
+			</File>
+			<File
+				RelativePath=".\External\lsqr.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\External\lsqr.h"
+				>
+			</File>
+			<File
+				RelativePath=".\External\MeteredSection.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\External\MeteredSection.h"
+				>
+			</File>
+			<File
+				RelativePath=".\External\MiniBall.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\External\MiniBall.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="LF"
+			>
+			<File
+				RelativePath=".\LF\cblibCpp0x.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\LF\cblibCpp0x.h"
+				>
+			</File>
+			<File
+				RelativePath=".\LF\cblibLF.h"
+				>
+			</File>
+			<File
+				RelativePath=".\LF\cblibRelacy.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\LF\cblibRelacy.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Lf\LFFIFOI.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Lf\LFMPSCI.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Lf\LFSList.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Lf\LFSPSC.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Lf\LFSPSC2.h"
+				>
+			</File>
+			<File
+				RelativePath=".\LF\lfweakreftable.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\LF\lfweakreftable.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Lf\NodeAllocator.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Lf\NodeAllocator.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Lf\PetersonLock.h"
 				>
 			</File>
 		</Filter>

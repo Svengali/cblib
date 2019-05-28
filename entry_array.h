@@ -41,13 +41,13 @@ namespace entry_array
 	//	like memcpy
 	//	pTo and pFm must not overlap
 	template <class Entry>
-	static inline void copy(Entry * pTo,const Entry * pFm,const int count)
+	static inline void copy(Entry * pTo,const Entry * pFm,const size_t count)
 	{
 		// assert we don't overlap in a bad way :
 		ASSERT( pTo != pFm || count == 0 );
 		ASSERT( pTo < pFm || pTo >= pFm + count );
 
-		for(int i=0;i<count;i++)
+		for(size_t i=0;i<count;i++)
 		{
 			pTo[i] = pFm[i];
 		}
@@ -59,14 +59,14 @@ namespace entry_array
 	//	like memmove
 	//	pTo and pFm may overlap
 	template <class Entry>
-	static inline void move(Entry * pTo,const Entry * pFm,const int count)
+	static inline void move(Entry * pTo,const Entry * pFm,const size_t count)
 	{
 		ASSERT( pTo != pFm || count == 0 );
 		
 		if ( pTo > pFm )
 		{
 			// go backwards
-			for(int i = count-1; i>= 0;i--)
+			for(intptr_t i = count-1; i>= 0;i--)
 			{
 				pTo[i] = pFm[i];
 			}
@@ -81,10 +81,10 @@ namespace entry_array
 	//-----------------------------------------------------------------------------------------------
 
 	template <class Entry>
-	static inline void construct(Entry * pArray,const int size)
+	static inline void construct(Entry * pArray,const size_t size)
 	{
 		// placement new an array :
-		for(int i=0;i<size;i++)
+		for(size_t i=0;i<size;i++)
 		{
 			ASSERT(pArray);
 			//new (ePlacementNew, pArray+i) Entry();
@@ -95,13 +95,12 @@ namespace entry_array
 	//-----------------------------------------------------------------------------------------------
 
 	template <class Entry>
-	static inline void destruct(Entry * pArray,const int size)
+	static inline void destruct(Entry * pArray,const size_t size)
 	{
-		for(int i=0;i<size;i++)
+		for(size_t i=0;i<size;i++)
 		{
 			ASSERT(pArray);
-			//destruct(pArray+i);
-			pArray[i].~Entry();
+			destruct(pArray+i);
 		}
 	}
 
@@ -137,10 +136,10 @@ namespace entry_array
 	//-----------------------------------------------------------------------------------------------
 	
 	template <class Entry>
-	static inline void copy_construct(Entry * pArray,const Entry * pFrom,const int size)
+	static inline void copy_construct(Entry * pArray,const Entry * pFrom,const size_t size)
 	{
 		// placement new an array :
-		for(int i=0;i<size;i++)
+		for(size_t i=0;i<size;i++)
 		{
 			ASSERT( pArray && pFrom );
 			copy_construct(pArray+i,pFrom[i]);
@@ -153,19 +152,41 @@ namespace entry_array
 	//	like memcpy
 	//	pArray1 and pArray2 must not overlap
 	template <class Entry>
-	static inline void swap(Entry * pArray1,Entry * pArray2,const int count)
+	static inline void swap_array(Entry * pArray1,Entry * pArray2,const size_t count)
 	{
 		// assert we don't overlap in a bad way :
 		ASSERT( pArray1 != pArray2 );
 		ASSERT( pArray1 < pArray2 || pArray1 >= pArray2 + count );
 
-		for(int i=0;i<count;i++)
+		for(size_t i=0;i<count;i++)
 		{
 			ASSERT( pArray1 && pArray2 );
 			Swap(pArray1[i],pArray2[i]);
 		}
 	}
 
+	//-----------------------------------------------------------------------------------------------
+
+	template <class Entry>
+	static inline void swap_construct(Entry * pTo,Entry & from)
+	{
+		ASSERT(pTo);
+
+		new (pTo) Entry();
+		Swap(from,*pTo);
+	}
+	
+	template <class Entry>
+	static inline void swap_construct(Entry * pArray,Entry * pFrom,const size_t size)
+	{
+		// placement new an array :
+		for(intptr_t i=0;i<size;i++)
+		{
+			ASSERT( pArray && pFrom );
+			swap_construct(pArray+i,pFrom[i]);
+		}
+	}
+	
 	//-----------------------------------------------------------------------------------------------
 	
 	// We need this in vector, but I don't want to include <memory> there.
@@ -179,8 +200,7 @@ namespace entry_array
 	{
 		while (first != last)
 		{
-			//new ( ePlacementNew, result ) FwdClass( *first );
-			new ( result ) FwdClass( *first );
+			new (result) FwdClass(*first);
 			first++;
 			result++;
 		}

@@ -6,6 +6,7 @@
 #include "Frame3.h"
 #include "Frame3Scaled.h"
 #include "VolumeUtil.h"
+#include "Log.h"
 
 START_CB
 
@@ -71,6 +72,13 @@ void AxialBox::Rotate(const Mat3 & xf)
 	ASSERT( IsValid() );
 }
 
+void AxialBox::Log() const
+{
+	lprintf("{ %1.3f,%1.3f,%1.3f * %1.3f,%1.3f,%1.3f }",
+		m_min.x,m_min.y,m_min.z,
+		m_max.x,m_max.y,m_max.z);
+}
+
 //-------------------------------------------------------------------------------------------
 
 
@@ -108,6 +116,41 @@ const Vec3 AxialBox::GetCorner(const int i) const
 			( i & 4 ) ? m_max.z : m_min.z 
 			);
 }
+
+//! face in [0,6) , fills four verts in pVerts
+//  CounterClockwise points *out* of the box
+void AxialBox::GetFace(const int face,Vec3 * pVerts) const
+{
+	ASSERT( face >= 0 && face < 6 );
+	const int faces[24] =
+	{
+		//0,1,3,2,
+		2,3,1,0,
+		0,1,5,4,
+		//0,2,6,4,
+		4,6,2,0,
+		7,6,4,5,
+		//7,6,2,3,
+		3,2,6,7,
+		7,5,1,3
+	};
+	const int * p = faces + face*4;
+	pVerts[0] = GetCorner(p[0]);
+	pVerts[1] = GetCorner(p[1]);
+	pVerts[2] = GetCorner(p[2]);
+	pVerts[3] = GetCorner(p[3]);
+
+	// check winding; CounterClockwise points *out* of the box
+	#ifdef DO_ASSERTS //{
+	Vec3 delta = pVerts[0] - GetCenter();
+	Vec3 n;
+	SetTriangleCross(&n,pVerts[0],pVerts[1],pVerts[2]);
+	ASSERT( (n * delta) > 0.f );
+	SetTriangleCross(&n,pVerts[1],pVerts[2],pVerts[3]);
+	ASSERT( (n * delta) > 0.f );
+	#endif //DO_ASSERTS }
+}
+
 
 //-------------------------------------------------------------------------------------------
 

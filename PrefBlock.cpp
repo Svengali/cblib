@@ -3,6 +3,7 @@
 #include "cblib/FileUtil.h"
 //#include "cblib/ResMgr.h"
 #include "cblib/Log.h"
+#include "cblib/MoreUtil.h"
 
 START_CB
 
@@ -86,6 +87,8 @@ PrefBlock::PrefBlock(ERead,const char * const resourceName) :
 	
 	if ( file == NULL )
 	{
+		lprintf("PrefBlock couldn't read file (%s)\n",resourceName);
+	
 		m_pReader = new PrefBlock_Reader;
 	}
 	else
@@ -111,7 +114,13 @@ PrefBlock::PrefBlock(EWrite,const char * const resourceName) :
 	m_pWriter(NULL),
 	m_owns(true)
 {
-	m_writeFile = FileRC::Create(resourceName,"wb");
+	m_writeFile = FileRC::CreateForWriteWithP4(resourceName);
+
+	if ( m_writeFile == NULL )
+	{	
+		lprintf("PrefBlock couldn't write file (%s)\n",resourceName);
+	}
+
 	m_pWriter = new PrefBlock_Writer;
 }
 
@@ -223,14 +232,14 @@ void PrefBlock_Reader::Read(const char * text)
 			break;
 		}
 
-		String key(String::eSubString, ptr, next-ptr);
+		String key(String::eSubString, ptr, ptr_diff_32(next-ptr));
 
 		ptr = next+1;
 		ptr = skipwhitespace(ptr);
 
 		if ( *ptr == '{' ) //}
 		{
-			next = FindMatchingBrace(ptr);
+			next = FindMatchingBrace(ptr,'{','}');
 			if ( next == NULL )
 			{
 				lprintf("bad format in prefs : %s\n",ptr);
@@ -248,7 +257,7 @@ void PrefBlock_Reader::Read(const char * text)
 		}
 
 		// data is the pref string data payload
-		String data(String::eSubString, ptr, next-ptr);
+		String data(String::eSubString, ptr, ptr_diff_32(next-ptr));
 
 		if ( data.Length() > 0 && data[ data.Length() - 1 ] == '\r' )
 			data.PopBack();
@@ -278,7 +287,7 @@ void Prefs_ReadString(String * pValue, const char * const text)
 		ptr++;
 		const char * pEnd = strrchrorend(ptr,'\"');
 		pValue->Set(ptr);
-		pValue->Truncate( (pEnd - ptr) );
+		pValue->Truncate( ptr_diff_32(pEnd - ptr) );
 	}
 	else
 	{

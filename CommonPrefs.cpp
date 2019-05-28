@@ -5,6 +5,7 @@
 #include "cblib/AxialBox.h"
 #include "cblib/Sphere.h"
 #include "cblib/Color.h"
+#include "cblib/Rect.h"
 
 START_CB
 
@@ -52,6 +53,23 @@ void PrefIO(PrefBlock & block,ColorF & me)
 	block.IO("g",&me.m_g);
 	block.IO("b",&me.m_b);
 	block.IO("a",&me.m_a);
+}
+
+
+void PrefIO(PrefBlock & block,RectI & me)
+{
+	block.IO("xlo",&me.m_xLo);
+	block.IO("xhi",&me.m_xHi);
+	block.IO("ylo",&me.m_yLo);
+	block.IO("yhi",&me.m_yHi);
+}
+
+void PrefIO(PrefBlock & block,RectF & me)
+{
+	block.IO("xlo",&me.m_xLo);
+	block.IO("xhi",&me.m_xHi);
+	block.IO("ylo",&me.m_yLo);
+	block.IO("yhi",&me.m_yHi);
 }
 
 void PrefIO(PrefBlock & block,POINT & me)

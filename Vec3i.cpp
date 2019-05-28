@@ -7,19 +7,19 @@ START_CB
 //-------------------------------------------------------------------
 //statics 
 
-Vec3i Vec3i::zero(0,0,0);
-Vec3i Vec3i::unitX(1,0,0);
-Vec3i Vec3i::unitY(0,1,0);
-Vec3i Vec3i::unitZ(0,0,1);
-Vec3i Vec3i::unitXneg(-1,0,0);
-Vec3i Vec3i::unitYneg(0,-1,0);
-Vec3i Vec3i::unitZneg(0,0,-1);
+const Vec3i Vec3i::zero(0,0,0);
+const Vec3i Vec3i::unitX(1,0,0);
+const Vec3i Vec3i::unitY(0,1,0);
+const Vec3i Vec3i::unitZ(0,0,1);
+const Vec3i Vec3i::unitXneg(-1,0,0);
+const Vec3i Vec3i::unitYneg(0,-1,0);
+const Vec3i Vec3i::unitZneg(0,0,-1);
 
 //-------------------------------------------------------------------
 
 //-------------------------------------------------------------------
 
-void Vec3i::gLog() const //!< writes xyz to gLog; does NOT add a \n !
+void Vec3i::Log() const //!< writes xyz to Log; does NOT add a \n !
 {
 	lprintf("{%d,%d,%d}",x,y,z);
 }
@@ -41,7 +41,7 @@ bool Vec3i::ProductIsSafe64(const Vec3i & u,const Vec3i & v)
 	const int64 u_max = MAX3( ABS(u.x), ABS(u.y), ABS(u.z) ); 
 	const int64 v_max = MAX3( ABS(v.x), ABS(v.y), ABS(v.z) );
 	const double max_product = double(u_max) * double(v_max); 
-	const double safe_range = 1e+018; // about 2^60
+	const double safe_range = 8e+018; // about 2^63
 	ASSERT( max_product <= safe_range );
 	#endif
 	return true;
@@ -53,9 +53,9 @@ bool Vec3i::ProductIsSafe32(const Vec3i & u,const Vec3i & v)
 	const int64 u_max = MAX3( ABS(u.x), ABS(u.y), ABS(u.z) ); 
 	const int64 v_max = MAX3( ABS(v.x), ABS(v.y), ABS(v.z) );
 	const double max_product = double(u_max) * double(v_max); 
-	const double safe_range = 32768; // about 2^15
-	ASSERT( max_product <= safe_range );
+	ASSERT( max_product <= 2147483647 );
 	#endif
+	
 	return true;
 }
 
@@ -66,6 +66,7 @@ bool	Colinear( const Vec3i & a, const Vec3i & b, const Vec3i & c )
 	// compare (b-a) and (c-a)
 	// if they have the same ratios of deltas in all three 2d planar projections
 	//	then the three points are colinear
+	// (this is the same as making the 64-bit cross product and checking all components == 0)
    return 
          int64( b.y - a.y ) * int64( c.z - a.z ) ==
          int64( b.z - a.z ) * int64( c.y - a.y ) 
@@ -120,7 +121,7 @@ vol = (-1) * (- (1)(1)) = 1
 
 */
 
-// Volume is *signed* ; this is actually FOUR times the real volume
+// Volume is *signed* ; this is actually SIX times the real volume
 // if "abc" is CCW , then right-hand rule determines the normal, and if "p" is on the front
 //	side of triangle "abc", then Volume is positive
 int64  Volume( const Vec3i & a, const Vec3i & b, const Vec3i & c, const Vec3i & p )
@@ -174,9 +175,15 @@ int  VolumeSign( const Vec3i & a, const Vec3i & b, const Vec3i & c, const Vec3i 
 //  AreaSqr uses the *fourth* power of a coordinate, so it's not safe; use AreaSqrD
 int64	AreaSqr( const Vec3i & a, const Vec3i & b, const Vec3i & c )
 {
+	// this will only work if the edges fit in 16 bits
+	//	so they can be squared to 32
+	//	and then squared again to 64
 	const Vec3i e1 = b - a;
 	const Vec3i e2 = c - a;
+	
+	// cross will call ProductIsSafe32 for us
 	const Vec3i perp = e1 ^ e2;
+	
 	// area = length(perp)
 	return perp.LengthSqr();
 }
@@ -185,12 +192,20 @@ double	AreaSqrD( const Vec3i & a, const Vec3i & b, const Vec3i & c )
 {
 	const Vec3i e1 = b - a;
 	const Vec3i e2 = c - a;
-	
-	const double nx = double(e1.y) * double(e2.z) - double(e1.z) * double(e2.y);
-	const double ny = double(e1.z) * double(e2.x) - double(e1.x) * double(e2.z);
-	const double nz = double(e1.x) * double(e2.y) - double(e1.y) * double(e2.x);
 
-	return nx*nx + ny*ny + nz*nz;
+	// go to 64 bits to square :	
+	const int64 inx = int64(e1.y) * int64(e2.z) - int64(e1.z) * int64(e2.y);
+	const int64 iny = int64(e1.z) * int64(e2.x) - int64(e1.x) * int64(e2.z);
+	const int64 inz = int64(e1.x) * int64(e2.y) - int64(e1.y) * int64(e2.x);
+
+	// need to square again, switch to doubles :
+	const double nx = double(inx);
+	const double ny = double(iny);
+	const double nz = double(inz);
+
+	const double area_square = nx*nx + ny*ny + nz*nz;
+
+	return area_square;
 }
 
 //-------------------------------------------------------------------

@@ -2,8 +2,7 @@
 
 #include "cblib/Base.h"
 #include "cblib/Timer.h"
-
-#include <vector>
+#include "cblib_config.h"
 
 /*****************
 
@@ -32,132 +31,24 @@ For example if you're processing database records, you call Profiler::Frame() fo
 #define PROFILE_TSC // much faster & more accurate, use when possible !
 
 // usually toggle using SetEnabled() ; this compile-time switch turns it off completely
-#define PROFILE_ENABLED
+#ifndef CBLIB_PROFILE_ENABLED
+#define CBLIB_PROFILE_ENABLED  1
+#endif
 
 START_CB
 
 namespace Profiler
 {
-
-
-	struct ProfileNodeData
-	{
-		int				m_count;
-		int				m_recursion;
-		double			m_seconds;
-
-	};
-
-
-	/*
-	 ProfileNode is for counting the CHILD time by Index of
-	 a given PROFILE name
-	 */
-	struct ProfileNode
-	{
-		const char* m_name;
-		int				m_index;
-		int				m_frame;
-
-		ProfileNode* m_parent;
-		ProfileNode* m_child;
-		ProfileNode* m_sibling;
-
-
-
-		ProfileNode( const char* name, const int index, ProfileNode* parent ):
-			m_index( index ), m_name( name ), m_parent( parent ), m_data{ 0 }, m_frame( 0 ),
-			m_sibling( NULL ), m_child( NULL )
-		{
-			//s_numNodes++;
-		}
-
-		// never goes away
-		//~ProfileNode()
-
-		void Reset()
-		{
-			++m_frame;
-			Cur().m_seconds = 0;
-
-			Cur().m_count = 0;
-			Cur().m_recursion = 0;
-
-			if( m_sibling )
-			{
-				m_sibling->Reset();
-			}
-			if( m_child )
-			{
-				m_child->Reset();
-			}
-		}
-
-		void Enter()
-		{
-			ASSERT( Cur().m_recursion >= 0 );
-			Cur().m_count++;
-			Cur().m_recursion++;
-		}
-
-		bool Leave( const double seconds )
-		{
-			Cur().m_recursion--;
-			ASSERT( Cur().m_recursion >= 0 );
-			if( Cur().m_recursion > 0 )
-				return false;
-			Cur().m_seconds += seconds;
-			return true;
-		}
-
-		ProfileNode * GetChild( const char* const name, const int index )
-		{
-			// Try to find this sub node
-			ProfileNode* child = m_child;
-			while( child )
-			{
-				if( child->m_name == name )
-				{
-					return child;
-				}
-				child = child->m_sibling;
-			}
-
-			// We didn't find it, so add it
-			ProfileNode* node = new ProfileNode( name, index, this );
-			node->m_sibling = m_child;
-			m_child = node;
-			return node;
-		}
-
-		ProfileNodeData& Cur()
-		{
-			return m_data[m_frame & 1];
-		}
-
-		const ProfileNodeData& Cur() const
-		{
-			return m_data[m_frame & 1];
-		}
-
-		const ProfileNodeData& Last() const
-		{
-			return m_data[( m_frame - 1 ) & 1];
-		}
-
-	private:
-		ProfileNodeData m_data[2];
-
-	};
-
-
-
 	//-------------------------------------------------------------------------------------------
 
 	#ifdef PROFILE_TSC
+	inline uint64 GetTimer() { return Timer::GetAbsoluteTicks(); }
 	inline double GetSeconds() { return Timer::rdtscSeconds(); }
+	inline double TimeToSeconds(uint64 time) { return time * Timer::GetSecondsPerTick(); }
 	#else
+	inline uint64 GetTimer() { return Timer::QPC(); }
 	inline double GetSeconds() { return Timer::GetQPCSeconds(); }
+	inline double TimeToSeconds(uint64 time) { return time * Timer::GetSecondsPerQPC(); }
 	#endif
 	
 	//-------------------------------------------------------------------------------------------
@@ -165,31 +56,16 @@ namespace Profiler
 
 	//! default is "Disabled"
 	//	when you call SetEnabled() it doesn't actually start until you call a Frame()
-	void ReqEnabled(const bool enabled);
+	void SetEnabled(const bool yesNo);
 	bool GetEnabled();
 
 	extern bool g_enabled; // ugly variable tunnel for fast checks
 
 	//! Push & Pop timer blocks
 	//	(generally don't call directly, use "PROFILE" macro)
-	void Push(const int index,const char * const name);
-	void Pop(const double ticks);
+	void Push(const int index,const char * const name, uint64 time);
+	void Pop( const int index,const uint64 delta);
 	int Index(const char * const name);
-	void GetEntry(double * pSeconds, int* pCount, const int index);
-
-	//! Spew it out to a report since the last Reset (you'll usually want to Report and Reset together)
-	//! dumpAll == false only reports the currently selected branch
-	//! dumpAll == true dumps all reports known to the profiler (up to some internal limit)
-	void Report(const bool dumpAll = false);
-	void SetReportNodes(bool enable);
-	bool GetReportNodes();
-	//! for walking the display :
-	void ViewAscend();
-	void ViewDescend(int which);
-
-	void GetAllNodes( std::vector< ProfileNode* > * const pNodex );
-
-	double Waste();
 
 	//! clear the counts
 	void Reset();
@@ -205,53 +81,86 @@ namespace Profiler
 	*/
 	
 	//-------------------------------------------------------------------------------------------
+	
+	void WriteRecords(const char * fileName);
+	void ReadRecords( const char * fileName);
+	
+	void GetEntry(const int index, uint64 * pTime, int* pCount);
+	
+	//! Spew it out to a report since the last Reset (you'll usually want to Report and Reset together)
+	//! dumpAll == false only reports the currently selected branch
+	//! dumpAll == true dumps all reports known to the profiler (up to some internal limit)
+	void Report(const bool dumpAll = false);
+	void SetReportNodes(bool enable);
+	bool GetReportNodes();
+	//! for walking the display :
+	void ViewAscend();
+	void ViewDescend(int which);
 
-
+	//-------------------------------------------------------------------------------------------
 
 	//! Useful class for profiling code. Since this stuff is for profiling
 	//! everything should be inline.
 	class AutoTimer
 	{
 	public:
-		__forceinline AutoTimer() :
-			  m_startTime(Profiler::GetSeconds())
+		__forceinline AutoTimer(int index,const char * name) : m_index(0)
 		{
+			if ( g_enabled )
+			{
+				m_index = index;
+				m_startTime = Profiler::GetTimer();
+				cb::Profiler::Push(index,name,m_startTime);
+			}
 		}
 
 		__forceinline ~AutoTimer()
 		{
-			if ( g_enabled )
+			if ( m_index ) // was enabled at Push time
 			{
-				double endTime = Profiler::GetSeconds();
-				Profiler::Pop( endTime - m_startTime );
+				uint64 endTime = Profiler::GetTimer();
+				Profiler::Pop( m_index, endTime - m_startTime );
 			}
 		}
 
 	private:
-		double 		m_startTime;
+		int			m_index;
+		uint64 		m_startTime;
 	};
 
 	//-------------------------------------------------------------------------------------------
+
+	#pragma pack(push)
+	#pragma pack(4)
+	struct ProfileRecord
+	{
+		int32	index;
+		uint64	time;
+		
+		ProfileRecord() { }
+		ProfileRecord(int i,uint64 t) : index(i), time(t) { }
+	};
+	#pragma pack(pop)
+	COMPILER_ASSERT( sizeof(ProfileRecord) == 12 );
+	
+	const ProfileRecord * GetRecords(int * pCount);
+	const char * GetEntryName(int index);
+	
+	//-------------------------------------------------------------------------------------------
+	
+
 };
 
 END_CB
 
-#ifdef PROFILE_ENABLED //{
+#if CBLIB_PROFILE_ENABLED //{
 
 #define PROFILE(Name) \
-thread_local int s_index_##Name = cb::Profiler::Index(_Stringize(Name)); \
-if ( cb::Profiler::g_enabled ) cb::Profiler::Push(s_index_##Name,_Stringize(Name)); \
-cb::Profiler::AutoTimer profile_of_##Name
-
-
-#define PROFILE_FN(SUFFIX) \
-thread_local int s_index_##__func__##SUFFIX = cb::Profiler::Index(__FUNCTION__ _Stringize(SUFFIX)); \
-if ( cb::Profiler::g_enabled ) cb::Profiler::Push(s_index_##__func__##SUFFIX,__FUNCTION__ _Stringize(SUFFIX)); \
-cb::Profiler::AutoTimer profile_of_##__func__##SUFFIX
+static int s_index_##Name = cb::Profiler::Index(_Stringize(Name)); \
+cb::Profiler::AutoTimer profile_of_##Name(s_index_##Name,_Stringize(Name))
 
 #else //}{
 
 #define PROFILE(Name)
-#define PROFILE_FN(SUFFIX)
 
 #endif //} FINAL

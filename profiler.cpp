@@ -4,12 +4,25 @@
 #include "cblib/Vecsortedpair.h"
 #include "cblib/Vector_s.h"
 #include "cblib/Log.h"
+#include "cblib/File.h"
 
-#include <thread>
-#include <atomic>
-#include <array>
-#include <mutex>
+#define PROFILE_RECORDS
+//#define PROFILE_NODES
 
+/**
+
+PROFILE_NODES : track heirarchical time information in realtime
+	useful for in-game profile HUD
+	
+PROFILE_RECORDS : just store a big vector of Push/Pops with times
+	doesn't provide any realtime feedback
+	write it out and then run AllocParser to get nice views
+	
+either one or both can be enabled
+
+total times for each index are always tracked
+
+**/
 
 /*****************
 
@@ -81,8 +94,8 @@ namespace Profiler
 	bool g_enabled = false;
 }
 
-//namespace
-//{
+namespace
+{
 	static int s_numNodes = 0;
 
 	/*
@@ -92,20 +105,22 @@ namespace Profiler
 	struct ProfilerEntry
 	{
 		const char *	m_name;
-		double			m_seconds;
+		uint64			m_time;
 		int				m_count;
+		String			m_string; // only used by ReadRecords
 
-		ProfilerEntry(const char * name) : m_name(name), m_seconds(0), m_count(0) { }
+		ProfilerEntry(const char * name) : m_name(name), m_time(0), m_count(0) { }
+		ProfilerEntry() : m_name(NULL), m_time(0), m_count(0) { }
 
 		void Reset()
 		{
-			m_seconds = 0;
+			m_time = 0;
 			m_count = 0;
 		}
 
-		void Increment(const double seconds)
+		void Increment(const uint64 time)
 		{
-			m_seconds += seconds;
+			m_time += time;
 			m_count ++;
 		}
 	};
@@ -116,58 +131,103 @@ namespace Profiler
 
 	// compare_ProfilerEntry_by_ticks puts larger ticks first
 	struct compare_ProfilerEntry_by_seconds :
-			public cb::binary_function<ProfilerEntry, ProfilerEntry, bool>
+			public std::binary_function<ProfilerEntry, ProfilerEntry, bool>
 	{
 		bool operator()(const ProfilerEntry & e1, const ProfilerEntry & e2) const
 		{
-			return e1.m_seconds > e2.m_seconds;
+			return e1.m_time > e2.m_time;
 		}
 	};
 	
-	using Profiler::ProfileNode;
-	using Profiler::ProfileNodeData;
+	/*
+	 ProfileNode is for counting the CHILD time by Index of
+	 a given PROFILE name
+	 */
+	struct ProfileNode
+	{
+		const char *	m_name;
+		int				m_index;
+		uint64			m_time;
+		int				m_count;
+		int				m_recursion;
+		ProfileNode	*	m_parent;
+		ProfileNode	*	m_child;
+		ProfileNode *	m_sibling;
+
+		ProfileNode(const char * name,const int index, ProfileNode * parent) : 
+				m_index(index), m_name(name), m_parent(parent), m_time(0), m_count(0), m_recursion(0),
+				m_sibling(NULL), m_child(NULL)
+		{
+			s_numNodes++;
+		}
+
+		// never goes away
+		//~ProfileNode()
+
+		void Reset()
+		{
+			m_time = 0;
+			m_count = 0;
+			m_recursion = 0;
+
+			if ( m_sibling )
+			{
+				m_sibling->Reset();
+			}
+			if ( m_child )
+			{
+				m_child->Reset();
+			}
+		}
+
+		void Enter()
+		{
+			ASSERT( m_recursion >= 0 );
+			m_count ++;
+			m_recursion++;
+		}
+
+		bool Leave(const uint64 time)
+		{
+			m_recursion--;
+			ASSERT( m_recursion >= 0 );
+			if ( m_recursion > 0 )
+				return false;
+			m_time += time;
+			return true;
+		}
+
+		ProfileNode * GetChild( const char * const name, const int index )
+		{
+			// Try to find this sub node
+			ProfileNode * child = m_child;
+			while ( child ) 
+			{
+				if ( child->m_name == name )
+				{
+					return child;
+				}
+				child = child->m_sibling;
+			}
+
+			// We didn't find it, so add it
+			ProfileNode * node = new ProfileNode( name,index, this );
+			node->m_sibling = m_child;
+			m_child = node;
+			return node;
+		}
+		
+	};
 
 	// compare_ProfileNode_by_seconds puts larger seconds first
 	struct compare_ProfileNode_by_seconds :
-			public cb::binary_function<ProfileNode, ProfileNode, bool>
+			public std::binary_function<ProfileNode, ProfileNode, bool>
 	{
 		bool operator()(const ProfileNode & e1, const ProfileNode & e2) const
 		{
-			return e1.Last().m_seconds > e2.Last().m_seconds;
+			return e1.m_time > e2.m_time;
 		}
 	};
-
-	//static std::vector<ProfilerData *> s_threads(1024);
-
-	struct ProfilerData;
-
-
-	static std::array< ProfilerData *, 512 > s_threads;
-	static std::atomic<unsigned int> s_threadCount = 0;
-
-	// This leaks memory, but its for the N few 
-	const char *GetRootName( const int num )
-	{
-		char * const pBuf = (char *)cb::mymalloc(32);
-
-		snprintf( pBuf, 32, "root_%i", num );
-
-		return pBuf;
-	}
-
-	int GetCurThreadIndex()
-	{
-		static std::mutex s_mut;
-		std::lock_guard lock( s_mut );
-
-		const auto cur = s_threadCount.load();
-
-		const auto curThreadIndex = cur;
-
-		++s_threadCount;
-
-		return curThreadIndex;
-	}
 
 	struct ProfilerData
 	{
@@ -175,41 +235,32 @@ namespace Profiler
 
 		static ProfilerData & Instance()
 		{
-			thread_local ProfilerData inst;
+			static ProfilerData inst;
 			return inst;
 		}
 
-		ProfilerData()
-			:
-			m_threadIndex(GetCurThreadIndex()),
-			m_root( GetRootName( m_threadIndex ), -1, NULL )
+		ProfilerData() : m_root("root",-1,NULL)
 		{
-			s_threads[m_threadIndex] = this;
-
 			m_requestEnabled = false;
-			m_requestReset = false;
 
 			m_secondsSinceStart = Profiler::GetSeconds();
 
 			m_inspectNode = &m_root;
 			m_showNodes = true;
 
+			#ifdef PROFILE_RECORDS
+			m_records.reserve(1024);
+			#endif
 
-			DoResetWork();
+			m_entries.reserve(32);
+			m_entries.resize(1); // slot 0 is unused
+
+			Reset();
 		}
 
-		void ReqReset()
-		{
-			m_requestReset = true;
-		}
-
-		void DoResetWork()
+		void Reset()
 		{
 			m_root.Reset();
-
-			m_ticks = 0;
-
-			//lprintf("%i | ****** Reset\n", m_threadIndex);
 
 			m_curNode = &m_root;
 
@@ -221,9 +272,9 @@ namespace Profiler
 			m_secondsSinceReset = 0.0;
 			m_framesSinceReset = 0;
 			
-			m_stack.clear();
+			//m_stack.clear();
 
-			const int n = m_entries.size();
+			const int n = m_entries.size32();
 			for(int i=0;i<n;i++)
 			{
 				m_entries[i].Reset();
@@ -232,15 +283,12 @@ namespace Profiler
 
 		//-------------------------------------
 
-		int						m_threadIndex;
-
 		double					m_lastSeconds;
 		double					m_secondsSinceReset;
 		double					m_secondsSinceStart;
 		int						m_framesSinceReset;
 		bool					m_showNodes;
 		bool					m_requestEnabled;
-		bool					m_requestReset;
 
 		ProfileNode *			m_inspectNode;
 		ProfileNode *			m_curNode;
@@ -248,43 +296,19 @@ namespace Profiler
 
 		charptr_int_map			m_nameMap;
 		vector< ProfilerEntry > m_entries;
-		vector_s< int , 256 >	m_stack;
+		//vector_s< int , 256 >	m_stack;
 
-		uint64_t				m_ticks;
+		vector< Profiler::ProfileRecord > m_records;
 
 	#ifdef DEBUG_MEMORY
 		MemorySystem::Statistics	m_lastResetMemoryStats;
 	#endif
 	};
 
-//} // file-only namespace
-
-
-struct AddTicks
-{
-	AddTicks( uint64_t *pAccum )
-		:
-		m_pAccum(pAccum)
-	{
-		m_start = Timer::Get();
-	}
-
-	~AddTicks()
-	{
-		const auto end = Timer::Get();
-
-		const auto diff = end - m_start;
-
-		*m_pAccum += diff.tsc_diff;
-	}
-
-	Timer::Sample m_start;
-	uint64_t *m_pAccum;
-};
-
+} // file-only namespace
 
 //! default is "Disabled"
-void Profiler::ReqEnabled(const bool yesNo)
+void Profiler::SetEnabled(const bool yesNo)
 {
 	ProfilerData::Instance().m_requestEnabled = yesNo;
 	// don't do it until next frame
@@ -299,12 +323,7 @@ int Profiler::Index(const char * const name)
 {
 	// have to do this even when we're disabled, or we'll screw up the indexing for the future;
 	//  this should only be done in local statics, though, so it doesn't affect our cost
-
-	auto &profiler = ProfilerData::Instance();
-
-	AddTicks ticks(&profiler.m_ticks);
-
-	charptr_int_map & map = profiler.m_nameMap;
+	charptr_int_map & map = ProfilerData::Instance().m_nameMap;
 	const charptr_int_map::const_iterator it = map.find(name);
 	if ( it != map.end() )
 	{
@@ -312,8 +331,9 @@ int Profiler::Index(const char * const name)
 	}
 	else
 	{
-		const int index = profiler.m_entries.size();
-		profiler.m_entries.push_back( ProfilerEntry(name) );
+		const int index = ProfilerData::Instance().m_entries.size32();
+		ASSERT( index > 0 );
+		ProfilerData::Instance().m_entries.push_back( ProfilerEntry(name) );
 		map.insert( charptr_int_pair(name,index) );
 		ASSERT( map.find(name) != map.end() );
 		return index;
@@ -321,131 +341,116 @@ int Profiler::Index(const char * const name)
 }
 
 //! Push & Pop timer blocks
-void Profiler::Push(const int index,const char * const name)
+void Profiler::Push(const int index,const char * const name,uint64 time)
 {
 	ASSERT( g_enabled );
 
-	ProfilerData & profiler = ProfilerData::Instance();
+	ProfilerData & data = ProfilerData::Instance();
 
-	AddTicks ticks( &profiler.m_ticks );
-	//lprintf("%i | %s | Push\n", profiler.m_threadIndex, name);
+	ASSERT( index > 0 );
+	#ifdef PROFILE_RECORDS
+	data.m_records.push_back( ProfileRecord(index,time) );
+	#endif	
 
+	#ifdef PROFILE_NODES
 	// match strings by pointer !! requires merging of constant strings !!
-	if ( name != profiler.m_curNode->m_name )
+	if ( name != data.m_curNode->m_name )
 	{
-		profiler.m_curNode = profiler.m_curNode->GetChild(name,index);
+		data.m_curNode = data.m_curNode->GetChild(name,index);
 	}
 
-	profiler.m_curNode->Enter();
+	data.m_curNode->Enter();
+	#endif
 
 	// m_stack is a vector_s , so no allocation is possible	
-	profiler.m_stack.push_back(index);
+	//ProfilerData::Instance().m_stack.push_back(index);
 }
 
-void Profiler::Pop(const double seconds)
+void Profiler::Pop(int index, const uint64 delta)
 {
-	if ( ! g_enabled )
-		return;
+	//ASSERT( g_enabled );
+	ASSERT( index > 0 );
 
-	ProfilerData & profiler = ProfilerData::Instance();
+	ProfilerData & data = ProfilerData::Instance();
 
-	AddTicks ticks( &profiler.m_ticks );
-	//lprintf( "%i | %s | Pop\n", profiler.m_threadIndex, profiler.m_curNode->m_name );
-
-
-	if ( profiler.m_curNode->Leave(seconds) )
-	{
-		profiler.m_curNode = profiler.m_curNode->m_parent;
-		ASSERT( profiler.m_curNode != NULL );
-	}
+	#ifdef PROFILE_RECORDS
+	data.m_records.push_back( ProfileRecord(- index,delta) );
+	#endif
 	
-	// this can happen due to enable toggles while the stack is active
-	if ( ! profiler.m_stack.empty() )
+	#ifdef PROFILE_NODES
+	if ( data.m_curNode && data.m_curNode->m_index == index )
 	{
-		int top = profiler.m_stack.back();
-		profiler.m_stack.pop_back();
-
-		profiler.m_entries[top].Increment(seconds);
+		if ( data.m_curNode->Leave(delta) )
+		{
+			data.m_curNode = data.m_curNode->m_parent;
+			ASSERT( data.m_curNode != NULL );
+		}
 	}
+	#endif
+	
+	data.m_entries[index].Increment(delta);
+		
+	/*
+	// this can happen due to enable toggles while the stack is active
+	if ( ! data.m_stack.empty() )
+	{
+		int top = data.m_stack.back();
+		data.m_stack.pop_back();
+
+		data.m_entries[top].Increment(delta);
+	}
+	*/
 }
 
 void Profiler::Reset()
 {
-	/*
-	ProfilerData & profiler = ProfilerData::Instance();
-	profiler.ReqReset();
-	*/
-
-	const auto profilerCount = s_threadCount.load();
-
-	for( size_t i=0; i < profilerCount; ++i )
-	{
-		s_threads[i]->ReqReset();
-	}
+	ProfilerData & data = ProfilerData::Instance();
+	data.Reset();
 }
-
-double Profiler::Waste()
-{
-	ProfilerData& profiler = ProfilerData::Instance();
-
-	return profiler.m_ticks * Timer::GetSecondsPerTick();
-
-
-}
-
 
 void Profiler::Frame()
 {
-	ProfilerData & profiler = ProfilerData::Instance();
-
-	//lprintf( "%i | ****** Frame\n", profiler.m_threadIndex );
-	AddTicks ticks( &profiler.m_ticks );
-
-
-
+	ProfilerData & data = ProfilerData::Instance();
 	if ( g_enabled )
 	{
-		profiler.m_framesSinceReset ++;
+		data.m_framesSinceReset ++;
 		double curSeconds = Profiler::GetSeconds();
-		profiler.m_secondsSinceReset += curSeconds - profiler.m_lastSeconds;
-		profiler.m_lastSeconds = curSeconds;
+		data.m_secondsSinceReset += curSeconds - data.m_lastSeconds;
+		data.m_lastSeconds = curSeconds;
 	}
 		
-	if ( profiler.m_requestEnabled != g_enabled )
+	if ( data.m_requestEnabled != g_enabled )
 	{
-		g_enabled = profiler.m_requestEnabled;
+		g_enabled = data.m_requestEnabled;
 		if ( g_enabled )
 		{
-			profiler.m_requestReset = true;
+			Reset();
 		}
-	}
-
-	if( profiler.m_requestReset )
-	{
-		profiler.DoResetWork();
-		profiler.m_requestReset = false;
 	}
 
 }
 
 void Profiler::ViewAscend()
 {
-	ProfilerData & profiler = ProfilerData::Instance();
-	if ( profiler.m_showNodes )
+	#ifdef PROFILE_NODES
+	ProfilerData & data = ProfilerData::Instance();
+	if ( data.m_showNodes )
 	{
-		if ( profiler.m_inspectNode->m_parent )
+		if ( data.m_inspectNode->m_parent )
 		{
-			profiler.m_inspectNode = profiler.m_inspectNode->m_parent;
+			data.m_inspectNode = data.m_inspectNode->m_parent;
 		}
 	}
+	#endif
 }
 
 void Profiler::ViewDescend(int which)
 {
-	ProfilerData & profiler = ProfilerData::Instance();
-	if ( profiler.m_showNodes )
+	#ifdef PROFILE_NODES
+	ProfilerData & data = ProfilerData::Instance();
+	if ( data.m_showNodes )
 	{	
-		ProfileNode * child = profiler.m_inspectNode->m_child;
+		ProfileNode * child = data.m_inspectNode->m_child;
 
 		ASSERT( which >= 0 );
 		if ( which < 0 )
@@ -457,19 +462,19 @@ void Profiler::ViewDescend(int which)
 				return;
 			if ( which == 0 )
 			{
-				profiler.m_inspectNode = child;
+				data.m_inspectNode = child;
 				return;
 			}
 			child = child->m_sibling;
 			which--;
 		}
 	}
+	#endif
 }
 
 
 /** Recursively add the given node, and all siblings and children, to
     the given vector. */
-/*
 static void	AddNodes(vecsorted< vector_s< ProfileNode, NUM_ENTRIES_TO_SHOW >, compare_ProfileNode_by_seconds >* result, const ProfileNode* node)
 {
 	if (node == NULL)
@@ -481,7 +486,7 @@ static void	AddNodes(vecsorted< vector_s< ProfileNode, NUM_ENTRIES_TO_SHOW >, co
 	{
 		result->insert(*node);
 	}
-	else if (result->back().m_seconds < node->m_seconds)
+	else if (result->back().m_time < node->m_time)
 	{
 		result->pop_back();
 		result->insert(*node);
@@ -493,7 +498,6 @@ static void	AddNodes(vecsorted< vector_s< ProfileNode, NUM_ENTRIES_TO_SHOW >, co
 	// Add children.
 	AddNodes(result, node->m_child);
 }
-*/
 
 namespace Profiler
 {
@@ -510,16 +514,6 @@ bool Profiler::GetReportNodes()
 	return ProfilerData::Instance().m_showNodes;
 }
 	
-void Profiler::GetAllNodes( std::vector< ProfileNode* > * const pNodes )
-{
-	const auto threadCount = s_threadCount.load();
-
-	for( size_t i = 0; i < threadCount; ++i )
-	{
-		pNodes->push_back(&s_threads[i]->m_root);
-	}
-}
-
 //! Spew it out to a report
 void Profiler::Report(bool dumpAll /* = false */)
 {
@@ -548,6 +542,7 @@ void Profiler::Report(bool dumpAll /* = false */)
 		data.m_secondsSinceReset,data.m_framesSinceReset,
 		double(frames)/secondsSinceReset, secondsSinceReset*1000.0/double(frames) );
 
+	#ifdef PROFILE_NODES
 	if ( data.m_showNodes )
 	{
 		if ( dumpAll )
@@ -560,6 +555,7 @@ void Profiler::Report(bool dumpAll /* = false */)
 		}
 	}
 	else
+	#endif
 	{
 		ReportEntries(dumpAll);
 	}
@@ -599,7 +595,7 @@ void Profiler::ReportNodes(const ProfileNode * pNodeToShow,bool recurse)
 	}
 	else
 	{
-		secondsParent = pNodeToShow->Last().m_seconds;
+		secondsParent = TimeToSeconds( pNodeToShow->m_time );
 	}
 
 	if ( recurse )
@@ -632,7 +628,7 @@ void Profiler::ReportNodes(const ProfileNode * pNodeToShow,bool recurse)
 		{
 			entries.insert(*child);
 		}
-		else if ( child->m_seconds > entries.back().m_seconds )
+		else if ( child->m_time > entries.back().m_time )
 		{
 			entries.pop_back();
 			entries.insert(*child);
@@ -647,15 +643,15 @@ void Profiler::ReportNodes(const ProfileNode * pNodeToShow,bool recurse)
 	// @@ would be nice to know the per-frame max as well
 	// @@ can also use m_index to show the total time for a Node
 
-	for(int i=0;i<entries.size();i++)
+	for(int i=0;i<entries.size32();i++)
 	{
 		const ProfileNode & entry = *(entries[i]);
-		double seconds = entry.Last().m_seconds;
+		double seconds = TimeToSeconds( entry.m_time );
 		double percentTotal = 100.0 * seconds / secondsSinceReset;
 		double percentParent = 100.0 * seconds / secondsParent;
 		double millisPerFrame = seconds * 1000.0 / double(frames);
-		double countsPerFrame = entry.Last().m_count / double(frames);
-		double kclocksPerCount = ( entry.Last().m_seconds / Timer::GetSecondsPerTick() ) / ( 1000.0 * ( entry.Last().m_count == 0 ? 1 : entry.Last().m_count) );
+		double countsPerFrame = entry.m_count / double(frames);
+		double kclocksPerCount = ( entry.m_time ) / ( 1000.0 * (entry.m_count == 0 ? 1 : entry.m_count) );
 
 		lprintf("%-30s : %5.1f : %5.1f : %5.2f : %7.1f : %5.1f\n",
 			entry.m_name,
@@ -667,7 +663,7 @@ void Profiler::ReportNodes(const ProfileNode * pNodeToShow,bool recurse)
 
 		secondsSum += seconds;
 		
-		if ( recurse && entry.Last().m_count > 0 )
+		if ( recurse && entry.m_count > 0 )
 		{
 			if ( entry.m_child != NULL )
 			{
@@ -701,15 +697,17 @@ void Profiler::ReportEntries(bool dumpAll)
 	// sort and only show the top 20 or so
 
 	ProfilerData & data = ProfilerData::Instance();
+	/*
 	if ( ! data.m_stack.empty() )
 	{
 		lprintf("Report on non-empty stack will not be fully accurate!!\n");
 	}
+	*/
 	
 	const double secondsSinceReset = data.m_secondsSinceReset;
 	const int frames = data.m_framesSinceReset;
 	
-	const int n = data.m_entries.size();
+	const int n = data.m_entries.size32();
 	if ( n == 0 || frames == 0 )
 	{
 		lprintf("Nothing to report!!\n");
@@ -738,14 +736,14 @@ void Profiler::ReportEntries(bool dumpAll)
 			{
 				entries_s.insert(entry);
 			}
-			else if ( entry.m_seconds > entries_s.back().m_seconds )
+			else if ( entry.m_time > entries_s.back().m_time )
 			{
 				entries_s.pop_back();
 				entries_s.insert(entry);
 			}
 		}
 		pEntries = &entries_s[0];
-		numEntries = entries_s.size();
+		numEntries = entries_s.size32();
 	}
 
 	lprintf("%-40s : percent : millis: kclocks : counts\n","name");
@@ -755,10 +753,10 @@ void Profiler::ReportEntries(bool dumpAll)
 		const ProfilerEntry & entry = pEntries[i];
 		if ( entry.m_count == 0 )
 			continue;
-		double seconds = entry.m_seconds;
+		double seconds = TimeToSeconds( entry.m_time );
 		double percent = 100.0 * seconds / secondsSinceReset;
 		double millisPerFrame = seconds * 1000.0 / double(frames);
-		double kclocksPerCount = ( entry.m_seconds / Timer::GetSecondsPerTick() ) / ( 1000.0 * entry.m_count );
+		double kclocksPerCount = ( entry.m_time ) / ( 1000.0 * entry.m_count );
 		double countsPerFrame = entry.m_count / double(frames);
 
 		lprintf("%-40s : %-5.1f %% : %-5.2f : %-7.1f : %5.1f\n",
@@ -770,19 +768,91 @@ void Profiler::ReportEntries(bool dumpAll)
 	}
 }
 
-void Profiler::GetEntry(double* pSeconds, int* pCount, const int index)
+void Profiler::GetEntry(const int index, uint64 * pTime, int* pCount)
 {
-	ASSERT( pSeconds );
+	ASSERT( pTime );
 	ASSERT( pCount );
 
 	ProfilerData & data = ProfilerData::Instance();
 
 	ASSERT( 0 <= index );
-	ASSERT( index < data.m_entries.size() );
+	ASSERT( index < data.m_entries.size32() );
 
 	const ProfilerEntry& entry = data.m_entries[index];
-	*pSeconds = entry.m_seconds;
+	*pTime = entry.m_time;
 	*pCount = entry.m_count;
+}
+
+void Profiler::WriteRecords(const char * fileName)
+{
+	File f;
+	if ( ! f.Open(fileName,"wb") )
+		return;
+	
+	ProfilerData & data = ProfilerData::Instance();
+
+	// write entry names :
+	
+	f.Put32( data.m_entries.size32() );
+	
+	for(int i=0; i< data.m_entries.size32(); i++)
+	{
+		if ( data.m_entries[i].m_name )
+			f.WriteCString( data.m_entries[i].m_name ); 
+		else
+			f.WriteCString( "" ); 
+	}
+	
+	f.Put32( data.m_records.size32() );
+	
+	if ( ! data.m_records.empty() )
+	{
+		f.Write( data.m_records.data(), data.m_records.size_bytes() );
+	}
+	
+	f.Close();
+}
+
+void Profiler::ReadRecords( const char * fileName)
+{
+	File f;
+	if ( ! f.Open(fileName,"rb") )
+		return;
+		
+	ProfilerData & data = ProfilerData::Instance();
+
+	// read entry names :
+	
+	uint32 numEntries = f.Get32();
+	data.m_entries.resize(numEntries);
+	
+	for(int i=0; i< data.m_entries.size32(); i++)
+	{
+		data.m_entries[i].m_string = f.ReadString();
+		data.m_entries[i].m_name = data.m_entries[i].m_string.CStr(); 
+	}
+	
+	uint32 numRecords = f.Get32();
+	data.m_records.resize(numRecords);
+	
+	f.Read( data.m_records.data(), data.m_records.size_bytes() );
+	
+	f.Close();
+}
+	
+const Profiler::ProfileRecord * Profiler::GetRecords(int * pCount)
+{
+	ProfilerData & data = ProfilerData::Instance();
+	*pCount = data.m_records.size32();
+	return data.m_records.data();
+}
+
+const char * Profiler::GetEntryName(int index)
+{
+	ProfilerData & data = ProfilerData::Instance();
+	if ( index < 0 || index >= data.m_entries.size() )
+		return NULL; 
+	return data.m_entries[index].m_name;
 }
 
 END_CB

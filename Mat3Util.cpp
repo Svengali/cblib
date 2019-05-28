@@ -2,6 +2,7 @@
 #include "cblib/Mat3Util.h"
 #include "cblib/Rand.h"
 #include "cblib/QuatUtil.h"
+#include "cblib/Log.h"
 //#include "cblib/Basis.h"
 
 START_CB
@@ -108,6 +109,92 @@ void GetOrthonormalized(const Mat3 & m,Mat3 * pOrthoNorm)
 
 //--------------------------------------------------------------------------------
 
+/** Gram-Schmidt orthogonalization. Preserves normal direction. */
+/// Orthonormalize in place using Gram Schmidt.
+void Orthonormalize(Mat3 * pMat)
+{
+	ASSERT( pMat != NULL );
+
+	Vec3 tangent = pMat->GetRowX();
+	Vec3 bitangent = pMat->GetRowY();
+	Vec3 normal = pMat->GetRowZ();
+	// N' = |N|
+	// T' = |T - (N dot T) N'|
+	// B' = |B - (N dot B) N' - (T' dot B) T'|
+
+	normal.NormalizeFast();
+	ASSERT(normal.IsNormalized());
+
+	float dot0 = normal * tangent;
+	tangent -= normal * dot0;
+	tangent.NormalizeFast();
+	ASSERT(tangent.IsNormalized());
+
+	dot0 = normal * bitangent;
+	float dot1 = tangent * bitangent;
+	bitangent -= normal * dot0;
+	bitangent -= tangent * dot1;
+	bitangent.NormalizeFast();
+	//bitangent.NormalizeSafe(normal ^ tangent);
+	//bitangent = normal ^ tangent;
+	ASSERT(bitangent.IsNormalized());
+	
+	pMat->SetRowX(tangent);
+	pMat->SetRowY(bitangent);
+	pMat->SetRowZ(normal);
+}
+
+// Same as above, but also handles all the degenerate cases.
+/// Like Orthonormalize but also handles matrices with linearly dependant vectors.
+void RobustOrthonormalize(Mat3 * pMat)
+{
+	Vec3 tangent = pMat->GetRowX();
+	Vec3 bitangent = pMat->GetRowY();
+	Vec3 normal = pMat->GetRowZ();
+	
+	normal.NormalizeSafe(Vec3::unitZ);
+
+	tangent   -= (tangent * normal) * normal;
+	bitangent -= (bitangent * normal) * normal;
+
+	if ( tangent.NormalizeSafe(Vec3::unitX) == 0.f )
+	{
+		if ( bitangent.NormalizeSafe(Vec3::unitY) == 0.0f )
+		{
+			// Completely gone
+			SetLookDirectionNoUp(pMat,normal);
+			return;
+		}
+		else
+		{
+			tangent.SetCross(bitangent, normal);
+
+			tangent.NormalizeSafe();
+		}
+	}
+	else
+	{
+		bitangent.SetCross( normal, tangent );
+
+		bitangent.NormalizeSafe();
+	}
+
+	ASSERT(fisone(normal * normal));
+	ASSERT(fisone(tangent * tangent));
+	ASSERT(fisone(bitangent * bitangent));
+	ASSERT(fiszero(normal * bitangent));
+	ASSERT(fiszero(normal * tangent));
+	ASSERT(fiszero(tangent * bitangent));
+	ASSERT(fisone(TripleProduct(normal, tangent, bitangent)));
+
+	pMat->SetRowX(tangent);
+	pMat->SetRowY(bitangent);
+	pMat->SetRowZ(normal);
+}
+
+
+//--------------------------------------------------------------------------------
+
 void SetRotation(Mat3 *pm,const Vec3 & axis,const float angle)
 {
 	ASSERT( axis.IsNormalized() && fisvalid(angle) && pm );
@@ -134,7 +221,7 @@ void SetRotation(Mat3 *pm,const Vec3 & axis,const float angle)
 	pm->RowZ().x = 2.0f * ( xsin * zsin - halfcos * ysin );
 	pm->RowZ().y = 2.0f * ( ysin * zsin + halfcos * xsin );
 
-	ASSERT( pm->IsOrthonormal(EPSILON*10.f) );
+	ASSERT( pm->IsOrthonormal(EPSILON_NORMALS*10.f) );
 
 	#ifdef DO_ASSERTS //{
 
@@ -142,7 +229,7 @@ void SetRotation(Mat3 *pm,const Vec3 & axis,const float angle)
 	//	cuz I don't trust my maths:
 	const Vec3 rotatedAxis = pm->Rotate(axis);
 	const float dot = rotatedAxis * axis;
-	ASSERT( dot >= 1.f - 2*EPSILON ); // should not rotate axis
+	ASSERT( dot >= 1.f - 2*EPSILON_NORMALS ); // should not rotate axis
 
 	#endif //}
 }
@@ -194,7 +281,7 @@ void SetRandomRotation(Mat3 * pM)
 	Vec3 axis;
 	SetRandomNormal(&axis);
 	//const float angle = Rand::GetAngle();
-	const float angle = frandunit() * CBPI;
+	const float angle = frandunit() * PIf;
 	SetRotation(pM,axis,angle);
 }
 
@@ -351,8 +438,8 @@ void SetLerped(Mat3* result, const Mat3& from, const Mat3& to, const float t)
 
 //=====================================================================================
 
-static void EigenSolver_Tridiagonal(Mat3 * pMat,Vec3 * diag,Vec3 * subd);
-static bool EigenSolver_QLAlgorithm(Mat3 * pMat,Vec3 * diag,Vec3 * subd);
+static void EigenSolver_Tridiagonal(double mat[3][3],double * diag,double * subd);
+static bool EigenSolver_QLAlgorithm(double mat[3][3],double * diag,double * subd);
 
 bool EigenSolveSymmetric (const Mat3 &mat,
 							Vec3 * pEigenValues,
@@ -366,28 +453,83 @@ bool EigenSolveSymmetric (const Mat3 &mat,
 	ASSERT( Mat3::Equals(matTransposed,mat) );
 	*/
 	
-    Vec3 subd;
-
-	*pEigenVectors = mat;
-    EigenSolver_Tridiagonal(pEigenVectors,pEigenValues,&subd);
-    if ( ! EigenSolver_QLAlgorithm(pEigenVectors,pEigenValues,&subd) )
+    double subd[3];
+    double diag[3];
+	double work[3][3];
+	
+	for(int i=0;i<3;i++)
+	{
+		for(int j=0;j<3;j++)
+		{
+			work[i][j] = mat[i][j];
+		}
+	}
+	
+    EigenSolver_Tridiagonal(work,diag,subd);
+    if ( ! EigenSolver_QLAlgorithm(work,diag,subd) )
 	{
 		*pEigenValues = Vec3::zero;
 		pEigenVectors->SetIdentity();
 		return false;
 	}
 
+	Vec3 & values = *pEigenValues;
+	Mat3 & vectors = *pEigenVectors;
+
+	values.Set( (float) diag[0], (float) diag[1], (float) diag[2] );
+
+	// eigenvectors are the columns; make them the rows :
+	
+	for(int i=0;i<3;i++)
+	{
+		for(int j=0;j<3;j++)
+		{
+			vectors[j][i] = (float) work[i][j];
+		}
+	}
+	
+	/*
+	Mat3 trans;
+	GetTranspose(*pEigenVectors,&trans);
+	*pEigenVectors = trans;
+	/**/
+	
+	/*
     // make eigenvectors form a right-handed system
     if ( pEigenVectors->GetDeterminant() < 0.f )
     {
+		// could just flip one row, but this is safer for transposes :
+		pEigenVectors->Row(0) *= -1.f;
+		pEigenVectors->Row(1) *= -1.f;
 		pEigenVectors->Row(2) *= -1.f;
     }
+    */
+
+	// shuffle to sort by singular value :
+	if ( values.z > values.x && values.z > values.y )
+	{
+		Swap(values.x,values.z);
+		Swap(vectors.RowX(),vectors.RowZ());
+	}
+	if ( values.y > values.x )
+	{
+		Swap(values.x,values.y);
+		Swap(vectors.RowX(),vectors.RowY());
+	}
+	if ( values.z > values.y )
+	{
+		Swap(values.z,values.y);
+		Swap(vectors.RowZ(),vectors.RowY());
+	}
+	
+	ASSERT( values.x >= values.y && values.x >= values.z ); 
+	ASSERT( values.y >= values.z ); 
 
 	return true;
 }
 
 //----------------------------------------------------------------------------
-static void EigenSolver_Tridiagonal(Mat3 * pMat,Vec3 * pDiag,Vec3 * pSubd)
+static void EigenSolver_Tridiagonal(double mat[3][3],double * diag,double * subd)
 {
     // Householder reduction T = Q^t M Q
     //   Input:   
@@ -396,35 +538,30 @@ static void EigenSolver_Tridiagonal(Mat3 * pMat,Vec3 * pDiag,Vec3 * pSubd)
     //     mat, orthogonal matrix Q
     //     diag, diagonal entries of T
     //     subd, subdiagonal entries of T (T is symmetric)
-	ASSERT(pMat);
-	Mat3 & mat = *pMat;
-	Vec3 & diag = *pDiag;
-	Vec3 & subd = *pSubd;
+    const double epsilon = 1e-08f;
 
-    const float epsilon = 1e-08f;
-
-    float a = mat.GetElement(0,0);
-    float b = mat.GetElement(0,1);
-    float c = mat.GetElement(0,2);
-    float d = mat.GetElement(1,1);
-    float e = mat.GetElement(1,2);
-    float f = mat.GetElement(2,2);
+    double a = mat[0][0];
+    double b = mat[0][1];
+    double c = mat[0][2];
+    double d = mat[1][1];
+    double e = mat[1][2];
+    double f = mat[2][2];
 
     diag[0] = a;
     subd[2] = 0.f;
-    if ( fabsf(c) >= epsilon )
+    if ( fabs(c) >= epsilon )
     {
-        const float ell = sqrtf(b*b+c*c);
+        const double ell = sqrt(b*b+c*c);
         b /= ell;
         c /= ell;
-        const float q = 2*b*e+c*(f-d);
+        const double q = 2*b*e+c*(f-d);
         diag[1] = d+c*q;
         diag[2] = f-c*q;
         subd[0] = ell;
         subd[1] = e-b*q;
-        mat.Element(0,0) = 1; mat.Element(0,1) = 0; mat.Element(0,2) = 0;
-        mat.Element(1,0) = 0; mat.Element(1,1) = b; mat.Element(1,2) = c;
-        mat.Element(2,0) = 0; mat.Element(2,1) = c; mat.Element(2,2) = -b;
+        mat[0][0] = 1; mat[0][1] = 0; mat[0][2] = 0;
+        mat[1][0] = 0; mat[1][1] = b; mat[1][2] = c;
+        mat[2][0] = 0; mat[2][1] = c; mat[2][2] = -b;
     }
     else
     {
@@ -432,21 +569,16 @@ static void EigenSolver_Tridiagonal(Mat3 * pMat,Vec3 * pDiag,Vec3 * pSubd)
         diag[2] = f;
         subd[0] = b;
         subd[1] = e;
-        mat.Element(0,0) = 1; mat.Element(0,1) = 0; mat.Element(0,2) = 0;
-        mat.Element(1,0) = 0; mat.Element(1,1) = 1; mat.Element(1,2) = 0;
-        mat.Element(2,0) = 0; mat.Element(2,1) = 0; mat.Element(2,2) = 1;
+        mat[0][0] = 1; mat[0][1] = 0; mat[0][2] = 0;
+        mat[1][0] = 0; mat[1][1] = 1; mat[1][2] = 0;
+        mat[2][0] = 0; mat[2][1] = 0; mat[2][2] = 1;
     }
 }
 //---------------------------------------------------------------------------
-static bool EigenSolver_QLAlgorithm(Mat3 * pMat,Vec3 * pDiag,Vec3 * pSubd)
+static bool EigenSolver_QLAlgorithm(double mat[3][3],double * diag,double * subd)
 {
     // QL iteration with implicit shifting to reduce matrix from tridiagonal
     // to diagonal
-	ASSERT(pMat);
-	Mat3 & mat = *pMat;
-
-	Vec3 & diag = *pDiag;
-	Vec3 & subd = *pSubd;
     const int maxiter = 32;
 
     for (int ell = 0; ell < 3; ell++)
@@ -457,34 +589,34 @@ static bool EigenSolver_QLAlgorithm(Mat3 * pMat,Vec3 * pDiag,Vec3 * pSubd)
             int m;
             for (m = ell; m <= 1; m++)
             {
-                float dd = fabsf(diag[m]) + fabsf(diag[m+1]);
-                if ( fabsf(subd[m]) + dd == dd )
+                double dd = fabs(diag[m]) + fabs(diag[m+1]);
+                if ( fabs(subd[m]) + dd == dd )
                     break;
             }
             if ( m == ell )
                 break;
 
-            float g = (diag[ell+1]-diag[ell])/(2*subd[ell]);
-            float r = sqrtf(g*g+1);
+            double g = (diag[ell+1]-diag[ell])/(2*subd[ell]);
+            double r = sqrt(g*g+1);
             if ( g < 0 )
                 g = diag[m]-diag[ell]+subd[ell]/(g-r);
             else
                 g = diag[m]-diag[ell]+subd[ell]/(g+r);
-            float s = 1, c = 1, p = 0;
+            double s = 1, c = 1, p = 0;
             for (int i = m-1; i >= ell; i--)
             {
-                float f = s*subd[i], b = c*subd[i];
-                if ( fabsf(f) >= fabsf(g) )
+                double f = s*subd[i], b = c*subd[i];
+                if ( fabs(f) >= fabs(g) )
                 {
                     c = g/f;
-                    r = sqrtf(c*c+1);
+                    r = sqrt(c*c+1);
                     subd[i+1] = f*r;
                     c *= (s = 1/r);
                 }
                 else
                 {
                     s = f/g;
-                    r = sqrtf(s*s+1);
+                    r = sqrt(s*s+1);
                     subd[i+1] = g*r;
                     s *= (c = 1/r);
                 }
@@ -514,6 +646,16 @@ static bool EigenSolver_QLAlgorithm(Mat3 * pMat,Vec3 * pDiag,Vec3 * pSubd)
     return true;
 }
 
+void Log(const Mat3 & m,const char * rowsep)
+{
+	m.GetRowX().Log();
+	if ( rowsep ) lprintf("%s",rowsep);
+	m.GetRowY().Log();
+	if ( rowsep ) lprintf("%s",rowsep);
+	m.GetRowZ().Log();
+	if ( rowsep ) lprintf("%s",rowsep);
+}
+	
 //=====================================================================================
 
 

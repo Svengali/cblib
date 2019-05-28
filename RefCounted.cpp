@@ -23,7 +23,7 @@ struct WeakTableEntry
 	union
 	{
 		RefCounted *	m_ptr;
-		int				m_nextFree;
+		intptr_t		m_nextFree;
 	};
 	RefCounted::guid_type		m_guid;
 };
@@ -48,32 +48,25 @@ static WeakTableEntry	s_pointerTable[c_maxObjects] = { 0 };
 // need a proper singleton cuz this can be accessed during cinit
 static const int c_tableGrowCount = 4096/sizeof(WeakTableEntry);
 
-static vector<WeakTableEntry> * s_ptrPointerTable = NULL;
-
 static vector<WeakTableEntry> & GetPointerTable()
 {
+	static vector<WeakTableEntry> * s_ptrPointerTable = NULL;
 	if ( s_ptrPointerTable == NULL )
 	{
 		s_ptrPointerTable = new vector<WeakTableEntry>;
 		s_ptrPointerTable->resize(c_tableGrowCount);
-		ZERO(&s_ptrPointerTable->at(0));
+		ZERO_VAL(s_ptrPointerTable->at(0));
 	}
 	return *s_ptrPointerTable;
 }
 
 #define s_pointerTable	GetPointerTable()
 
-void DestroyPointerTable()
-{
-	delete s_ptrPointerTable;
-}
-
-
 #endif // DO_16BIT_INDEX
 //------------------------------------------------------------------------
 
-static int		s_numPointers = 1; // next available index
-static int		s_nextFree = -1; // linked list of frees
+static intptr_t		s_numPointers = 1; // next available index
+static intptr_t		s_nextFree = -1; // linked list of frees
 
 static RefCounted::index_type AddToTable(RefCounted * ptr)
 {
@@ -98,9 +91,9 @@ static RefCounted::index_type AddToTable(RefCounted * ptr)
 		}
 		#else
 		// do a growing vector :
-		if ( s_numPointers >= s_pointerTable.size() )
+		if ( s_numPointers >= s_pointerTable.size32() )
 		{
-			s_pointerTable.resize(s_numPointers+c_tableGrowCount);
+			s_pointerTable.resize( check_value_cast<int>(s_numPointers+c_tableGrowCount) );
 		}
 		#endif // DO_16BIT_INDEX
 		
@@ -204,14 +197,14 @@ bool RefCounted::IsValid() const
 	}
 }
 
-void RefCounted::RefCounted_TakeRef() const
+void RefCounted::TakeRef() const
 {
 	const_cast<RefCounted *>(this)->m_refCount ++;
 	
 	s_totalRefCount++;
 }
 
-void RefCounted::RefCounted_FreeRef() const
+void RefCounted::FreeRef() const
 {
 	ASSERT( m_refCount > 0 );
 	
@@ -356,7 +349,7 @@ Stack :
 	{
 	gBase b; // ref = 1
 
-	gPtr p = b; // ref = 2
+	SPtr p = b; // ref = 2
 	p = NULL; // ref = 1;
 
 	// if b had not had a ref of 1 to start with,
@@ -368,7 +361,7 @@ Non-Stack :
 
 	{
 
-	gPtr p = new gBase(); // ref = 2
+	SPtr p = new gBase(); // ref = 2
 	p = NULL; // ref = 1;
 
 	// gBase is leaked !

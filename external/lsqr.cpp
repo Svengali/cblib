@@ -14,6 +14,7 @@
 #include "cblib/Base.h"
 #include "cblib/Log.h"
 #include "cblib/Util.h"
+#include "cblib/FloatUtil.h"
 #include <stdlib.h>
 #include <math.h>
 #include <limits.h>
@@ -86,11 +87,11 @@ public:
      /*---------------------------------------------------------------*/
 
 void lsqr_error( char  *msg,
-                 int     )
+                 int   code  )
 {
   //fprintf(stderr, "\t%s\n", msg);
   //exit(code);
-	cb::lprintf( "\t%s\n", msg);
+	lprintf( "\t%s\n", msg);
 	THROW;
 }
 
@@ -608,13 +609,12 @@ void lsqr( lsqr_input *input, lsqr_output *output,
 
 double dvec_norm2(VectorDouble *vec)
 {
-  long   indx;
   double norm;
   
   norm = 0.0;
 
-	int n = vec->size();
-  for(indx = 0; indx < n; indx++)
+	vecsize_t n = vec->size();
+  for(vecsize_t indx = 0; indx < n; indx++)
     norm += sqr(vec->at(indx));
 
   return sqrt(norm);
@@ -632,9 +632,7 @@ double dvec_norm2(VectorDouble *vec)
 
 void dvec_scale(double scal, VectorDouble *vec)
 {
-  long   indx;
-
-  for(indx = 0; indx < vec->size(); indx++)
+  for(int indx = 0; indx < vec->size32(); indx++)
     vec->data()[indx] *= scal;
 
   return;
@@ -651,9 +649,7 @@ void dvec_scale(double scal, VectorDouble *vec)
 
 void dvec_copy(VectorDouble *orig, VectorDouble *copy)
 {
-  long   indx;
-
-  for(indx = 0; indx < orig->size(); indx++)
+  for(int indx = 0; indx < orig->size32(); indx++)
     copy->data()[indx] = orig->data()[indx];
 
   return;
@@ -663,7 +659,7 @@ void dvec_copy(VectorDouble *orig, VectorDouble *copy)
 // y = m * x + b
 double solve_simple_linear(const cb::vector<double> & y,const cb::vector<double> & x, double * pM, double * pB)
 {
-	const int N = x.size();
+	const vecsize_t N = x.size();
 
 	ASSERT_RELEASE( x.size() == y.size() );
 	ASSERT_RELEASE( N > 0 );
@@ -686,7 +682,7 @@ double solve_simple_linear(const cb::vector<double> & y,const cb::vector<double>
 	
 	double _Y = 0, _X = 0, _XY = 0, _XX = 0;
 
-	for(int i=0;i<N;i++)
+	for(vecsize_t i=0;i<N;i++)
 	{
 		_Y += y[i];
 		_X += x[i];
@@ -720,7 +716,7 @@ double solve_simple_linear(const cb::vector<double> & y,const cb::vector<double>
 
 	double sqrErr = 0.0;
 	
-	for(int i=0;i<N;i++)
+	for(vecsize_t i=0;i<N;i++)
 	{
 		double yt = M * x[i] + B;
 		double err = y[i] - yt;
@@ -731,13 +727,13 @@ double solve_simple_linear(const cb::vector<double> & y,const cb::vector<double>
 }
 
 // returns sqrError
-double solve_lsqr_std(const cb::vector<double> & rhs,SimpleMatrixBase * matrix,t_mat_vec_product mvp,VectorDouble * solution,double damping)
+double solve_lsqr_std(const cb::vector<double> & rhs,lsqrMatrixBase * matrix,t_mat_vec_product mvp,VectorDouble * solution,double damping)
 {
 	int lsqr_rows = matrix->GetNumRows();
 	int lsqr_columns = matrix->GetNumColumns();
 
-	ASSERT_RELEASE( rhs.size() == lsqr_rows );
-	ASSERT_RELEASE( solution->size() == lsqr_columns );
+	ASSERT_RELEASE( rhs.size32() == lsqr_rows );
+	ASSERT_RELEASE( solution->size32() == lsqr_columns );
 
 	LSQR_INPUTS lsqr_inputs;
 
@@ -772,18 +768,18 @@ double solve_lsqr_std(const cb::vector<double> & rhs,SimpleMatrixBase * matrix,t
 	}
 	catch( ... )
 	{
-		cb::lprintf("lsqr failed !?!?!?\n");
+		lprintf("lsqr failed !?!?!?\n");
 		return FLT_MAX;
 	}
 
 	if ( lsqr_outputs.term_flag == 3 || lsqr_outputs.term_flag == 6 )
 	{
-		cb::lprintf("LSQR ** BAD FAILURE **\n");
+		lprintf("LSQR ** BAD FAILURE **\n");
 		return FLT_MAX; // and bail out
 	}
 	else if ( lsqr_outputs.term_flag == 7 )
 	{
-		cb::lprintf("LSQR ** HIT MAX ITERATIONS **\n");
+		lprintf("LSQR ** HIT MAX ITERATIONS **\n");
 	}
 	else
 	{
@@ -801,6 +797,54 @@ double solve_lsqr_std(const cb::vector<double> & rhs,SimpleMatrixBase * matrix,t
 	//double lsqr_sqrError = 0;	
 	return cb::fsquare(lsqr_outputs.resid_norm);
 }
+
+
+
+void SparseMatrixLsqrMatVecProd(long mode, VectorDouble * x, VectorDouble * y, void * _data)
+{
+	const SparseMatrix * matrix = (const SparseMatrix *) _data;
+	ASSERT( mode == 0 || mode == 1 );
+	
+	//  If MODE = 0, compute  y = y + A*x,
+	//  If MODE = 1, compute  x = x + A^T*y.
+
+	//int columns = x->length;
+	int rows = y->size32();
+	int cols = x->size32();
+	REFERENCE_TO_VARIABLE( cols );
+	ASSERT( cols == matrix->m_cols );
+	ASSERT( rows == matrix->GetNumRows() );
+		
+	if ( mode == 0 )
+	{
+		// y += A * x
+		for(int r=0;r<rows;r++)
+		{
+			const SparseMatrix::t_row & row = matrix->matrix[r];
+			
+			for(int i=0;i<row.size();i++)
+			{
+				y->at(r) += row[i].val * x->at( row[i].col );
+			}		
+		}
+	}
+	else
+	{
+		// x += X^T * y
+		
+		for(int r=0;r<rows;r++)
+		{
+			const SparseMatrix::t_row & row = matrix->matrix[r];
+			
+			for(int i=0;i<row.size();i++)
+			{
+				x->at( row[i].col ) += row[i].val * y->at(r);
+			}
+		}
+	}
+}
+
+//=========================
 
 }
 		

@@ -129,7 +129,7 @@ bool Triangulate2d_Approx(const vector<Vec2> & contour,vector<int> * pTriangles)
 	
 	/* allocate and initialize list of Vertices in polygon */
 
-	int n = contour.size();
+	int n = contour.size32();
 	ASSERT( n >= 3 );
 
 	vector<int> V;
@@ -191,14 +191,14 @@ bool Triangulate2d_Approx(const vector<Vec2> & contour,vector<int> * pTriangles)
 
 bool Triangulate2d_ViaInts(const vector<Vec2> & contour,vector<int> * pTriangles)
 {
-	int s = contour.size();
+	int s = contour.size32();
 	
 	vector<Vec2i> contouri;
 	contouri.resize(s);
 
 	RectF rect(0,0,0,0);
-	BoundinRectangle(&rect,contour.data(),s);
-	Quantize(contouri.data(),contour.data(),s,rect);
+	BoundingRectangle(&rect,contour.data(),s);
+	IntGeometry::Quantize(contouri.data(),contour.data(),s,rect);
 
 	return Triangulate2d(contouri,pTriangles);
 }
@@ -210,7 +210,7 @@ bool Triangulate2d(const vector<Vec2i> & contour,vector<int> * pTriangles)
 	
 	/* allocate and initialize list of Vertices in polygon */
 
-	int n = contour.size();
+	int n = contour.size32();
 	ASSERT( n >= 3 );
 
 	vector<int> V;
@@ -611,7 +611,7 @@ void DelaunayImprove2d(const vector<Vec2i> & contour,const vector<int> & sourceT
 	// I really need a little winged-edge, but fuck it for now
 
 	pTriangles->assignv( sourceTriangles );
-	int numTris = sourceTriangles.size()/3;
+	int numTris = sourceTriangles.size32()/3;
 
 	vector<int> & cur = *pTriangles;
 	
@@ -663,14 +663,14 @@ bool DelaunayTriangulate2d(const vector<Vec2i> & contour,vector<int> * pTriangle
 
 bool DelaunayTriangulate2d_ViaInts(const vector<Vec2> & contourf,vector<int> * pTriangles)
 {
-	int s = contourf.size();
+	int s = contourf.size32();
 	
 	vector<Vec2i> contour;
 	contour.resize(s);
 
 	RectF rect(0,0,0,0);
-	BoundinRectangle(&rect,contourf.data(),s);
-	Quantize(contour.data(),contourf.data(),s,rect);
+	BoundingRectangle(&rect,contourf.data(),s);
+	IntGeometry::Quantize(contour.data(),contourf.data(),s,rect);
 
 	vector<int> temp;
 	if ( ! Triangulate2d(contour,&temp) )
@@ -683,7 +683,7 @@ bool DelaunayTriangulate2d_ViaInts(const vector<Vec2> & contourf,vector<int> * p
 bool DelaunayTriangulate2d_PointCloudHull(const vector<Vec2i> & points,vector<int> * pTriangles)
 {
 	vector<Vec2i> vHull;
-	ConvexHullBuilder2d::Make2d(points.data(),points.size(),vHull);
+	ConvexHullBuilder2d::Make2d(points.data(),points.size32(),vHull);
 	
 	vector<int> tris;
 	if ( ! Triangulate2d(vHull,&tris) )
@@ -691,21 +691,21 @@ bool DelaunayTriangulate2d_PointCloudHull(const vector<Vec2i> & points,vector<in
 		
 	// tris now indexes into vHull , not points, need to fix that
 	vector<int> hullToPoints( vHull.size(), -1 );
-	for(int h=0;h<vHull.size();h++)
+	for(int h=0;h<vHull.size32();h++)
 	{
 		const Vec2i * pFound = std::find( points.begin(), points.end(), vHull[h] );
 		ASSERT( pFound != points.end() );
-		hullToPoints[h] = pFound - points.begin();
+		hullToPoints[h] = ptr_diff_32( pFound - points.begin() );
 	}
 	
-	for(int t=0;t<tris.size();t++)
+	for(int t=0;t<tris.size32();t++)
 	{
 		tris[t] = hullToPoints[ tris[t] ];
 	}	
 		
 	// add the points :
 	
-	for(int p=0;p<points.size();p++)
+	for(int p=0;p<points.size32();p++)
 	{
 		const Vec2i & P = points[p];
 		
@@ -717,7 +717,7 @@ bool DelaunayTriangulate2d_PointCloudHull(const vector<Vec2i> & points,vector<in
 		
 		int numInTris = 0;
 		
-		for(int t=0;t<tris.size();t+=3)
+		for(int t=0;t<tris.size32();t+=3)
 		{
 			int a = tris[t+0];
 			int b = tris[t+1];
@@ -759,14 +759,14 @@ bool DelaunayTriangulate2d_PointCloudHull(const vector<Vec2i> & points,vector<in
 
 bool DelaunayTriangulate2d_PointCloudHull(const vector<Vec2> & contourf,vector<int> * pTriangles)
 {
-	int s = contourf.size();
+	int s = contourf.size32();
 	
 	vector<Vec2i> contour;
 	contour.resize(s);
 
 	RectF rect(0,0,0,0);
-	BoundinRectangle(&rect,contourf.data(),s);
-	Quantize(contour.data(),contourf.data(),s,rect);
+	BoundingRectangle(&rect,contourf.data(),s);
+	IntGeometry::Quantize(contour.data(),contourf.data(),s,rect);
 
 	return DelaunayTriangulate2d_PointCloudHull(contour,pTriangles);
 }

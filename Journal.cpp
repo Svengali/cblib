@@ -19,8 +19,8 @@ void Journal::StartSaving()
 		s_mode = eSaving;
 		
 		// move old journal to prev :
-		DeleteFileA(s_journalPrevName);
-		MoveFileA(s_journalName,s_journalPrevName);
+		DeleteFile(s_journalPrevName);
+		MoveFile(s_journalName,s_journalPrevName);
 	
 		// clear it :
 		s_file.Open(s_journalName,"wb");
@@ -53,6 +53,9 @@ Journal::EMode Journal::GetMode()
 void Journal::Read(void * bits,int size)
 {
 	ASSERT( s_mode == eLoading );
+	s_file.Read(bits,size);
+	
+		/*
 	try
 	{
 		// s_file should be already open
@@ -70,6 +73,7 @@ void Journal::Read(void * bits,int size)
 	catch(...)
 	{
 	}
+		*/
 }
 
 void Journal::Write(const void * bits,int size)
@@ -103,7 +107,7 @@ char Journal::getch()
 	}
 	else
 	{
-		char c = ::getch();
+		char c = (char) ::getch();
 		IO(c);
 		return c;
 	}

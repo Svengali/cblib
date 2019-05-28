@@ -1,5 +1,6 @@
 #include "Base.h"
 #include "cblib/Vec4.h"
+#include "cblib/Log.h"
 
 START_CB
 
@@ -26,5 +27,12 @@ static void Vec4Test()
 }
 
 //-------------------------------------------------------------------
+
+void Vec4::Log() const //!< writes xyz to Log; does NOT add a \n !
+{
+	lprintf("{%1.3f,%1.3f,%1.3f,%1.3f}",x,y,z,w);
+}
+
+//-------------------------------------------------------------------END_CB
 
 END_CB

@@ -29,12 +29,11 @@ float Plane::SetFromThreePoints(const Vec3 & point1,const Vec3 & point2,const Ve
 	SetTriangleCross(&m_normal,point1,point2,point3);
 	const float areaSqr = m_normal.LengthSqr();
 
-	if ( areaSqr < EPSILON )
+	if ( areaSqr < EPSILON*EPSILON )
 	{
+		// MeshConnected relies on Plane being a zero 4-vec if it's invalid
 		m_normal = Vec3::zero;
 		m_offset = 0;
-
-		//ASSERT(!IsValid());
 
 		return 0.f;
 	}
@@ -74,7 +73,6 @@ void Plane::Transform(const Frame3 & xf)
 
 	ASSERT(IsValid());
 }
-
 void Plane::TransformByInverse(const Frame3Scaled & xfs)
 {
 	ASSERT(IsValid());
@@ -116,6 +114,7 @@ float Plane::ProjectOneAxisToPlane(const Vec3 & pos,const int axis) const
 
 	return result;
 }
+
 
 //=============================================================================================
 

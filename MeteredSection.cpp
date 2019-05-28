@@ -9,6 +9,10 @@
 #include <stdlib.h>
 #include "MeteredSection.h"
 
+// this can be done from like DllInit and stuff, don't use cb malloc
+#define ALLOC(size)	GlobalAlloc(0,size)
+#define FREE(ptr)	GlobalFree(ptr)
+
 // Internal function declarations
 BOOL InitMeteredSection(LPMETERED_SECTION lpMetSect, LONG lInitialCount, 
       LONG lMaximumCount, LPCTSTR lpName, BOOL bOpenOnly);
@@ -38,7 +42,7 @@ LPMETERED_SECTION CreateMeteredSection(LONG lInitialCount,
     }
 
     // Allocate memory for the metered section
-    lpMetSect = (LPMETERED_SECTION)malloc(sizeof(METERED_SECTION));
+    lpMetSect = (LPMETERED_SECTION)ALLOC(sizeof(METERED_SECTION));
 
     // If the memory for the metered section was allocated okay,     initialize it
     if (lpMetSect)
@@ -62,7 +66,7 @@ LPMETERED_SECTION OpenMeteredSection(LPCTSTR lpName)
 
     if (lpName)
     {
-        lpMetSect = (LPMETERED_SECTION)malloc(sizeof(METERED_SECTION));
+        lpMetSect = (LPMETERED_SECTION)ALLOC(sizeof(METERED_SECTION));
 
         // If the memory for the metered section was allocated okay
         if (lpMetSect)
@@ -161,7 +165,6 @@ void DeInitMeteredSection(LPMETERED_SECTION lpMetSect)
         if (lpMetSect->lpSharedInfo) UnmapViewOfFile(lpMetSect->lpSharedInfo);
         if (lpMetSect->hFileMap) CloseHandle(lpMetSect->hFileMap);
         if (lpMetSect->hEvent) CloseHandle(lpMetSect->hEvent);
-        //free(lpMetSect);
 		
 		memset(lpMetSect,0,sizeof(METERED_SECTION));
     }
@@ -174,7 +177,7 @@ void CloseMeteredSection(LPMETERED_SECTION lpMetSect)
     if (lpMetSect)
     {
 		DeInitMeteredSection(lpMetSect);
-        free(lpMetSect);
+        FREE(lpMetSect);
     }
 }
 

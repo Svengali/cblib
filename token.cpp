@@ -1,5 +1,6 @@
 #include "cblib/Token.h"
 #include "cblib/String.h"
+#include "cblib/File.h"
 
 START_CB
 
@@ -39,12 +40,13 @@ static void DoStringKeyUniquenessTest(const Token & key, const String & string )
 // don't use any statics in this, since Token(eEmpty) can be made from other static intializers
 Token::Token( const EEmpty e ) :
 	//m_hash( String( String::eEmpty ).CStr() )
-	m_hash( "" )
+	m_hashVal( TokenHash( "" ) )
 {
+	// m_string constructs to empty which is right
 }
 
 Token::Token( const char * const pStr ) :
-	m_hash( pStr )
+	m_hashVal( TokenHash( pStr ) )
 {
 	#ifdef DEBUG_STRINGKEY_HOLD_STRING
 	m_string = pStr;
@@ -53,7 +55,7 @@ Token::Token( const char * const pStr ) :
 }
 
 Token::Token( const String & str ) :
-	m_hash( str.CStr() )
+	m_hashVal( TokenHash( str.CStr() ) )
 {
 	#ifdef DEBUG_STRINGKEY_HOLD_STRING
 	m_string = str;
@@ -61,10 +63,10 @@ Token::Token( const String & str ) :
 	DoStringKeyUniquenessTest(*this, str );
 }
 
-Token::Token( const ulong crc ) : m_hash(crc)
+Token::Token( const uint32 crc ) : m_hashVal(crc)
 {	
 	#ifdef DEBUG_STRINGKEY_HOLD_STRING
-	static const String c_str("Token::ulong");
+	static const String c_str("Token::uint32");
 	m_string = c_str;
 	#endif
 }
@@ -81,15 +83,53 @@ const char * const Token::DebugGetString( void ) const
 	#endif
 }
 
-void Token::SetHash(ulong h)
+void Token::SetHash(uint32 h)
 {
 	#ifdef DEBUG_STRINGKEY_HOLD_STRING
 	static const String c_str("Token::SetHash");
 	m_string = c_str;
 	#endif	
-	m_hash = CRC(h);
+	m_hashVal = h;
 }
 
+void Token::WriteBinary(FILE * fp, bool writeString) const
+{
+	myfwrite(&m_hashVal,sizeof(m_hashVal),fp);
+	
+	#ifdef DEBUG_STRINGKEY_HOLD_STRING
+	if ( writeString ) 
+	{
+		m_string.WriteBinary(fp);
+	}
+	else
+	#endif
+	{
+		// write a length of 0
+		int len = 0;
+		myfwrite(&len,sizeof(len),fp);
+
+	}
+}
+
+void Token::ReadBinary(FILE * fp)
+{
+	myfread(&m_hashVal,sizeof(m_hashVal),fp);
+	
+	#ifdef DEBUG_STRINGKEY_HOLD_STRING
+	
+	m_string.ReadBinary(fp);
+	
+	#else
+	
+	// just read len and ignore it :
+	int len = 0;
+	myfread(&len,sizeof(len),fp);
+	// skip it :
+	fseek64(fp,len,SEEK_CUR);
+		
+	#endif
+}
+	
 END_CB
 
 //==================================================================================

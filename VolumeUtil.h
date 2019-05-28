@@ -47,11 +47,11 @@ class AnyVolume
 	float GetVolume() const;
 	float DifferenceDistSqr(const gAnyVolume &ab ) const;
 
-	bool IntersectVolume(const gSegment & seg) const;
-	bool IntersectSurface(const gSegment & seg,gSegmentResults * pResults) const;
+	bool IntersectVolume(const Segment & seg) const;
+	bool IntersectSurface(const Segment & seg,SegmentResults * pResults) const;
 
-	float PlaneDist(const gPlane & plane) const;
-	gPlane::ePlaneSide PlaneSide(const gPlane & plane) const;
+	float PlaneDist(const Plane & Plane) const;
+	Plane::ePlaneSide PlaneSide(const Plane & Plane) const;
 
 };
 
@@ -65,7 +65,7 @@ class Sphere;
 class AxialBox;
 class OrientedBox;
 class Segment;
-//class Cylinder;
+class Cylinder;
 
 //namespace VolumeUtil
 //{
@@ -75,12 +75,14 @@ class Segment;
 	bool Intersects(const Sphere &s, const AxialBox & b);
 	bool Intersects(const Sphere &s, const OrientedBox & b);
 	bool Intersects(const AxialBox & ab, const OrientedBox &ob);
-	//bool Intersects(const Cylinder &s, const Sphere & b);
+	bool Intersects(const Cylinder &s, const Sphere & b);
 	
 	inline bool Intersects(const AxialBox & b, const Sphere &s) { return Intersects(s,b); }
 	inline bool Intersects(const OrientedBox & b, const Sphere &s) { return Intersects(s,b); }
 	inline bool Intersects(const OrientedBox &ob, const AxialBox & ab) { return Intersects(ab,ob); }
-	
+	inline bool Intersects(const Sphere & b,const Cylinder &s) { return Intersects(s,b); }
+
+	bool BoxIntersectsCube(const AxialBox & ab, const Sphere & cube);
 
 	//! One primitive Contains another tests :
 	bool BoxContainsSphere(const AxialBox & b, const Sphere &s);
@@ -96,19 +98,13 @@ class Segment;
 
 	void MakeBoxAroundSphere( AxialBox * pab, const Sphere & b);
 	void MakeBoxAroundOrientedBox( AxialBox * pab, const OrientedBox & ob);
-	//void MakeBoxAroundCylinder( AxialBox * pab, const Cylinder & b);
+	void MakeBoxAroundCylinder( AxialBox * pab, const Cylinder & b);
 	
 	void MakeOrientedBoxFromAxialBox( OrientedBox * pob, const AxialBox & ab);
 	void MakeOrientedBoxFromAxialBox( OrientedBox * pob, const AxialBox & ab, const Mat3 & mat);
 	// NOTEZ : this MakeOrientedBoxFromAxialBox treats ab differently from the others !
 	//	it transforms it by the xfs
 	void MakeOrientedBoxFromLocalAxialBox( OrientedBox * pob, const AxialBox & ab, const Frame3Scaled& xfs);
-
-	//----------------------------------------------------------------------
-
-	//! the "Sphere" is treated as a cube; the "Cube" contains the actual "sphere"
-	//!	 you may think of this as an approximation of the AxialBox-Sphere test
-	bool BoxIntersectsCube(const AxialBox & ab, const Sphere & cube);
 
 	//----------------------------------------------------------------------
 

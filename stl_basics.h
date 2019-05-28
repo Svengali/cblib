@@ -1,5 +1,17 @@
 #pragma once
 
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+#ifndef _CRT_NONSTDC_NO_DEPRECATE
+#define _CRT_NONSTDC_NO_DEPRECATE
+#endif
+
+// MSVC iterator debugging fucks shit up because
+//	they try to run predicates both ways to ensure they are valid
+#undef _HAS_ITERATOR_DEBUGGING
+#define _HAS_ITERATOR_DEBUGGING	0
+
 // STL BASICS
 //============================================================================
 
@@ -11,26 +23,23 @@
 
 // NOTEZ : YOU MUST INCLUDE "stl_basics.h" BEFORE ANY STL INCLUDE
 
+#define CB_STL_INCLUDED
+
 START_CB
 
 extern void * MyStlAlloc(size_t size);
 extern void MyStlFree(void * ptr,size_t size);
 
-template<typename _Arg1,
-	typename _Arg2,
-	typename _Result>
-struct binary_function
-{	// base class for binary functions
-	typedef _Arg1 first_argument_type;
-	typedef  _Arg2 second_argument_type;
-	typedef  _Result result_type;
-};
-
-
 END_CB
 
+#ifndef StlSwap
+#define StlSwap				NS_CB::Swap
+#endif
+
+#ifndef StlAlloc
 #define StlAlloc(size)		NS_CB::MyStlAlloc(size)
 #define StlFree(ptr,size)	NS_CB::MyStlFree(ptr,size)
+#endif
 
 // use my assert in STL :
 #ifdef __STL_ASSERT
@@ -81,12 +90,14 @@ END_CB
 
 //=======================================================================================
 
+START_CB
+
 /*! pair_first_bool_binary_functor
 
 	this adapts a Functor which works on "first" to work on a pair
 */
 template<typename Pair,typename Functor> struct pair_first_bool_binary_functor : 
-	public cb::binary_function<Pair,Pair,bool>
+	public std::binary_function<Pair,Pair,bool>
 {
 	bool operator()(const Pair & __x, const Pair & __y) const
 	{
@@ -99,7 +110,7 @@ template<typename Pair,typename Functor> struct pair_first_bool_binary_functor :
 	this adapts a Functor which works on "second" to work on a pair
 */
 template<typename Pair,typename Functor> struct pair_second_bool_binary_functor : 
-	public cb::binary_function<Pair,Pair,bool>
+	public std::binary_function<Pair,Pair,bool>
 {
 	bool operator()(const Pair & __x, const Pair & __y) const
 	{
@@ -109,7 +120,7 @@ template<typename Pair,typename Functor> struct pair_second_bool_binary_functor 
 
 //! pair_key_bool_binary_functor
 template<class Pair,class Functor> struct pair_key_bool_binary_functor : 
-	public cb::binary_function<Pair,typename Pair::first_type,bool>
+	public std::binary_function<Pair,typename Pair::first_type,bool>
 {
 	bool operator()(const Pair & __x, const typename Pair::first_type & __y) const
 	{
@@ -119,7 +130,7 @@ template<class Pair,class Functor> struct pair_key_bool_binary_functor :
 
 //! pair_data_bool_binary_functor
 template<class Pair,class Functor> struct pair_data_bool_binary_functor : 
-	public cb::binary_function<Pair,typename Pair::second_type,bool>
+	public std::binary_function<Pair,typename Pair::second_type,bool>
 {
 	bool operator()(const Pair & __x, const typename Pair::second_type & __y) const
 	{
@@ -135,7 +146,7 @@ template<class Pair,class Functor> struct pair_data_bool_binary_functor :
 	 says they are not different
 */
 template<class Comparison> struct equivalent_functor : 
-	public cb::binary_function<typename Comparison::first_argument_type,typename Comparison::second_argument_type,bool>
+	public std::binary_function<typename Comparison::first_argument_type,typename Comparison::second_argument_type,bool>
 {
 	bool operator()(const typename Comparison::first_argument_type & __x, const typename Comparison::second_argument_type & __y) const
 	{
@@ -143,10 +154,21 @@ template<class Comparison> struct equivalent_functor :
 	}
 };
 
+// lhs_rhs_swap_functor takes a Comparison , like a <
+//	and swaps arg order to make it >
+template<class Comparison> struct lhs_rhs_swap_functor : 
+	public std::binary_function<typename Comparison::first_argument_type,typename Comparison::second_argument_type,bool>
+{
+	bool operator()(const typename Comparison::first_argument_type & __x, const typename Comparison::second_argument_type & __y) const
+	{
+		return Comparison()(__y,__x);
+	}
+};
+
 //============================================================================
 
 struct str_compare :
-		public cb::binary_function<const char *, const char *, bool>
+		public std::binary_function<const char *, const char *, bool>
 {
 	bool operator()(const char *p1, const char *p2) const
 	{
@@ -155,11 +177,29 @@ struct str_compare :
 };
 
 struct str_compare_i :
-		public cb::binary_function<const char *, const char *, bool>
+		public std::binary_function<const char *, const char *, bool>
 {
 	bool operator()(const char *p1, const char *p2) const
 	{
-		return _stricmp(p1,p2) < 0;
+		return stricmp(p1,p2) < 0;
+	}
+};
+
+struct str_equal :
+		public std::binary_function<const char *, const char *, bool>
+{
+	bool operator()(const char *p1, const char *p2) const
+	{
+		return strcmp(p1,p2) == 0;
+	}
+};
+
+struct str_equal_i :
+		public std::binary_function<const char *, const char *, bool>
+{
+	bool operator()(const char *p1, const char *p2) const
+	{
+		return stricmp(p1,p2) == 0;
 	}
 };
 
@@ -184,3 +224,5 @@ average(t_iterator begin,t_iterator end)
 	return ret;
 }
 /**/
+
+END_CB

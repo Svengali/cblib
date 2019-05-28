@@ -3,7 +3,7 @@
 
 START_CB
 
-//#pragma gPragmaMessage("need a Mat4Util eventually")
+//#pragma PRAGMA_MESSAGE("need a Mat4Util eventually")
 
 /*static*/ const Mat4 Mat4::identity(Mat4::eIdentity);
 /*static*/ const Mat4 Mat4::zero(Mat4::eZero);
@@ -88,10 +88,10 @@ void Mat4::GetFrame3Scaled(Frame3Scaled * pXFS) const
 static const Vec4 RandomUnit4()
 {
 	return Vec4(
-		funitrand(),
-		funitrand(),
-		funitrand(),
-		funitrand() );
+		frandunit(),
+		frandunit(),
+		frandunit(),
+		frandunit() );
 }
 
 static const Mat4 RandomMat4()
@@ -222,7 +222,7 @@ void Mat4_Time()
 {
 	#define REPEAT	1000000
 
-	#pragma gPragmaMessage("need to get these guys to align!")
+	#pragma PRAGMA_MESSAGE("need to get these guys to align!")
 	//__declspec(align(16))
 
 	const Mat4 m1(RandomMat4());
@@ -231,14 +231,14 @@ void Mat4_Time()
 	volatile Mat4 m3;
 
 	{
-	ulong addr = (ulong) &m1;
+	uint32 addr = (uint32) &m1;
 	int offset = addr & 15;
 	Log::Printf("m1 aligned = %s\n", (offset == 0) ? "yes" : "no");
 	}
 
 	// 334 clocks
 	{
-		gTimer::AutoTimer at("SetProductBrute",gTimer::eTicks,REPEAT);
+		TSCScopeLog at("SetProductBrute",Timer::eTicks,REPEAT);
 
 		for(int count=REPEAT;count--;)
 		{
@@ -248,7 +248,7 @@ void Mat4_Time()
 
 	// 175 clocks
 	{
-		gTimer::AutoTimer at("SetProductASM",gTimer::eTicks,REPEAT);
+		TSCScopeLog at("SetProductASM",Timer::eTicks,REPEAT);
 
 		for(int count=REPEAT;count--;)
 		{
@@ -258,7 +258,7 @@ void Mat4_Time()
 	
 	// 136 clocks
 	{
-		gTimer::AutoTimer at("SetProductD3D",gTimer::eTicks,REPEAT);
+		TSCScopeLog at("SetProductD3D",Timer::eTicks,REPEAT);
 
 		for(int count=REPEAT;count--;)
 		{
@@ -271,14 +271,14 @@ void Mat4_Time()
 	volatile Vec4 v4t;
 
 	{
-	ulong addr = (ulong) &v4t;
+	uint32 addr = (uint32) &v4t;
 	int offset = addr & 15;
 	Log::Printf("v4t aligned = %s\n", (offset == 0) ? "yes" : "no");
 	}
 
 	// 63 ticks
 	{
-		gTimer::AutoTimer at("Multiply",gTimer::eTicks,REPEAT);
+		TSCScopeLog at("Multiply",Timer::eTicks,REPEAT);
 
 		for(int count=REPEAT;count--;)
 		{
@@ -288,7 +288,7 @@ void Mat4_Time()
 
 	// 65 ticks
 	{
-		gTimer::AutoTimer at("D3DXVec4Transform",gTimer::eTicks,REPEAT);
+		TSCScopeLog at("D3DXVec4Transform",Timer::eTicks,REPEAT);
 
 		for(int count=REPEAT;count--;)
 		{
@@ -303,13 +303,13 @@ void Mat4_Time()
 
 #if 0
 
-#include <d3dx8math.h>
+#include <d3dx9math.h>
 //#include "Core/XG.h"
 
 #ifdef _DEBUG
-#pragma comment(lib,"d3dx8d.lib")
+#pragma comment(lib,"d3dx9d.lib")
 #else
-#pragma comment(lib,"d3dx8.lib")
+#pragma comment(lib,"d3dx9.lib")
 #endif
 
 float Mat4::GetDeterminant() const
@@ -386,7 +386,7 @@ void Mat4::SetProduct(const Mat4 &m1,const Mat4 &m2)
 	// this version can't work on self at all :
 	//ASSERT( &m1 != this && &m2 != this );
 	//RawProduct(GetData(),m1.GetData(),m2.GetData());
-	float m3[16];
+	register float m3[16];
 	RawProduct(m3,m1.GetData(),m2.GetData());
 	float * dest = GetData();
 	dest[0 ] = m3[0 ];
@@ -411,13 +411,15 @@ void Mat4::SetProduct(const Mat4 &m1,const Mat4 &m2)
 float Mat4::GetDeterminant() const
 {
 	double value =
+		(double)
 		m_x.w * m_y.z * m_z.y * m_w.x-m_x.z * m_y.w * m_z.y * m_w.x-m_x.w * m_y.y * m_z.z * m_w.x+m_x.y * m_y.w * m_z.z * m_w.x+
 		m_x.z * m_y.y * m_z.w * m_w.x-m_x.y * m_y.z * m_z.w * m_w.x-m_x.w * m_y.z * m_z.x * m_w.y+m_x.z * m_y.w * m_z.x * m_w.y+
 		m_x.w * m_y.x * m_z.z * m_w.y-m_x.x * m_y.w * m_z.z * m_w.y-m_x.z * m_y.x * m_z.w * m_w.y+m_x.x * m_y.z * m_z.w * m_w.y+
 		m_x.w * m_y.y * m_z.x * m_w.z-m_x.y * m_y.w * m_z.x * m_w.z-m_x.w * m_y.x * m_z.y * m_w.z+m_x.x * m_y.w * m_z.y * m_w.z+
 		m_x.y * m_y.x * m_z.w * m_w.z-m_x.x * m_y.y * m_z.w * m_w.z-m_x.z * m_y.y * m_z.x * m_w.w+m_x.y * m_y.z * m_z.x * m_w.w+
 		m_x.z * m_y.x * m_z.y * m_w.w-m_x.x * m_y.z * m_z.y * m_w.w-m_x.y * m_y.x * m_z.z * m_w.w+m_x.x * m_y.y * m_z.z * m_w.w;
-	return value;
+	
+	return (float)value;
 }
 
 void Mat4::GetTranspose(Mat4 * pMat) const

@@ -20,7 +20,7 @@ bool IsReflex(const vector<Vec2i> & verts,const vector<int> & indeces,const int 
 
 bool IsConvex(const vector<Vec2i> & verts,const vector<int> & indeces)
 {
-	int ixsize = indeces.size();
+	int ixsize = indeces.size32();
 	int cur;
 	for(cur = 0;cur<ixsize;cur++)
 	{
@@ -184,7 +184,7 @@ bool Intersects(const Vec2 & f1,const Vec2 & t1,const Vec2 & f2,const Vec2 & t2)
 
 bool CheckSelfIntersection2d(const vector<Vec2i> & contour)
 {
-	int s = contour.size();
+	int s = contour.size32();
 	for(int i=0;i<s;i++)
 	{
 		const Vec2i & A = contour[i];
@@ -202,7 +202,7 @@ bool CheckSelfIntersection2d(const vector<Vec2i> & contour)
 
 bool CheckSelfIntersection2d(const vector<Vec2> & contour)
 {
-	int s = contour.size();
+	int s = contour.size32();
 	for(int i=0;i<s;i++)
 	{
 		const Vec2 & A = contour[(i+s)%s];
@@ -222,7 +222,7 @@ bool CheckSelfIntersection2d(const vector<Vec2> & contour)
 
 bool CheckIntersection(const Vec2i & A,const Vec2i & B, const vector<Vec2i> & verts,const vector<int> & indeces)
 {
-	int ixsize = indeces.size();
+	int ixsize = indeces.size32();
 	for(int i=0;i<(ixsize-1);i++)
 	{
 		const Vec2i & C = verts[ indeces[i  ] ];
@@ -273,7 +273,7 @@ void Break(const vector<Vec2i> & verts,
 	//	all other verts go into one or the other
 	vector<int>	ix1;
 	vector<int>	ix2;
-	int ixsize = indeces.size();
+	int ixsize = indeces.size32();
 	int i;
 	for(i=v1;;i++)
 	{
@@ -309,7 +309,7 @@ bool PinchReflexReflex(const vector<Vec2i> & verts,const vector<int> & indeces,
 	int lastReflexI = -1;
 	int firstReflexI = -1;
 	bool looped = false;
-	int ixsize = indeces.size();
+	int ixsize = indeces.size32();
 	for(int cur = 0;;cur++)
 	{
 		if ( cur == ixsize )
@@ -433,7 +433,7 @@ bool BreakAtReflex(const vector<Vec2i> & verts,const vector<int> & indeces,
 	// start at the opposite and walk out to either side
 	const Vec2i & A = verts[ indeces[cur] ];
 
-	int ixsize = indeces.size();
+	int ixsize = indeces.size32();
 	int base = (cur + (ixsize/2))%ixsize;
 	for(int step=0;step<ixsize;step++)
 	{
@@ -534,7 +534,7 @@ void MakeConvexPieces(const vector<Vec2i> & verts,const vector<int> & indeces,
 	}
 	*/
 	
-	int ixsize = indeces.size();
+	int ixsize = indeces.size32();
 	ASSERT( ixsize > 3 );
 	// should not have a triangle that's non-convex !!!
 
@@ -576,7 +576,7 @@ inline bool Match(int a,int b,int c,int d)
 	return (a==c && b==d);
 }
 
-bool CanMerge(const vector<Vec2i> & verts,const vector<int> &, 
+bool CanMerge(const vector<Vec2i> & verts,const vector<int> & allIndeces, 
 				const vector<int> & poly1,
 				int v1,int n1,
 				const vector<int> & poly2,
@@ -584,8 +584,8 @@ bool CanMerge(const vector<Vec2i> & verts,const vector<int> &,
 				vector<int> * pMerged)
 {
 	// check for convexity; it's a local check :
-	int size1 = poly1.size();
-	int size2 = poly2.size();
+	int size1 = poly1.size32();
+	int size2 = poly2.size32();
 
 	int p1 = (v1 + size1-1)%size1;
 	int p2 = (v2 + size2-1)%size2;
@@ -630,7 +630,7 @@ bool CanMerge(const vector<Vec2i> & verts,const vector<int> &,
 			break; // and don't add v1
 		pMerged->push_back( poly1[i1] );
 	}
-	ASSERT( pMerged->size() == (size1+size2 -2) );
+	ASSERT( pMerged->size32() == (size1+size2 -2) );
 
 	ASSERT( IsConvex(verts,*pMerged) );
 
@@ -645,7 +645,7 @@ void TryMerges(const vector<Vec2i> & verts,const vector<int> & indeces,vector< v
 	do
 	{
 		didMerge = false;
-		int polys = pPolygons->size();
+		int polys = pPolygons->size32();
 		for(int p1=0;p1<polys;p1++)
 		{
 			for(int p2=p1+1;p2<polys;p2++)
@@ -653,8 +653,8 @@ void TryMerges(const vector<Vec2i> & verts,const vector<int> & indeces,vector< v
 				// see if p1 and p2 are adjacent :
 				vector<int> & poly1 = pPolygons->at(p1);
 				vector<int> & poly2 = pPolygons->at(p2);
-				int size1 = poly1.size();
-				int size2 = poly2.size();
+				int size1 = poly1.size32();
+				int size2 = poly2.size32();
 				for(int v1=0;v1<size1;v1++)
 				{
 					int n1 = (v1+1)%size1;
@@ -712,8 +712,8 @@ void ConvexDecomposition2d(const vector<Vec2i> & verts,vector< vector<int> > * p
 
 	// make the identity indexing :
 	vector<int>	loop;
-	loop.resize(verts.size());
-	for(int i=0;i<verts.size();i++)
+	loop.resize(verts.size32());
+	for(int i=0;i<verts.size32();i++)
 	{
 		loop[i] = i;
 	}
@@ -723,14 +723,14 @@ void ConvexDecomposition2d(const vector<Vec2i> & verts,vector< vector<int> > * p
 	// check it :
 	#ifdef DO_ASSERTS
 	{
-		for(int i=0;i<pPolygons->size();i++)
+		for(int i=0;i<pPolygons->size32();i++)
 		{
 			vector<int> & poly = pPolygons->at(i);
 			ASSERT( IsConvex(verts,poly) );
 			// check intersection :
-			for(int v=0;v<poly.size();v++)
+			for(int v=0;v<poly.size32();v++)
 			{
-				int n = (v+1)%poly.size();
+				int n = (v+1)%poly.size32();
 				const Vec2i & A = verts[ poly[v] ];
 				const Vec2i & B = verts[ poly[n] ];
 				ASSERT( ! CheckIntersection(A,B,verts,loop) );
@@ -746,14 +746,14 @@ void ConvexDecomposition2d(const vector<Vec2i> & verts,vector< vector<int> > * p
 	// check it :
 	#ifdef DO_ASSERTS
 	{
-		for(int i=0;i<pPolygons->size();i++)
+		for(int i=0;i<pPolygons->size32();i++)
 		{
 			vector<int> & poly = pPolygons->at(i);
 			ASSERT( IsConvex(verts,poly) );
 			// check intersection :
-			for(int v=0;v<poly.size();v++)
+			for(int v=0;v<poly.size32();v++)
 			{
-				int n = (v+1)%poly.size();
+				int n = (v+1)%poly.size32();
 				const Vec2i & A = verts[ poly[v] ];
 				const Vec2i & B = verts[ poly[n] ];
 				ASSERT( ! CheckIntersection(A,B,verts,loop) );

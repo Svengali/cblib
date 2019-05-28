@@ -76,6 +76,7 @@ public:
 	void SetToPoint(const Vec3 &c);
 
 	float GetVolume() const;
+	float GetSurfaceArea() const;
 
 	//--------------------------------------------------------------
 
@@ -188,6 +189,13 @@ inline float Sphere::GetVolume() const
 	return c_volumeCoefficient * fcube(m_radius);
 }
 
+inline float Sphere::GetSurfaceArea() const
+{
+	ASSERT(IsValid());
+	static const float c_areaCoefficient = ( 4.f * PIf );
+	return c_areaCoefficient * fsquare(m_radius);	
+}
+	
 inline void Sphere::Translate(const Vec3 &v)
 {
 	ASSERT( IsValid() );

@@ -21,14 +21,19 @@ Quick Quat cheat sheet :
 		{ axis * sin(angle/2) , cos(angle/2) }
 
 	negating m_v OR m_w flips the rotation to -angle
+	(negating both gives the same rotation)
 
 	{x,y,z,w}
 	{0,0,0,1} and {0,0,0,-1} are both the identity
 
 	{1,0,0,0} is a 180 degree rotation around X
 
-
-
+	negative the entire quat is the same as swapping :
+		{axis,angle}
+	for
+		{-axis, 2pi - angle}
+	which is equivalent to 
+		{-axis,-angle}
 
 *************************/
 
@@ -59,9 +64,8 @@ void Quat::SetFromAxisAngle(const Vec3 & axis, const float angle)
 	{
 		ASSERT( axis.IsNormalized() );
 
-		//! \todo @@@@ need a sincos function
-		const float cos = cosf(angle*0.5f);
-		const float sin = sinf(angle*0.5f);
+		float sin,cos;
+		fsincos(angle*0.5f,&sin,&cos);
 
 		m_v = axis;
 		m_v *= sin;
@@ -69,47 +73,6 @@ void Quat::SetFromAxisAngle(const Vec3 & axis, const float angle)
 
 		ASSERT( IsNormalized() );
 	}
-}
-
-void Quat::SetXRotation(const float angle)
-{
-	const float cos = cosf(angle*0.5f);
-	const float sin = sinf(angle*0.5f);
-
-	m_v = Vec3(sin,0,0);
-	m_w = cos;
-
-	ASSERT( IsNormalized() );
-}
-void Quat::SetYRotation(const float angle)
-{
-	const float cos = cosf(angle*0.5f);
-	const float sin = sinf(angle*0.5f);
-
-	m_v = Vec3(0,sin,0);
-	m_w = cos;
-
-	ASSERT( IsNormalized() );
-}
-void Quat::SetZRotation(const float angle)
-{
-	const float cos = cosf(angle*0.5f);
-	const float sin = sinf(angle*0.5f);
-
-	m_v = Vec3(0,0,sin);
-	m_w = cos;
-
-	ASSERT( IsNormalized() );
-}
-
-float Quat::GetAngleMod2Pi() const
-{
-	ASSERT( IsNormalized() );
-	float angle = acosf_safe( m_w ) * 2.f;
-	ASSERT( fisinrange(angle,0,TWO_PIf) );
-	if ( angle > CBPI )
-		angle = TWO_PI - angle;
-	return angle;
 }
 
 void Quat::GetAxisAngle(Vec3 * pAxis, float * pAngle) const
@@ -126,11 +89,20 @@ void Quat::GetAxisAngle(Vec3 * pAxis, float * pAngle) const
 
 void Quat::GetAxisAngleMod2Pi(Vec3 * pAxis, float * pAngle) const
 {
-	GetAxisAngle(pAxis,pAngle);
+	ASSERT( pAxis && pAngle );
+	ASSERT( IsNormalized() );
 
-	if ( *pAngle > CBPI )
+	// just take acos of m_w and normalize the axis
+	*pAngle = GetAngle();
+
+	*pAxis = m_v;
+	pAxis->NormalizeSafe();
+
+	// ? is this the same as negating the quat ?
+	//	yes it is
+	if ( *pAngle > PIf )
 	{
-		*pAngle = TWO_PI - *pAngle;
+		*pAngle = TWO_PIf - *pAngle;
 		*pAxis *= -1.f;
 	}
 }
@@ -150,9 +122,10 @@ void Quat::SetFromScaledVector(const Vec3 & v) // this is "Exp"
 {
 	m_v = v;
 	const float angle = m_v.NormalizeSafe();
-	//! \todo @@@@ need a sincos function
-	m_w = cosf(angle*0.5f);
-	m_v *= sinf(angle*0.5f);
+	float sin,cos;
+	fsincos(angle*0.5f,&sin,&cos);
+	m_w = cos;
+	m_v *= sin;
 	ASSERT( IsNormalized() );
 }
 
@@ -162,9 +135,37 @@ void Quat::GetScaledVector(Vec3 * pV) const // this is "Log"
 	ASSERT( pV );
 
 	float angle;
-	GetAxisAngle( pV, &angle );
+	GetAxisAngleMod2Pi(pV,&angle);
 	*pV *= angle;
 }
+
+void Quat::SetXRotation(const float angle)
+{
+	float sin,cos;
+	fsincos(angle*0.5f,&sin,&cos);
+
+	m_v = Vec3(sin,0,0);
+	m_w = cos;
+}
+void Quat::SetYRotation(const float angle)
+{
+	float sin,cos;
+	fsincos(angle*0.5f,&sin,&cos);
+
+	m_v = Vec3(0,sin,0);
+	m_w = cos;
+}
+void Quat::SetZRotation(const float angle)
+{
+	float sin,cos;
+	fsincos(angle*0.5f,&sin,&cos);
+
+	m_v = Vec3(0,0,sin);
+	m_w = cos;
+
+	ASSERT( IsNormalized() );
+}
+
 
 //}{------------------------------------------------------------------------
 // Rotate
@@ -272,7 +273,7 @@ void Quat::GetMatrix(Mat3 * pInto) const
 	pInto->SetRowY(     xy + wz, 1 - xx - zz,     yz - wx );
 	pInto->SetRowZ(     xz - wy,     yz + wx, 1 - xx - yy );
 	
-	ASSERT(pInto->IsOrthonormal(1e-2f));
+	ASSERT(pInto->IsOrthonormal());
 }
 
 void Quat::GetMatrixUnNormalized(Mat3 * pInto) const
@@ -420,7 +421,7 @@ void Quat::SetFromMatrix(const Mat3 & m)
 	// this has the wrong w convention ?
 	m_w *= -1.f;
 
-	ASSERT( IsNormalized(EPSILON*2.f) );
+	ASSERT( IsNormalized() );
 }
 
 //}{------------------------------------------------------------------------

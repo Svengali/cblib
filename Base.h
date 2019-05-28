@@ -7,10 +7,12 @@
 // @@@@ TODO : should have a release build with ASSERTS where the assert just logs
 
 #pragma warning(disable : 4127) // conditional is constant
-#pragma warning(disable : 4018) // signed/unsigned compare
-#pragma warning(disable : 4244) // conversion float/int/double
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union
+#pragma warning(disable : 4505) // unreferenced local function has been removed
+#pragma warning(disable : 4702) // unreachable code
 
-#pragma warning(disable : 4996) // conversion float/int/double
+#pragma warning(disable : 4996) // deprecated POSIX
 
 //#pragma pack(4) // default is 8
 
@@ -29,18 +31,26 @@ START_CB
 #define NULL 0
 #endif
 
-// unsigned types.
+//  types.
+typedef char   				int8;
+typedef short				int16;
+typedef int					int32;
+typedef __int64        		int64;
+
 typedef unsigned char   	uint8;
 typedef unsigned short		uint16;
 typedef unsigned int		uint32;
-typedef unsigned char   	ubyte;
-typedef unsigned short		uword;
-typedef unsigned int		ulong;
-
-typedef __int64        		int64;
 typedef unsigned __int64	uint64;
 
+#ifdef  _WIN64
+#define CB_64
+#endif
+
 //-----------------------------------------------------------
+
+#define CLASS_ABSTRACT_BASE class __declspec(novtable)
+
+#define DECL_ALIGN(x)	__declspec(align(x))
 
 //! Silences compiler warning about unused parameters/variables
 #define UNUSED_PARAMETER(x)	x
@@ -65,12 +75,21 @@ typedef unsigned __int64	uint64;
 	bool operator >  (const this_type & other) const { return ( other < *this ); }	\
 	bool operator != (const this_type & other) const { return ! ( *this == other ); }
 
-#define STACK_ARRAY(name,type,count)	type * name = (type *) _alloca(sizeof(type)*(count));
+//#define ARRAY_SIZE(data)	(sizeof(data)/sizeof(data[0]))
 
-#define ARRAY_SIZE(data)	(sizeof(data)/sizeof(data[0]))
+#ifdef ARRAY_SIZE
+#undef ARRAY_SIZE
+#endif
+
+template<typename T, size_t N> char (&ArrayCountObj(const T (&)[N]))[N];
+#define ARRAY_SIZE(arr)    (sizeof(NS_CB::ArrayCountObj(arr)))
 
 // MEMBER_OFFSET tells you the offset of a member in a type
-#define MEMBER_OFFSET(type,member)	( (size_t) &(((type *)0)->member) )
+//#define MEMBER_OFFSET(type,member)	( (size_t) &(((type *)0)->member) )
+#define MEMBER_OFFSET(type,member)	offsetof(type,member)
+
+// MEMBER_SIZE tells you the size of a member in a type
+#define MEMBER_SIZE(type,member)  ( sizeof( ((type *) 0)->member) )
 
 // MEMBER_TO_OWNER takes a pointer to a member and gives you back the base of the object
 //	you should then ASSERT( &(ret->member) == ptr );
@@ -81,14 +100,17 @@ typedef unsigned __int64	uint64;
 #define _Stringize( L )			#L
 #define _DoMacro1( M, X )		M(X)
 #define _DoMacro2( M, X,Y )		M(X,Y)
-#define _LineString				_DoMacro1( _Stringize, __LINE__ )
-#define _Indirect(A)			A
+
+#define STRINGIZE(M)			_DoMacro1( _Stringize, M )
+#define LINE_STRING				STRINGIZE( __LINE__ )
+#define MACRO_INDIRECT(A)		A
+
 
 #define STRING_JOIN(arg1, arg2)				STRING_JOIN_DELAY(arg1, arg2)
 #define STRING_JOIN_DELAY(arg1, arg2)		STRING_JOIN_IMMEDIATE(arg1, arg2)
 #define STRING_JOIN_IMMEDIATE(arg1, arg2)	arg1 ## arg2
 
-#define PRAGMA_MESSAGE(str)		message( __FILE__ "(" _LineString ") : message: " str)
+#define PRAGMA_MESSAGE(str)		message( __FILE__ "(" LINE_STRING ") : message: " str)
 	// don't put a semicolon after a gPragmaMessage
 	// use like this :
 	//#pragma gPragmaMessage("my text")
@@ -103,8 +125,6 @@ typedef unsigned __int64	uint64;
 
 //-----------------------------------------------------------
 
-#define EPSILON		(0.00001f)
-
 #define MIN(a,b)	( (a) < (b) ? (a) : (b) )
 #define MAX(a,b)	( (a) > (b) ? (a) : (b) )
 
@@ -116,10 +136,14 @@ typedef unsigned __int64	uint64;
 
 #define ABS(a)		( ((a) < 0) ? -(a) : (a) )
 
-#define ZERO(ptr)		memset(ptr,0,sizeof(*ptr))
+//#define ZERO(ptr)		memset(ptr,0,sizeof(*ptr))
+#define ZERO_PTR(ptr)		memset(ptr,0,sizeof(*ptr))
+#define ZERO_VAL(obj)		memset(&(obj),0,sizeof(obj))
 
-#define LOOP(var,count)	for(int var=0;(var)<(count);var++)
-#define LOOPBACK(var,count)	for(int var=(count)-1;(var)>=0;var--)
+#define LOOP(var,count)	(int var=0;(var)<(count);var++)
+#define LOOPBACK(var,count)	(int var=(count)-1;(var)>=0;var--)
+#define LOOPVEC(var,vec)    (int var=0; (var) < (int)vec.size(); var++)
+#define LOOPVECBACK(var,vec)    (int var= (int)vec.size() -1; (var)>=0; var--)
 
 //-------------------------------------------------------------------
 // crazy macros : DO_ONCE and AT_STARTUP
@@ -142,12 +166,22 @@ do { static int counter = 0; if ( counter++ < (count) ) { some_code; } } while(0
 
 void AssertMessage(const char * fileName,const int line,const char * message);
 
+#ifdef _CPPUNWIND
 #define TRY		try
 #define THROW	throw 0
 #define CATCH	catch(...)
+#else
+#define TRY		__try
+#define THROW	*((char *)0) = 0
+#define CATCH	__except( 1 ) // EXCEPTION_EXECUTE_HANDLER )
+#endif
 
-#ifdef _DEBUG
+#if 1 // def _DEBUG
+#ifdef CB_64
 #define ASSERT_BREAK()	__debugbreak()
+#else
+#define ASSERT_BREAK()	__asm { int 3 }
+#endif
 #else
 #define ASSERT_BREAK()	THROW
 #endif // _DEBUG
@@ -170,6 +204,10 @@ void AssertMessage(const char * fileName,const int line,const char * message);
 #define DURING_ASSERT(exp)
 
 #endif // DO_ASSERTS
+
+
+#define ASSERT_LOW(exp)
+#define ASSERT_MED(exp)		ASSERT(exp)
 
 //-------------------------------------------------------------------
 //! compiler_assert : compile time "assert"

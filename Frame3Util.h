@@ -49,16 +49,20 @@ START_CB
 	// return true/false for failure ; fails if the 3 points are colinear or coincident
 	bool MakeBarycentricFrame(Frame3 * pFrame,const Vec3 &a,const Vec3 &b,const Vec3 &c);
 
+	void SetLookAt(Frame3 * pFrame,const Vec3 & fm,const Vec3 & to,const Vec3 & up = Vec3::unitZ);
+
 	/** Align our z-axis with the given normal; other axes are
 		arbitrary. */
 	void	SetOrientedToSurface(Frame3 * pFrame, const Vec3& up, const Vec3 & pos);
 	
-	//----------------------------------------------
-	// misc :
-
-	void SetLookAt(Frame3 * pFrame,const Vec3 & fm,const Vec3 & to,const Vec3 & up);
-
 	void SetLerped(Frame3 * result, const Frame3& from, const Frame3& to, const float t);
+
+	//----------------------------------------------
+	// making frame from 16-float array :
+
+	void MakeFromArray(Frame3 * pm, const float *array);
+
+	void MakeFrameFromPositionAndUpDir(Frame3 *frame,  const Vec3& pos, const Vec3& up);
 	
 	//----------------------------------------------
 	// making rotation matrices :
@@ -132,8 +136,6 @@ START_CB
 		SetZRotation(&temp,angle);
 		pm->RightMultiply(temp);
 	}
-
-	void MakeFrameFromPositionAndUpDir(Frame3 *frame, const Vec3& pos, const Vec3& zDir);
 
 	//----------------------------------------------
 //}; // Frame3Util

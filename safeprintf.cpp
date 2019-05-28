@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_NONSTDC_NO_DEPRECATE
 #include "cblib/safeprintf.h"
 #include <ctype.h>
 #include <string.h>
@@ -27,13 +29,17 @@ const char * c_safeprintftypenames[] =
 	"none",
 	"unknown",
 	"charptr",
-	"int",
+	"wcharptr",
 	"float",
 	"ptrint",
-	"ptrvoid"
+	"ptrvoid",
+	"int32",
+	"int64",
+	"uint32",
+	"uint64"
 };
 
-ESafePrintfType safeprintf_fmttype(const char fmt)
+ESafePrintfType safeprintf_fmttype(const char fmt, bool wide)
 {
 	/**
 
@@ -62,9 +68,21 @@ ESafePrintfType safeprintf_fmttype(const char fmt)
 	case 'd':
 	case 'i':
 	case 'o':
+		if ( wide )
+			return safeprintf_int64;
+		else
+			return safeprintf_int32;
 	case 'u':
 	case 'x':
-		return safeprintf_int;
+		if ( wide )
+			return safeprintf_uint64;
+		else
+			return safeprintf_uint32;
+	case 'z':
+		if ( sizeof(size_t) == sizeof(int64) )
+			return safeprintf_uint64;
+		else
+			return safeprintf_uint32;		
 	case 'e':
 	case 'f':
 	case 'g':
@@ -74,27 +92,44 @@ ESafePrintfType safeprintf_fmttype(const char fmt)
 	case 'p':
 		return safeprintf_ptrvoid;
 	case 's':
-		return safeprintf_charptr;
+		if ( fmt == 'S' )
+			return safeprintf_wcharptr;
+		else
+			return safeprintf_charptr;
 	default:
 		return safeprintf_unknown;
 	}	
 }
 
-const char * safeprintf_fmtskipwidth(const char * ptr)
+const char * safeprintf_fmtskipwidth(const char * ptr, bool * pWide)
 {
+	*pWide = false;
+			
 	// h | l | I | I32 | I64
-	if ( *ptr == 'h' || *ptr == 'l' )
+	if ( *ptr == 'h' || *ptr == 'l' || *ptr == 'w' )
 	{
+		// char / string modifiers
 		return ptr+1;
 	}
 	else if ( *ptr == 'I' )
 	{
 		if ( ptr[1] == '3' && ptr[2] == '2' )
+		{
 			return ptr+3;
+		}
 		else if ( ptr[1] == '6' && ptr[2] == '4' )
+		{
+			*pWide = true;
 			return ptr+3;
+		}
 		else
+		{
+			// (size_t) size
+			if ( sizeof(size_t) == sizeof(int64) )
+				*pWide = true;
+
 			return ptr+1;
+		}
 	}
 	else
 	{
@@ -105,6 +140,8 @@ const char * safeprintf_fmtskipwidth(const char * ptr)
 ESafePrintfType safeprintf_findfmtandadvance(const char ** pptr)
 {
 	const char * ptr = *pptr;
+	const char * startPtr = ptr;
+	REFERENCE_TO_VARIABLE(startPtr);
 	// find the next % arg :
 	for(;;)
 	{
@@ -137,9 +174,11 @@ ESafePrintfType safeprintf_findfmtandadvance(const char ** pptr)
 		ptr++;
 	}
 	ASSERT( isalpha(*ptr) );
-	ptr = safeprintf_fmtskipwidth(ptr);
 	
-	ESafePrintfType fmttype = safeprintf_fmttype(*ptr);
+	bool wide = false;
+	ptr = safeprintf_fmtskipwidth(ptr,&wide);
+	
+	ESafePrintfType fmttype = safeprintf_fmttype(*ptr,wide);
 	
 	*pptr = ptr+1;
 	
@@ -149,8 +188,18 @@ ESafePrintfType safeprintf_findfmtandadvance(const char ** pptr)
 //-----------------------------------------------------------------------------
 // config :
 
+bool safeprintf_checkintunsigned = false;
 bool safeprintf_checkintasfloat = false;
+bool safeprintf_checkintsize = true;
 bool safeprintf_noisy = true;
+
+void safeprintf_setoptions(bool noisy,bool checkintsize,bool checkintasfloat,bool checkintunsigned)
+{
+	safeprintf_checkintunsigned = checkintunsigned;
+	safeprintf_checkintsize = checkintsize;
+	safeprintf_checkintasfloat = checkintasfloat;
+	safeprintf_noisy = noisy;
+}
 
 void safeprintf_throwsyntaxerror(const char *fmt_base,const char *fmt)
 {
@@ -163,7 +212,7 @@ void safeprintf_throwsyntaxerror(const char *fmt_base,const char *fmt)
 		
 		// can't call Log cuz it might use me
 		fputs(buffer,stderr);
-		OutputDebugStringA(buffer);
+		OutputDebugString(buffer);
 		
 		ASSERT_BREAK();
 	}
@@ -171,12 +220,50 @@ void safeprintf_throwsyntaxerror(const char *fmt_base,const char *fmt)
 	THROW;
 }
 
+static inline bool isIntFmt(ESafePrintfType fmt)
+{
+	return fmt >= safeprintf_int32;
+}
+static inline int getIntFmtWidth(ESafePrintfType fmt)
+{
+	if ( fmt == safeprintf_int32 || fmt == safeprintf_uint32 )
+		return 0;
+	else
+		return 1;
+}
+static inline int getIntFmtSign(ESafePrintfType fmt)
+{
+	if ( fmt == safeprintf_int32 || fmt == safeprintf_int64 )
+		return 0;
+	else
+		return 1;
+}
+
 void safeprintf_throwerror(const char *fmt_base,const char *fmt,ESafePrintfType fmttype,ESafePrintfType argtype)
 {
 	ASSERT( fmttype != argtype );
 	
+	if ( isIntFmt(fmttype) && isIntFmt(argtype) )
+	{
+		// %d vs %u / etc was passed an int ; can be benign ?
+		
+		bool sizeOk =
+		 ( ! safeprintf_checkintsize ||
+			 getIntFmtWidth(fmttype) == getIntFmtWidth(argtype) );
+		
+		bool signOk =
+		 ( ! safeprintf_checkintunsigned ||
+			 getIntFmtSign(fmttype) == getIntFmtSign(argtype) );
+		
+		if ( sizeOk && signOk )
+			return; // no error		
+	}
+	
 	if( fmttype == safeprintf_float &&
-		argtype == safeprintf_int )
+		(argtype == safeprintf_int32 ||
+		 argtype == safeprintf_int64 ||
+		 argtype == safeprintf_uint32 ||
+		 argtype == safeprintf_uint64) )
 	{
 		// %f was passed an int ; can be benign ?
 		if ( ! safeprintf_checkintasfloat )
@@ -193,7 +280,7 @@ void safeprintf_throwerror(const char *fmt_base,const char *fmt,ESafePrintfType 
 		
 		// can't call Log cuz it might use me
 		fputs(buffer,stderr);
-		OutputDebugStringA(buffer);
+		OutputDebugString(buffer);
 		
 		ASSERT_BREAK();
 	}

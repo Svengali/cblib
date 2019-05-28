@@ -5,15 +5,30 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx;h</Extensions>
     </Filter>
+    <Filter Include="External">
+      <UniqueIdentifier>{05fa5cd6-f106-4e19-8a11-99c9e00954f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LF">
+      <UniqueIdentifier>{5d3e6607-faa9-4f66-ad5b-b576c6f80e24}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="array.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="autoprintf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AxialBox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Base.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Bezier.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BezierSpline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BmpImage.cpp">
@@ -28,13 +43,25 @@
     <ClCompile Include="Callback.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cblib_config.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="circular_array.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Color.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ColorConversions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="CommonPrefs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ComplexDouble.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Cone.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ConvexDecomp2d.cpp">
@@ -52,10 +79,16 @@
     <ClCompile Include="crc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Cylinder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="DirChangeWatcher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="File.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FileEnum.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FileUtil.cpp">
@@ -65,6 +98,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FloatImage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FloatImageFilters.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FloatRow.cpp">
@@ -82,6 +118,27 @@
     <ClCompile Include="Frame3Util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Frustum.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GoogleChart.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hash_function.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hash_table.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hashes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hashtable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IKChain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="inc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -91,13 +148,19 @@
     <ClCompile Include="Journal.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LinearSpline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Link.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Log.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="lsqr.cpp">
+    <ClCompile Include="LogUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LogWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Mat2.cpp">
@@ -112,19 +175,46 @@
     <ClCompile Include="Mat4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="matchpat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="MatNM.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MeteredSection.cpp">
+    <ClCompile Include="Mem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MemMapFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MemTrack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MoreUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mydct.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="OrientedBox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ParseArgs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Plane.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Plane2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Poly2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Poly3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Pool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PrefBlock.cpp">
@@ -157,10 +247,19 @@
     <ClCompile Include="safeprintf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="search1d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Segment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SegmentTriangle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="SmallAllocator_Greedy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SmoothDriver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Sphere.cpp">
@@ -172,13 +271,25 @@
     <ClCompile Include="SPtr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="StackTrace.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="stl_basics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="String.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="StrUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="TextureInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Threading.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThreadLog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Timer.cpp">
@@ -188,6 +299,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Triangulate2d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tweakvar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TypeTraits.cpp">
@@ -238,21 +352,60 @@
     <ClCompile Include="WeakPtr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Win32Hooks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Win32NameMapping.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Win32Util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Wnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="External\HookImportedFunctionByName.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="External\lsqr.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="External\MeteredSection.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="External\MiniBall.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="LF\cblibCpp0x.cpp">
+      <Filter>LF</Filter>
+    </ClCompile>
+    <ClCompile Include="LF\cblibRelacy.cpp">
+      <Filter>LF</Filter>
+    </ClCompile>
+    <ClCompile Include="LF\lfweakreftable.cpp">
+      <Filter>LF</Filter>
+    </ClCompile>
+    <ClCompile Include="Lf\NodeAllocator.cpp">
+      <Filter>LF</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="array.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="autoprintf.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="AxialBox.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Base.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Bezier.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BezierSpline.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="BmpImage.h">
@@ -267,13 +420,28 @@
     <ClInclude Include="Callback.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="cblib_config.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cblib_x64_asm.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="circular_array.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Color.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="ColorConversions.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="CommonPrefs.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ComplexDouble.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Cone.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="ConvexDecomp2d.h">
@@ -291,6 +459,9 @@
     <ClInclude Include="crc.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Cylinder.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="DirChangeWatcher.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -303,13 +474,22 @@
     <ClInclude Include="File.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="FileEnum.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="FileUtil.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Filter.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Filter.h_t.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="FloatImage.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FloatImageFilters.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="FloatRow.h">
@@ -327,6 +507,27 @@
     <ClInclude Include="Frame3Util.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Frustum.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GoogleChart.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hash_function.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hash_table.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hashes.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hashtable.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IKChain.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="inc.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -334,6 +535,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Journal.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LinearSpline.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Link.h">
@@ -345,7 +549,16 @@
     <ClInclude Include="Log.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="lsqr.h">
+    <ClInclude Include="LogUtil.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LogWindow.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MallocDefine.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Mappers.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Mat2.h">
@@ -360,19 +573,52 @@
     <ClInclude Include="Mat4.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="matchpat.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MathFunctors.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="MatNM.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="MeteredSection.h">
+    <ClInclude Include="Mem.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MemMapFile.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MemTrack.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MoreUtil.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mydct.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="OrientedBox.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ParseArgs.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Plane.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Plane2.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Poly2.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Poly3.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Polynomials.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Pool.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="PrefBlock.h">
@@ -402,16 +648,25 @@
     <ClInclude Include="Reflection.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="ReflectionMacros.h">
+    <ClInclude Include="safeprintf.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="safeprintf.h">
+    <ClInclude Include="search1d.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Segment.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="SegmentTriangle.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SemiRandomGenerator.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="SmallAllocator_Greedy.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SmoothDriver.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Sphere.h">
@@ -423,13 +678,25 @@
     <ClInclude Include="SPtr.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="StackTrace.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="stl_basics.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="String.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="StrUtil.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="TextureInfo.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Threading.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreadLog.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Timer.h">
@@ -442,6 +709,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Triangulate2d.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tweakvar.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="TypeTraits.h">
@@ -507,17 +777,84 @@
     <ClInclude Include="WeakPtr.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Win32Hooks.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Win32NameMapping.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="Win32Util.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Wnd.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="External\HookImportedFunctionByName.h">
+      <Filter>External</Filter>
+    </ClInclude>
+    <ClInclude Include="External\lsqr.h">
+      <Filter>External</Filter>
+    </ClInclude>
+    <ClInclude Include="External\MeteredSection.h">
+      <Filter>External</Filter>
+    </ClInclude>
+    <ClInclude Include="External\MiniBall.h">
+      <Filter>External</Filter>
+    </ClInclude>
+    <ClInclude Include="LF\cblibCpp0x.h">
+      <Filter>LF</Filter>
+    </ClInclude>
+    <ClInclude Include="LF\cblibLF.h">
+      <Filter>LF</Filter>
+    </ClInclude>
+    <ClInclude Include="LF\cblibRelacy.h">
+      <Filter>LF</Filter>
+    </ClInclude>
+    <ClInclude Include="Lf\LFFIFOI.h">
+      <Filter>LF</Filter>
+    </ClInclude>
+    <ClInclude Include="Lf\LFMPSCI.h">
+      <Filter>LF</Filter>
+    </ClInclude>
+    <ClInclude Include="Lf\LFSList.h">
+      <Filter>LF</Filter>
+    </ClInclude>
+    <ClInclude Include="Lf\LFSPSC.h">
+      <Filter>LF</Filter>
+    </ClInclude>
+    <ClInclude Include="Lf\LFSPSC2.h">
+      <Filter>LF</Filter>
+    </ClInclude>
+    <ClInclude Include="LF\lfweakreftable.h">
+      <Filter>LF</Filter>
+    </ClInclude>
+    <ClInclude Include="Lf\NodeAllocator.h">
+      <Filter>LF</Filter>
+    </ClInclude>
+    <ClInclude Include="Lf\PetersonLock.h">
+      <Filter>LF</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <None Include="autoprintf.inl">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="autoprintfsub.inc">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="compression\O0ArithCoder.inl">
+      <Filter>Source Files</Filter>
+    </None>
     <None Include="safeprintf.inc">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="cblib_x64_asm.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
   </ItemGroup>
 </Project>

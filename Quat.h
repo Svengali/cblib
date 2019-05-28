@@ -6,6 +6,7 @@
 #pragma once
 
 #include "cblib/Vec3.h"
+#include "cblib/Vec4.h"
 
 START_CB
 
@@ -61,7 +62,7 @@ public:
 
 	//! the identity quat is "no rotation", just like a matrix
 	enum EConstructorIdentity { eIdentity };
-	explicit inline  Quat(EConstructorIdentity) : m_v(0,0,0) , m_w(1)
+	explicit inline  Quat(EConstructorIdentity e) : m_v(0,0,0) , m_w(1)
 	{
 		// identity
 	}
@@ -77,7 +78,7 @@ public:
 	}
 
 	enum EConstructorAxisAngle { eAxisAngle };
-	explicit inline  Quat(EConstructorAxisAngle,const Vec3 & axis, const float angle)
+	explicit inline  Quat(EConstructorAxisAngle e,const Vec3 & axis, const float angle)
 	{
 		SetFromAxisAngle(axis,angle);
 	}
@@ -95,7 +96,7 @@ public:
 	//! quats should almost always be normalized
 	//!	IsNormalized not included in IsValid because they can
 	//!	go temporarily un-norm'ed during manipulations
-	bool IsNormalized(const float tolerance = EPSILON) const;
+	bool IsNormalized(const float tolerance = EPSILON_NORMALS) const;
 
 	float Normalize();
 
@@ -253,6 +254,11 @@ public:
 	const Vec3 RotateUnnormalized(const Vec3 &fm) const;
 
 	//-------------------------------------------------
+
+	const Vec4 & GetAsVec4() const { return *((const Vec4 *)this); }
+	Vec4 & MutableAsVec4()			{ return *((Vec4 *)this); }
+
+	//-------------------------------------------------
 private:
 
 	/*! data:
@@ -301,7 +307,7 @@ inline /*static*/ bool Quat::EqualRotations(const Quat &a,const Quat &b,const fl
 	
 	if ( Vec3::Equals(a.m_v,b.m_v,tolerance) && fequal(a.m_w,b.m_w,tolerance) )
 		return true;
-	if ( Vec3::Equals(a.m_v,-1.f * b.m_v,tolerance) && fequal(a.m_w,- b.m_w,tolerance) )
+	if ( Vec3::Equals(a.m_v,- b.m_v,tolerance) && fequal(a.m_w,- b.m_w,tolerance) )
 		return true;
 	return false;
 }

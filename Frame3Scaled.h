@@ -60,12 +60,12 @@ public:
 	
 	//! use like this : Frame3Scaled(Frame3Scaled::eIdentity);
 	//!	(quite intentionally not using Vec3::unitX, etc. here)
-	explicit __forceinline Frame3Scaled(const EConstructorIdentity)
+	explicit __forceinline Frame3Scaled(const EConstructorIdentity e)
 		: m_frame(Frame3::eIdentity) , m_scale(1.f)
 	{
 	}
 
-	explicit __forceinline Frame3Scaled(const EConstructorZero)
+	explicit __forceinline Frame3Scaled(const EConstructorZero e)
 		: m_frame(Frame3::eZero) , m_scale(0.f)
 	{
 	}
@@ -115,8 +115,8 @@ public:
 
 	bool IsValid() const;
 	bool IsIdentity(const float tolerance = EPSILON) const;
-	bool IsOrthonormal(const float tolerance = EPSILON) const;
-	bool IsOrthogonal(const float tolerance = EPSILON) const;
+	bool IsOrthonormal(const float tolerance = EPSILON_NORMALS) const;
+	bool IsOrthogonal(const float tolerance = EPSILON_NORMALS) const;
 
 	//----------------------------------------------
 	//! Building the Transform

@@ -123,6 +123,11 @@ public:
 	//! fuzzy equality test
 	static bool Equals(const Vec4 &a,const Vec4 &b,const float tolerance = EPSILON);
 
+	//-------------------------------------------------------------------
+	// just IO as bytes
+
+	void	Log() const; //!< writes xyz to Log; does NOT add a \n !
+
 }; // end of class Vec4
 
 //}{===========================================================================================

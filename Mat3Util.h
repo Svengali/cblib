@@ -15,6 +15,8 @@ START_CB
 //namespace Mat3Util
 //{
 
+	void Log(const Mat3 & m,const char * rowsep);
+
 	inline const Vec3 GetDiagonal(const Mat3 & m)
 	{
 		return Vec3(m.GetRowX().x, m.GetRowY().y, m.GetRowZ().z);
@@ -42,6 +44,13 @@ START_CB
 
 	//! make it Orthonormal; can work on self
 	void GetOrthonormalized(const Mat3 & m,Mat3 * pOrthoNorm);
+
+	/// Orthonormalize in place using Gram Schmidt. Preserves the direction of the third row.
+	void Orthonormalize(Mat3 * pMat);
+
+	/// Like Orthonormalize but also handles matrices with linearly dependant vectors.
+	void RobustOrthonormalize(Mat3 * pMat);
+
 
 	//----------------------------------------------
 	// making rotation matrices :
@@ -160,12 +169,23 @@ START_CB
 	means is that if you do a SetFromEulerAnglesXYZ() and then a
 	GetEulerAnglesXYZ() you may not get the same angles back out!
 
+	GetEulerAnglesXYZ makes Angles in the range
+		x:{-pi,pi}
+		y:{-pi/2,pi/2}
+		z:{-pi,pi}
+
 	*/
 
 	void GetEulerAnglesXYZ(const Mat3 & mat,Vec3 * pAngles);
 	void SetFromEulerAnglesXYZ(Mat3 * pMat,const Vec3 & angles);
 
 	//----------------------------------------------
+
+	inline const Mat3 MakeRotation(const Vec3 & axis,const float angle) { Mat3 ret; SetRotation(&ret,axis,angle); return ret; }
+	inline const Mat3 MakeXRotation(const float angle) { Mat3 ret; SetXRotation(&ret,angle); return ret; }
+	inline const Mat3 MakeYRotation(const float angle) { Mat3 ret; SetYRotation(&ret,angle); return ret; }
+	inline const Mat3 MakeZRotation(const float angle) { Mat3 ret; SetZRotation(&ret,angle); return ret; }
+	inline const Mat3 MakeRandomRotation() { Mat3 ret; SetRandomRotation(&ret); return ret; }
 
 	bool EigenSolveSymmetric (const Mat3 &mat,
 					Vec3 * pEigenValues,

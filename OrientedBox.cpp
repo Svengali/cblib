@@ -21,7 +21,7 @@ START_CB
 
 // this version takes the "Box To World" Matrix - eg. not transposed
 //	(it does a transpose, so it's not as fast)
-OrientedBox::OrientedBox(EBoxToWorldMatrix,const Mat3 & mat,const Vec3 & center,const Vec3 & radii) :
+OrientedBox::OrientedBox(EBoxToWorldMatrix e,const Mat3 & mat,const Vec3 & center,const Vec3 & radii) :
 	m_center(center), m_radii(radii)
 {
 	ASSERT( mat.IsOrthonormal() );
@@ -140,6 +140,26 @@ bool OrientedBox::Contains(const Vec3 & v) const
 		//! @@ \todo be a bit greedy about saying that people right on my surface are inside me ?
 		//!	by expanding r by EPSILON ?
 		const float r = m_radii[i];
+
+		if ( fabsf(alongAxis) > r )
+			return false;
+	}
+
+	return true;
+}
+
+bool OrientedBox::Contains(const Vec3 & v,const float tolerance) const
+{
+	ASSERT( IsValid() );
+	
+	const Vec3 vMinusCenter = v - m_center;
+	for(int i=0;i<3;i++)
+	{
+		const float alongAxis = vMinusCenter * m_axes.GetRow(i);
+
+		// be a bit greedy about saying that people right on my surface are inside me ?
+		// 	by expanding r by EPSILON ?
+		const float r = m_radii[i] + tolerance;
 
 		if ( fabsf(alongAxis) > r )
 			return false;

@@ -31,7 +31,7 @@ bool Frame3::IsValid() const
 
 bool Frame3::IsIdentity(const float tolerance /*= EPSILON*/) const
 {
-	return ( m_mat.IsIdentity(tolerance) && Vec3::Equals(m_t,Vec3::zero) );
+	return ( m_mat.IsIdentity(tolerance) && Vec3::Equals(m_t,Vec3::zero,tolerance) );
 }
 
 //--------------------------------------------------------------------------------

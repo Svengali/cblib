@@ -82,7 +82,7 @@ public:
 			// @@ could check that we're actually linked to ptr
 			
 			// @@ this is dup'ed from SPtr ; should share it
-
+			/*
 			// Check to make sure the actual pointer is ok.
 			ASSERT( reinterpret_cast<uint32>( ptr ) != 0xcccccccc );
 			ASSERT( reinterpret_cast<uint32>( ptr ) != 0xcdcdcdcd );
@@ -97,6 +97,7 @@ public:
 			ASSERT( *reinterpret_cast<uint32 const * const>( ptr ) != 0xcdcdcdcd );
 			ASSERT( *reinterpret_cast<uint32 const * const>( ptr ) != 0xdddddddd );
 			ASSERT( *reinterpret_cast<uint32 const * const>( ptr ) != 0xffffffff );
+			*/
 			
 			// ML note: This check means that in some cases we need to include
 			// the definition of the class which is the argument for this

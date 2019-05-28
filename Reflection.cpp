@@ -44,10 +44,10 @@ public:
 	}
 
 	template <class T>
-	void Reflection(T &)
+	void Reflection(T & functor)
 	{
-		//REFLECT(m_a);
-		//REFLECT(m_b);
+		REFLECT(m_a);
+		REFLECT(m_b);
 	}
 
 	virtual void vPrintMembers()

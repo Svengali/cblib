@@ -2,7 +2,6 @@
 #include <cblib/Win32Util.h>
 #include <cblib/File.h>
 #include <cblib/vector.h>
-#include <malloc.h>
 #include <conio.h>
 #include <stdlib.h>
 #include <direct.h>
@@ -25,7 +24,7 @@ FILE_NOTIFY_CHANGE_SECURITY
 
 */
 
-const DWORD c_dirChangeDefaultNotifyFlags = 
+const uint32 c_dirChangeDefaultNotifyFlags = 
 	FILE_NOTIFY_CHANGE_FILE_NAME|
 	FILE_NOTIFY_CHANGE_DIR_NAME|
 //	FILE_NOTIFY_CHANGE_ATTRIBUTES|
@@ -38,7 +37,7 @@ const DWORD c_dirChangeDefaultNotifyFlags =
 
 //=====================================================================================================================================
 
-#define MAX_BUFFER		(1024*1024)
+#define MAX_BUFFER		(32*1024)
 
 #define MY_MAX_PATH		4096
 
@@ -48,10 +47,10 @@ const DWORD c_dirChangeDefaultNotifyFlags =
 struct DirInfo 
 {
 	HANDLE      hDir;
-	char        lpszDirName[MY_MAX_PATH];
-	CHAR        lpBuffer[MAX_BUFFER];
 	DWORD       dwBufLength;
 	OVERLAPPED  Overlapped;
+	char        lpszDirName[MY_MAX_PATH];
+	CHAR        lpBuffer[MAX_BUFFER];
 };
 
 /*
@@ -122,6 +121,8 @@ private:
 	CriticalSection			m_pendingCS;
 	vector<DirChangeRecord>	m_pending;
 	bool m_threadKillRequested;
+	
+	FORBID_CLASS_STANDARDS(DirChangeWatcherImpl);
 };
 
 //---------------------------------------------------------------
@@ -164,7 +165,7 @@ void DirChangeWatcherImpl::CheckChangedFile( DirInfo *lpdi, PFILE_NOTIFY_INFORMA
 	
 	strcpy( szFullPathName, lpdi->lpszDirName);
 	
-	const auto dirNameLen = strlen(lpdi->lpszDirName);
+	int dirNameLen = strlen32(lpdi->lpszDirName);
 	if ( dirNameLen > 0 )
 	{
 		char last = lpdi->lpszDirName[ dirNameLen - 1];
@@ -358,7 +359,7 @@ void DirChangeWatcherImpl::Stop()
     CloseHandle( m_hCompPort );
     m_hCompPort = 0;
     
-    for(int i=0;i<m_dirs.size();i++)
+    for(int i=0;i<m_dirs.size32();i++)
     {
         CloseHandle( m_dirs[i].hDir );
 	}	
@@ -368,7 +369,11 @@ void DirChangeWatcherImpl::Stop()
 
 bool DirChangeWatcherImpl::StartWatchingDirs(const char ** dirsToWatch,const int numDirs,DWORD notifyFlags)
 {
+	// this is just an optimization (theoretically)
 	m_pending.reserve(256);
+	
+	// I use &back() in the loop so make sure the vector never relocates :
+	m_dirs.reserve(numDirs);
 
 	m_notifyFlags = notifyFlags;
 
@@ -379,7 +384,7 @@ bool DirChangeWatcherImpl::StartWatchingDirs(const char ** dirsToWatch,const int
 		m_dirs.push_back();
     
         // Get a handle to the directory
-        m_dirs.back().hDir = CreateFileA( dirsToWatch[i],
+        m_dirs.back().hDir = CreateFile( dirsToWatch[i],
                                             FILE_LIST_DIRECTORY,
                                             FILE_SHARE_READ |
 												FILE_SHARE_WRITE |
@@ -425,7 +430,7 @@ bool DirChangeWatcherImpl::StartWatchingDirs(const char ** dirsToWatch,const int
 
     // Start watching each of the directories of interest
 
-    for (int i=0;i<m_dirs.size();i++)
+    for (int i=0;i<m_dirs.size32();i++)
     {
         if ( ! ReadDirectoryChangesW( m_dirs[i].hDir,
                                m_dirs[i].lpBuffer,
@@ -462,11 +467,32 @@ bool DirChangeWatcherImpl::StartWatchingDirs(const char ** dirsToWatch,const int
 //=========================================================================================================
 // public exposure :
 
-DirChangeWatcherPtr StartWatchingDirs(const char ** dirs,const int numDirs,DWORD notifyFlags)
+DirChangeWatcherPtr StartWatchingDirs(const char ** dirs,const int numDirs,uint32 notifyFlags)
 {
 	DirChangeWatcherImpl * watcher = new DirChangeWatcherImpl;
 	
 	if ( ! watcher->StartWatchingDirs(dirs,numDirs,notifyFlags) )
+	{
+		delete watcher;
+		return DirChangeWatcherPtr(NULL);
+	}
+	
+	return DirChangeWatcherPtr(watcher);
+}
+
+DirChangeWatcherPtr StartWatchingDirs(const vector<String> & dirs,uint32 notifyFlags)
+{
+	DirChangeWatcherImpl * watcher = new DirChangeWatcherImpl;
+
+	int numDirs = dirs.size32();
+	vector<const char *> cptrDirs;
+	cptrDirs.resize(numDirs);
+	for(int i=0;i<numDirs;i++)
+	{
+		cptrDirs[i] = dirs[i].CStr();
+	}
+	
+	if ( ! watcher->StartWatchingDirs(cptrDirs.data(),numDirs,notifyFlags) )
 	{
 		delete watcher;
 		return DirChangeWatcherPtr(NULL);

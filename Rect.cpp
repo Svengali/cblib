@@ -29,6 +29,11 @@ bool RectF::IsValid() const
 	return true;
 }
 
+/*static*/ const RectI RectI::zero(0,0,0,0);
+/*static*/ const RectF RectF::zero(0.f,0.f,0.f,0.f);
+/*static*/ const RectI RectI::unit(0,1,0,1);
+/*static*/ const RectF RectF::unit(0.f,1.f,0.f,1.f);
+
 void RectF::SetScaled(const RectF & r,const float f)
 {
 	SetScaled(r,f,f);
@@ -46,6 +51,7 @@ void RectF::SetScaled(const RectF & r,const float xs,const float ys)
 		center.y + h*0.5f*ys ); 
 }
 	
+/*	
 void RectF::GrowToSquare()
 {
 	float w = Width();
@@ -71,7 +77,7 @@ void RectF::GrowToSquare()
 	ASSERT( (Height() < EPSILON && Width() < EPSILON)
 			|| fequal(Width() / Height(), 1.0f, 0.05f) );
 }
-
+*/
 const Vec2 RectF::ScaleVectorIntoRect(const Vec2 & from) const
 {
 	ASSERT( Width() >= EPSILON );
@@ -90,9 +96,5 @@ const Vec2 RectF::ScaleVectorFromRect(const Vec2 & from) const
 	);
 }
 
-/*static*/ const RectI RectI::zero(0,0,0,0);
-/*static*/ const RectF RectF::zero(0.f,0.f,0.f,0.f);
-/*static*/ const RectI RectI::unit(0,1,0,1);
-/*static*/ const RectF RectF::unit(0.f,1.f,0.f,1.f);
 
 END_CB

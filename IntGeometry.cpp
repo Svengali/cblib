@@ -12,7 +12,7 @@ START_CB
 // note that it's also important that INT_VEC_BITS is less than the number of
 //	bits in the mantissa of a float
 
-#define INT_VEC_BITS	(20)
+#define INT_VEC_BITS	(19)
 #define INT_VEC_MAX		(1<<INT_VEC_BITS)
 
 COMPILER_ASSERT( INT_VEC_BITS <= FLT_MANT_DIG );
@@ -28,27 +28,15 @@ double Facei::Distance(const Vec3i & p) const
 	//	perhaps I should go ahead and generate the normal and do the
 	//	ordinary plane-math thing ?
 
-	const Vec3i e1 = b - a;
-	const Vec3i e2 = c - a;
+	const int64 six_vol = Volume(a,b,c,p); // this is six times volume
 
-	const double nx = double(e1.y) * double(e2.z) - double(e1.z) * double(e2.y);
-	const double ny = double(e1.z) * double(e2.x) - double(e1.x) * double(e2.z);
-	const double nz = double(e1.x) * double(e2.y) - double(e1.y) * double(e2.x);
+	const double area_square = AreaSqrD(a,b,c);
+	
+	const double double_area = sqrt( area_square );
 
-	const int64 vol = Volume(a,b,c,p);
+	// tetrahedron height = 3 * Vol / Area	
 
-	const double normal_length_square = nx*nx + ny*ny + nz*nz;
-	const double normal_length = sqrt( normal_length_square );
-
-	const double distance = double( vol ) / normal_length;
-
-	/*
-	const int64 vol = Volume(a,b,c,p);
-	const double asqr = AreaSqrD(a,b,c);
-	const double volume = double(vol);
-	const double area = sqrt( double(asqr) );
-	const double distance = volume / area;
-	*/
+	const double distance = double( six_vol ) / double_area;
 
 	return distance;
 }
@@ -69,6 +57,9 @@ two buckets; restore to midpoints
 So round down in quantize; add 0.5 in restore
 
 ***********/
+
+namespace IntGeometry
+{
 
 const Vec3i Quantize(  const Vec3 & from, const AxialBox & ab )
 {
@@ -155,5 +146,7 @@ void Dequantize( Vec2 * pTo, const Vec2i * pFrom, const int numVerts, const Rect
 		pTo[i] = Dequantize( pFrom[i], r );
 	}
 }
+
+};  // namespace IntGeometry
 
 END_CB

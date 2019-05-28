@@ -12,6 +12,8 @@ class AxialBox;
 class Sphere;
 class ColorDW;
 class ColorF;
+class RectI;
+class RectF;
 
 void PrefIO(PrefBlock & block,Vec3 & what);
 void PrefIO(PrefBlock & block,Vec2 & what);
@@ -19,6 +21,8 @@ void PrefIO(PrefBlock & block,AxialBox & what);
 void PrefIO(PrefBlock & block,Sphere & what);
 void PrefIO(PrefBlock & block,ColorDW & what);
 void PrefIO(PrefBlock & block,ColorF & what);
+void PrefIO(PrefBlock & block,RectI & what);
+void PrefIO(PrefBlock & block,RectF & what);
 
 //===============================================================================
 
@@ -42,25 +46,25 @@ void PrefIO(PrefBlock & block,RGBQUAD & me);
 template <>
 inline void ReadFromText<COLORREF>(COLORREF * pValue, const char * const text)
 {
-	ReadFromTextULHex((ulong *)pValue,text);
+	ReadFromTextULHex((uint32 *)pValue,text);
 }
 
 template <>
 inline void WriteToText<COLORREF>(const COLORREF & val, String * pInto)
 {
-	WriteToTextULHex((ulong)val,pInto);
+	WriteToTextULHex((uint32)val,pInto);
 }
 
 template <>
 inline void ReadFromText<RGBQUAD>(RGBQUAD * pValue, const char * const text)
 {
-	ReadFromTextULHex((ulong *)pValue,text);
+	ReadFromTextULHex((uint32 *)pValue,text);
 }
 
 template <>
 inline void WriteToText<RGBQUAD>(const RGBQUAD & val, String * pInto)
 {
-	WriteToTextULHex(*((ulong *)&val),pInto);
+	WriteToTextULHex(*((uint32 *)&val),pInto);
 }
 */
 

@@ -25,24 +25,24 @@ public:
 	//	VC needs you to not declare them for it to do full return-value optimization!
 	// default operator = is fine
 
-	explicit __forceinline Mat2(const EConstructorRows,const Vec2 & rx,const Vec2 & ry)
+	explicit __forceinline Mat2(const EConstructorRows e,const Vec2 & rx,const Vec2 & ry)
 		: m_x(rx) , m_y(ry)
 	{
 	}
 
-	explicit __forceinline Mat2(const EConstructorCols,const Vec2 & cx,const Vec2 & cy)
+	explicit __forceinline Mat2(const EConstructorCols e,const Vec2 & cx,const Vec2 & cy)
 		: m_x(cx.x,cy.x) , m_y(cx.y,cy.y)
 	{
 	}
 
 	//! use like this : Mat2(Mat2::eIdentity);
 	//!	(quite intentionally not using Vec2::unitX, etc. here)
-	explicit __forceinline Mat2(const EConstructorIdentity) 
+	explicit __forceinline Mat2(const EConstructorIdentity e) 
 		: m_x(1.f,0.f) , m_y(0.f,1.f)
 	{
 	}
 	
-	explicit __forceinline Mat2(const EConstructorZero) 
+	explicit __forceinline Mat2(const EConstructorZero e) 
 		: m_x(0.f,0.f) , m_y(0.f,0.f)
 	{
 	}
@@ -142,16 +142,16 @@ public:
 		return m_x.x * m_y.y - m_x.y * m_y.x;
 	}
 
+	bool IsOrthonormal(const float tolerance = EPSILON_NORMALS) const
+	{
+		return fisone(GetDeterminant(),tolerance);
+	}
+
 	bool IsValid() const
 	{
 		ASSERT( m_x.IsValid() );
 		ASSERT( m_y.IsValid() );
 		return true;
-	}
-
-	bool IsOrthonormal(const float tolerance = EPSILON) const
-	{
-		return fisone( GetDeterminant(), tolerance );	
 	}
 
 	//! fuzzy equality test
@@ -180,9 +180,9 @@ __forceinline const Vec2 operator * (const Mat2 & m,const Vec2 & v)
 	return m.Rotate(v);
 }
 
-namespace Mat2U
-{
+//namespace Mat2U
+//{
 	float GetInverse(const Mat2 & fm,Mat2 * pTo);
-};
+//};
 
 END_CB

@@ -16,7 +16,7 @@ START_CB
 //}{=======================================================================================
 // vector_storage_tight
 
-template <class t_entry> class vector_storage_tight
+template <typename t_entry,typename t_sizetype> class vector_storage_tight
 {
 public:
 
@@ -35,7 +35,7 @@ public:
 		m_begin = NULL;
 	}
 
-	void swap(vector_storage_tight<t_entry> & other,const int )
+	void swap(vector_storage_tight<t_entry,t_sizetype> & other,const t_sizetype maxsize)
 	{
 		Swap(m_begin,other.m_begin);
 	}
@@ -45,12 +45,12 @@ public:
 
 	t_entry *			begin()				{ return m_begin; }
 	const t_entry *		begin() const		{ return m_begin; }
-	int					capacity() const	{ return 0; }
-	int					max_size() const	{ return (32UL)<<20; }
+	t_sizetype			capacity() const	{ return 0; }
+	t_sizetype			max_size() const	{ return (32UL)<<20; }
 
 	//-------------------------------------------------------
 
-	__forceinline bool needmakefit(const int newsize) const
+	__forceinline bool needmakefit(const t_sizetype newsize) const
 	{
 		return true;
 	}
@@ -58,7 +58,7 @@ public:
 	// makefit1
 	// returns the *old* pointer for passing into makefit2
 	//
-	t_entry * makefit1(const int newsize,const int oldsize)
+	t_entry * makefit1(const t_sizetype newsize,const t_sizetype oldsize)
 	{
 		ASSERT( needmakefit(newsize) );
 
@@ -86,7 +86,7 @@ public:
 		return pOld;
 	}
 
-	void makefit2(t_entry * pOld, const int oldsize, const int )
+	void makefit2(t_entry * pOld, const t_sizetype oldsize, const t_sizetype oldcapacity)
 	{
 		if ( pOld )
 		{
@@ -104,12 +104,12 @@ private:
 //}{=======================================================================================
 // vector
 
-template <class t_entry> class vector_t : public vector_flex<t_entry,vector_storage_tight<t_entry> >
+template <typename t_entry> class vector_t : public vector_flex<t_entry,vector_storage_tight<t_entry,vecsize_t>,vecsize_t >
 {
 public:
 	//----------------------------------------------------------------------
 	typedef vector_t<t_entry>						this_type;
-	typedef vector_flex<t_entry,vector_storage_tight<t_entry> >	parent_type;
+	typedef vector_flex<t_entry,vector_storage_tight<t_entry,vecsize_t>,vecsize_t >	parent_type;
 
 	//----------------------------------------------------------------------
 	// constructors
@@ -134,7 +134,7 @@ public:
 	}
 	
 	// don't allow reserve :
-	void reserve(const int newcap)
+	void reserve(const vecsize_t newcap)
 	{
 		// silent no-op
 		//FAIL_NOTHROW("no reserve on vector_t");
@@ -142,5 +142,21 @@ public:
 };
 
 //}{=======================================================================================
+
+END_CB
+
+
+START_CB
+// partial specialize swap_functor to all vectors
+//	for cb::Swap
+
+template<class t_entry> 
+struct swap_functor< cb::vector_t<t_entry> >
+{
+	void operator () ( cb::vector_t<t_entry> & _Left, cb::vector_t<t_entry> & _Right)
+	{
+		_Left.swap(_Right);
+	}
+};
 
 END_CB

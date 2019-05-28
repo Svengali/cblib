@@ -84,7 +84,7 @@ inline static float myacos(const float x)
 		}
 
 		float c1,c2;
-		if ( cos_theta > 1.f - EPSILON )
+		if ( cos_theta > 1.f - EPSILON_NORMALS )
 		{
 			// if q2 is (within precision limits) the same as q1,
 			// just linear interpolate between A and B.
@@ -118,7 +118,7 @@ inline static float myacos(const float x)
 		Vec3 axis;
 		SetRandomNormal(&axis);
 		//float angle = Rand::GetAngle();
-		float angle = frandunit() * CBPI;
+		float angle = frandunit() * PIf;
 		pQ->SetFromAxisAngle(axis,angle);
 	}
 
@@ -177,6 +177,8 @@ inline static float myacos(const float x)
 		// dot can be > 1.f because of float innacuracy
 		else if ( dot >= 1.f )
 		{
+			// simplify the case of parralel
+			// ( because of floats, dot can be > 1 )
 			pQ->SetIdentity();
 		}
 		else
@@ -213,7 +215,7 @@ inline static float myacos(const float x)
 		{
 			const Vec3 result = pQ->Rotate(normalFm);
 			const float dotResult = result * normalTo;
-			ASSERT( dotResult >= 1.f - 2 * EPSILON );
+			ASSERT( dotResult >= 1.f - 2 * EPSILON_NORMALS );
 		}
 		#endif // DO_ASSERTS
 	}
@@ -233,7 +235,7 @@ inline static float myacos(const float x)
 		{
 			const Vec3 result = pQ->Rotate(from);
 			const float dotResult = (result * to) / lenProduct;
-			ASSERT( dotResult >= 1.f - 2 * EPSILON );
+			ASSERT( dotResult >= 1.f - 2 * EPSILON_NORMALS );
 		}
 		#endif // DO_ASSERTS
 	}
@@ -250,7 +252,117 @@ inline static float myacos(const float x)
 		pQ->SetFromAxisAngle(axis, angle * power );
 	}
 
-//};
+	//}{------------------------------------------------------------------------
+
+	/**
+
+	RationalMap( RationalMap( quat ) )   (takes S3->S3 via R4)
+
+	should be an identify function, except when quat is near the pole of the map
+
+	RationalMap( RationalMap( vec4 ) )   (takes R4->R4 via S3)
+
+	is NOT necessarily an identity function, since R4 is multi-cover of S3
+
+	The quats in R4 have super-nice properties
+
+	**/
+
+	// S3 -> R4
+	const Vec4 RationalMap_PoleX(const Quat & q)
+	{
+		// assert q is not at the pole :
+		ASSERT( ! fisone( q.Component4Dot( Quat(1.f,0.f,0.f,0.f) ) ) );
+		Vec4 ret( q.GetComponent(1), q.GetComponent(2), q.GetComponent(3), 1 - q.GetComponent(0) );
+		ASSERT( Quat::EqualRotations( q, RationalMap_PoleX(ret) ) );
+		return ret;
+	}
+
+	// R4 -> S3
+	const Quat RationalMap_PoleX(const Vec4 & v)
+	{
+		const float vsqr = v.GetVec3().LengthSqr();
+		const float wsqr = fsquare(v.w);
+
+		const float denom = vsqr + wsqr;
+		ASSERT( denom >= EPSILON );
+
+		const float scale = 1.f / denom;
+		const float scale2w = 2.f * v.w * scale;
+
+		Quat q( (vsqr - wsqr) * scale,
+				v.x * scale2w,
+				v.y * scale2w,
+				v.z * scale2w );
+
+		ASSERT( q.IsNormalized() );
+
+		return q;
+	}
+
+	// S3 -> R4
+	const Vec4 RationalMap_PoleY(const Quat & q)
+	{
+		// assert q is not at the pole :
+		ASSERT( ! fisone( q.Component4Dot( Quat(0.f,1.f,0.f,0.f) ) ) );
+		Vec4 ret( q.GetComponent(0), q.GetComponent(2), q.GetComponent(3), 1 - q.GetComponent(1) );
+		ASSERT( Quat::EqualRotations( q, RationalMap_PoleY(ret) ) );
+		return ret;
+	}
+
+	// R4 -> S3
+	const Quat RationalMap_PoleY(const Vec4 & v)
+	{
+		const float vsqr = v.GetVec3().LengthSqr();
+		const float wsqr = fsquare(v.w);
+
+		const float denom = vsqr + wsqr;
+		ASSERT( denom >= EPSILON );
+
+		const float scale = 1.f / denom;
+		const float scale2w = 2.f * v.w * scale;
+
+		Quat q( v.x * scale2w,
+				(vsqr - wsqr) * scale,
+				v.y * scale2w,
+				v.z * scale2w );
+
+		ASSERT( q.IsNormalized() );
+
+		return q;
+	}
+
+	// S3 -> R4
+	const Vec4 RationalMap_PoleZ(const Quat & q)
+	{
+		// assert q is not at the pole :
+		ASSERT( ! fisone( q.Component4Dot( Quat(0.f,1.f,0.f,0.f) ) ) );
+		Vec4 ret( q.GetComponent(0), q.GetComponent(1), q.GetComponent(3), 1 - q.GetComponent(2) );
+		ASSERT( Quat::EqualRotations( q, RationalMap_PoleZ(ret) ) );
+		return ret;
+	}
+
+	// R4 -> S3
+	const Quat RationalMap_PoleZ(const Vec4 & v)
+	{
+		const float vsqr = v.GetVec3().LengthSqr();
+		const float wsqr = fsquare(v.w);
+
+		const float denom = vsqr + wsqr;
+		ASSERT( denom >= EPSILON );
+
+		const float scale = 1.f / denom;
+		const float scale2w = 2.f * v.w * scale;
+
+		Quat q( v.x * scale2w,
+				v.y * scale2w,
+				(vsqr - wsqr) * scale,
+				v.z * scale2w );
+
+		ASSERT( q.IsNormalized() );
+
+		return q;
+	}
 
 END_CB
 

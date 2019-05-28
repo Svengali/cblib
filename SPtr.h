@@ -113,7 +113,7 @@ public:
 	BaseClass * operator -> () const
 	{
 		ASSERT( IsValidSPtr() );
-		ASSERT(m_ptr);
+		ASSERT( m_ptr != NULL );
 		return m_ptr;
 	}
 
@@ -125,20 +125,19 @@ public:
 	BaseClass & GetRef() const
 	{
 		ASSERT( IsValidSPtr() );
-		ASSERT(m_ptr != NULL);
+		ASSERT( m_ptr != NULL );
 		return *m_ptr;
 	}
 
 	// cbloom : do not do this, because it hands out an
 	//	unsafe naked pointer in a very non-obvious way
-	/*
+	//*
 	BaseClass& operator*() const
 	{
 		ASSERT( IsValidSPtr() );
-		ASSERT(m_ptr);
+		ASSERT( m_ptr != NULL );
 		return *m_ptr;
 	}
-	*/
 
 	//-------------------------------------------------------------
 	// Mutators :
@@ -337,7 +336,7 @@ private:
 			#ifdef DO_REFCOUNTED_REF_TRACKING //{
 			ASSERT( m_ptr->SPtrLinkIsValid() );
 			#endif //DO_REFCOUNTED_REF_TRACKING }
-			m_ptr->RefCounted_FreeRef();
+			m_ptr->FreeRef();
 		}
 
 		m_ptr = bc;
@@ -350,7 +349,7 @@ private:
 	
 	inline void TakeRef(BaseClass * bc)
 	{
-		bc->RefCounted_TakeRef();
+		bc->TakeRef();
 	}
 
 	#else //DO_REFCOUNTED_REF_TRACKING }{
@@ -359,7 +358,7 @@ private:
 	{
 		m_link.Cut();
 		m_trace.Record(1); // skip 1 levels
-		bc->RefCounted_TakeRef();
+		bc->TakeRef();
 		bc->AddToSPtrLink(&m_link);
 	}
 
@@ -410,7 +409,7 @@ template <class ToPtr,class From> ToPtr SPtrDynamicCast(const SPtr<From> & from)
 
 	ASSERT( from.IsValidSPtr() );
 
-	typename ToPtr::base_class * const to = dynamic_cast<typename ToPtr::base_class * const>(pfrom);
+	ToPtr::base_class * const to = dynamic_cast<ToPtr::base_class * const>(pfrom);
 	return ToPtr(to);
 }
 
@@ -437,7 +436,7 @@ template <class ToPtr, class From> ToPtr SPtrStaticCast(const SPtr<From>& from)
 {
 	ASSERT(from == NULL || SPtrDynamicCast<ToPtr>(from) != NULL);
 
-	return ToPtr(static_cast<typename ToPtr::base_class*>(from.GetPtr()));
+	return ToPtr(static_cast<ToPtr::base_class*>(from.GetPtr()));
 }
 
 /*

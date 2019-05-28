@@ -4,6 +4,7 @@ START_CB
 
 //#define ARRAY(decl,data)	const int x[] = data; decl = x;
 
+#if 0
 void circular_array_test()
 {
 	circular_array<int,3>	a;
@@ -24,8 +25,8 @@ void circular_array_test()
 	circular_array<int,3>::iterator it = d.begin();
 	
 	++it;
-	//int x = *it;
-	//int y = *(it++);
+	int x = *it;
+	int y = *(it++);
 	
 	a = d;
 	
@@ -37,5 +38,6 @@ void circular_array_test()
 // 		//circular_array<int,3>	c( (const int y[] = { 1,2,3 }) );
 // 	}
 }
+#endif
 
 END_CB

@@ -38,7 +38,9 @@ START_CB
 //}{=======================================================================================
 // vector_storage_static
 
-template <class t_entry,int t_capacity> class vector_storage_static
+typedef int vector_s_size_t;
+
+template <class t_entry,vector_s_size_t t_capacity> class vector_storage_static
 {
 public:
 	typedef vector_storage_static<t_entry,t_capacity>		this_type;
@@ -51,11 +53,11 @@ public:
 	{
 	}
 
-	void swap(this_type & other,const int maxsize)
+	void swap(this_type & other,const vector_s_size_t maxsize)
 	{
 		// static arrays must do full member-wise swaps
 		//	much slower than non-static swap implementation
-		entry_array::swap(begin(),other.begin(),maxsize);
+		entry_array::swap_array(begin(),other.begin(),maxsize);
 	}
 
 	void release()
@@ -67,24 +69,24 @@ public:
 
 	t_entry *			begin()			{ return (t_entry *) m_data; }
 	const t_entry *		begin() const	{ return (const t_entry *) m_data; }
-	int					capacity() const{ return t_capacity; }
-	int					max_size() const{ return t_capacity; }
+	vector_s_size_t		capacity() const{ return t_capacity; }
+	vector_s_size_t			max_size() const{ return t_capacity; }
 	//-------------------------------------------------------
 	// makefit does nada on vector_storage_static
 
-	__forceinline bool needmakefit(const int newsize) const
+	__forceinline bool needmakefit(const vector_s_size_t newsize) const
 	{
 		ASSERT( newsize <= t_capacity );
 		return false;
 	}
 
-	__forceinline t_entry * makefit1(const int newsize,const int)
+	__forceinline t_entry * makefit1(const vector_s_size_t newsize,const vector_s_size_t oldsize)
 	{
 		ASSERT( newsize <= t_capacity );
 		return NULL;
 	}
 
-	__forceinline void makefit2(t_entry *, const int, const int)
+	__forceinline void makefit2(t_entry * pOld, const vector_s_size_t oldsize, const vector_s_size_t oldcapacity)
 	{
 		FAIL("makefit2 should never be called on vector_storage_static!");
 	}
@@ -98,12 +100,12 @@ private:
 //}{=======================================================================================
 // vector_s
 
-template <class t_entry,int t_capacity> class vector_s : public vector_flex<t_entry,vector_storage_static<t_entry,t_capacity> >
+template <class t_entry,vector_s_size_t t_capacity> class vector_s : public vector_flex<t_entry,vector_storage_static<t_entry,t_capacity>,vector_s_size_t >
 {
 public:
 	//----------------------------------------------------------------------
 	typedef vector_s<t_entry,t_capacity>						this_type;
-	typedef vector_flex<t_entry,vector_storage_static<t_entry,t_capacity> >	parent_type;
+	typedef vector_flex<t_entry,vector_storage_static<t_entry,t_capacity>,vector_s_size_t >	parent_type;
 
 	//----------------------------------------------------------------------
 	// constructors

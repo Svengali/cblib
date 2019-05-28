@@ -1,31 +1,15 @@
-#include "cblib/Base.h"
-#include "cblib/ConvexHullBuilder3d.h"
-#include "cblib/Frustum.h"
-#include "cblib/IntGeometry.h"
-#include "cblib/Mat3.h"
-#include "cblib/MiniBall.h"
+#include "Poly3.h"
+#include "cblib/Log.h"
+#include "cblib/Vec3U.h"
 #include "cblib/Poly2.h"
-#include "cblib/Poly3.h"
+#include "cblib/Mat3.h"
+#include "cblib/Frustum.h"
 #include "cblib/Sphere.h"
 #include "cblib/Segment.h"
-#include "cblib/Vec3U.h"
 #include "cblib/VolumeBuilder.h"
-//#include <algorithm>
+#include <algorithm>
 
-bool Poly3::IsValid() const
-{
-#ifdef DO_ASSERTS
-	for (int i = 0; i < m_verts.size(); i++)
-	{
-		ASSERT(m_verts[i].IsValid());
-	}
-
-	// @@ assert that the verts are on the plane?
-#endif
-	ASSERT(m_plane.IsValid());
-
-	return true;
-}
+START_CB
 
 void Poly3::Clear()
 {
@@ -36,12 +20,16 @@ void Poly3::Reverse()
 {
 	// this reverses the vert order and DOES NOT FIX THE PLANE
 	//	it's used to fix the winding if you got it wrong
+
 	std::reverse(m_verts.begin(),m_verts.end());
 }
 
 float Poly3::ComputeArea() const
 {
-	ASSERT( GetNumVerts() >= 0 );
+	if ( GetNumVerts() == 0 )
+		return 0.f;
+
+	ASSERT( GetNumVerts() >= 3 );
 	const Vec3 & a = m_verts[0];
 	float area = 0.f;
 	for(int i=2;i<GetNumVerts();i++)
@@ -72,34 +60,32 @@ void Poly3::ComputeBBox(AxialBox * pBox) const
 		pBox->ExtendToPoint( m_verts[i] );
 	}
 }
-
 void Poly3::ComputeSphereFast(Sphere * pSphere) const
 {
 	ASSERT(pSphere);
 
-	VolumeBuilder::FastSphere(pSphere,
+	MakeFastSphere(pSphere,
 					m_verts.data(),
-					m_verts.size());
+					m_verts.size32());
 
 	ASSERT(pSphere->IsValid());
 }
 	
-#ifndef _XBOX
 void Poly3::ComputeSphereGood(Sphere* pSphere) const
 {
 	ASSERT(pSphere);
 
-	MiniBall::Make(pSphere,
+	MakeMiniSphere(pSphere,
 				   m_verts.data(),
-				   m_verts.size());
+				   m_verts.size32());
 
 	ASSERT(pSphere->IsValid());
 }
-#endif
+
 
 Plane::ESide Poly3::PlaneSide(const Plane & plane,const float epsilon) const
 {
-	int numF=0,numB=0;
+	int numF=0,numOn=0,numB=0;	
 	const int numVerts = GetNumVerts();
 	ASSERT( numVerts > 0 );
 	for(int i=0;i<numVerts;i++)
@@ -114,7 +100,7 @@ Plane::ESide Poly3::PlaneSide(const Plane & plane,const float epsilon) const
 			numB++;
 			break;
 		default:
-			//numOn++;
+			numOn++;
 			break;
 		}
 	}
@@ -142,10 +128,8 @@ Plane::ESide Poly3::PlaneSide(const Plane & plane,const float epsilon) const
 /*
 	CleanPoly removes colinear segments, and tries
 	to makes poly convex if it's gotten little wiggles
-	
-	(that's what CleanPolySerious does)
 */
-bool Poly3Util::CleanPoly(const Poly3 & from,Poly3 * pTo)
+bool CleanPoly(const Poly3 & from,Poly3 * pTo)
 {
 	// copy all verts
 	pTo->m_verts = from.m_verts;
@@ -197,31 +181,29 @@ bool Poly3Util::CleanPoly(const Poly3 & from,Poly3 * pTo)
 
 	CleanPolySerious uses rigorous integer 2d convex hull
 */
-bool Poly3Util::CleanPolySerious(const Poly3 & from,Poly3 * pTo)
+bool CleanPolySerious(const Poly3 & from,const Plane & plane,Poly3 * pTo)
 {
-	// use center as a "base pos" for better float accuracy
 	const Vec3 center = from.ComputeCenter();
 	
 	Poly2 poly2;
-	Project2d(&poly2,from,center);
+	Project2d(&poly2,from,plane,center);
 
 	Poly2 poly2c;
-	if ( ! Poly2Util::CleanPolySerious(poly2,&poly2c) )
+	if ( ! CleanPolySerious(poly2,&poly2c) )
 	{
 		pTo->Clear();
 		return false;
 	}
 
-	Lift2d(pTo,poly2c,from.m_plane,center);
+	Lift2d(pTo,poly2c,plane,center);
 
 	return true;
 }
 
-// basePos is used to center the poly near zero for better float accuracy and quantization
-void Poly3Util::Project2d(Poly2 * pInto, const Poly3 & from,const Vec3 & basePos)
+void Project2d(Poly2 * pInto, const Poly3 & from,const Plane & plane,const Vec3 & basePos)
 {
 	Vec3 n1,n2;
-	GetTwoPerpNormals(from.GetNormal(),&n1,&n2);
+	GetTwoPerpNormals(plane.GetNormal(),&n1,&n2);
 	pInto->Clear();
 	int numVerts = from.GetNumVerts();
 	pInto->m_verts.resize( numVerts );
@@ -233,8 +215,7 @@ void Poly3Util::Project2d(Poly2 * pInto, const Poly3 & from,const Vec3 & basePos
 	}
 }
 
-// basePos is used to center the poly near zero for better float accuracy and quantization
-void Poly3Util::Lift2d(Poly3 * pInto, const Poly2 & from, const Plane & onPlane,const Vec3 & basePos)
+void Lift2d(Poly3 * pInto, const Poly2 & from, const Plane & onPlane,const Vec3 & basePos)
 {
 	Vec3 n1,n2;
 	GetTwoPerpNormals(onPlane.GetNormal(),&n1,&n2);
@@ -248,24 +229,16 @@ void Poly3Util::Lift2d(Poly3 * pInto, const Poly2 & from, const Plane & onPlane,
 	}
 }
 
-// PutPointsOnPlane can be used to ensure a poly really is planar like it should be
-void Poly3Util::PutPointsOnPlane(Poly3 * pInto)
-{
-	for(int v=0;v<pInto->GetNumVerts();v++)
-	{
-		pInto->m_verts[v] = pInto->m_plane.GetClosestPointOnPlane(pInto->m_verts[v]);
-	}
-}
 
-Plane::ESide Poly3Util::ClipPoly(const Poly3 & from,Poly3 * pToF,Poly3 * pToB,const Plane & plane,const float epsilon /*= EPSILON*/)
+Plane::ESide ClipPoly(const Poly3 & from,Poly3 * pToF,Poly3 * pToB,const Plane & plane,const float epsilon /*= EPSILON*/)
 {
 	ASSERT( from.m_verts.size() >= 3 );
 	int numVerts = from.GetNumVerts();
 
-
-	//STACK_ARRAY(dists,float,numVerts+1);
-	float				dists[POLY_MAX_VERTS+1];
-	Plane::ESide		sides[POLY_MAX_VERTS+1];
+	STACK_ARRAY(dists,float,numVerts+1);
+	STACK_ARRAY(sides,Plane::ESide,numVerts+1);
+	//float				dists[POLY_MAX_VERTS+1];
+	//Plane::ESide		sides[POLY_MAX_VERTS+1];
 	int					counts[3] = { 0 };
 	COMPILER_ASSERT( Plane::eFront == 0 );
 	COMPILER_ASSERT( Plane::eBack == 1 );
@@ -286,8 +259,8 @@ Plane::ESide Poly3Util::ClipPoly(const Poly3 & from,Poly3 * pToF,Poly3 * pToB,co
 	sides[numVerts] = sides[0];
 	dists[numVerts] = dists[0];
 	
-	if ( pToF ) pToF->Clear();
-	if ( pToB ) pToB->Clear();
+	if ( pToF ) { pToF->Clear(); }
+	if ( pToB ) { pToB->Clear(); }
 
 	if ( counts[Plane::eFront] == 0 && counts[Plane::eBack] == 0 )
 	{
@@ -334,7 +307,6 @@ Plane::ESide Poly3Util::ClipPoly(const Poly3 & from,Poly3 * pToF,Poly3 * pToB,co
 
 		// sides[i] is front or back and sides[i+1] is the opposite
 		// generate a split point
-		
 		// Be consistent when generating split point.  Depend only on
 		// vertex data, so if we split the same edge in a different
 		// order, we get the exact same result.
@@ -342,18 +314,14 @@ Plane::ESide Poly3Util::ClipPoly(const Poly3 & from,Poly3 * pToF,Poly3 * pToB,co
 		int	second = (i+1) % numVerts;
 		if (sides[first] == Plane::eFront)
 		{
-			Util::Swap(first, second);
+			Swap(first, second);
 		}
-
 		float denom = dists[first] - dists[second];
-		// denom should actually be >= 2*epsilon, but allow some slip
 		ASSERT( fabsf(denom) > epsilon );
 		float t = dists[first] / denom;
 		ASSERT( fiszerotoone(t,0.f) );
-
-		//Vec3 mid = p1 + t*(p2-p1);
 		Vec3 mid = (1.f-t)*from.m_verts[first] + t*from.m_verts[second];
-		
+
 		ASSERT( plane.PointSideOrOn(mid,epsilon*2) == Plane::eIntersecting );
 			
 		if ( pToF ) pToF->m_verts.push_back(mid);
@@ -363,36 +331,129 @@ Plane::ESide Poly3Util::ClipPoly(const Poly3 & from,Poly3 * pToF,Poly3 * pToB,co
 	return Plane::eIntersecting;
 }
 
-
-void Poly3Util::MakeQuadOnPlane(Poly3 * pInto, const Plane & onPlane, const AxialBox & refBox)
+Plane::ESide ClipEdge(const Edge &edge,
+										Edge * pFront,
+										Edge * pBack,
+										const Plane & plane,
+										const float epsilon /*= EPSILON*/)
 {
-	const Vec3 c = refBox.GetCenter();
-	const Vec3 p = onPlane.GetClosestPointOnPlane(c);
-	const float radius = sqrtf( refBox.GetRadiusSqr() );
-
-	Vec3 n1,n2;
-	GetTwoPerpNormals(onPlane.GetNormal(),&n1,&n2);
-
-	const float d = radius * 3.f;
-
-	pInto->m_plane = onPlane;
-
-	pInto->m_verts.resize(4);
-	pInto->m_verts[0] = onPlane.GetClosestPointOnPlane( p + n1 * d + n2 * d );
-	pInto->m_verts[1] = onPlane.GetClosestPointOnPlane( p + n1 * d - n2 * d );
-	pInto->m_verts[2] = onPlane.GetClosestPointOnPlane( p - n1 * d - n2 * d );
-	pInto->m_verts[3] = onPlane.GetClosestPointOnPlane( p - n1 * d + n2 * d );
-
-	// now get the winding right :
-	Vec3 cross;
-	SetTriangleCross(&cross,pInto->m_verts[0],pInto->m_verts[1],pInto->m_verts[2]);
-	if ( (cross * onPlane.GetNormal()) < 0.f )
+	//STACK_ARRAY(dists,float,numVerts+1);
+	float				dists[2];
+	Plane::ESide		sides[2];
+	int					counts[3] = { 0 };
+	COMPILER_ASSERT( Plane::eFront == 0 );
+	COMPILER_ASSERT( Plane::eBack == 1 );
+	COMPILER_ASSERT( Plane::eIntersecting == 2 );
+	
+	// determine sides for each point
+	{for (int i=0 ; i< 2; i++)
 	{
-		pInto->Reverse();
+		dists[i] = plane.DistanceToPoint(edge.verts[i]);
+
+		if (dists[i] > epsilon)			sides[i] = Plane::eFront;
+		else if (dists[i] < -epsilon)	sides[i] = Plane::eBack;
+		else							sides[i] = Plane::eIntersecting;
+
+		counts[sides[i]]++;
+	}}
+	
+	if ( counts[Plane::eFront] == 0 && counts[Plane::eBack] == 0 )
+	{
+		// all verts are *ON* the plane
+		if ( pFront ) *pFront = edge;
+		if ( pBack  ) *pBack = edge;
+		return Plane::eOn;
 	}
+	else if ( counts[Plane::eBack] == 0 )
+	{
+		if ( pFront ) *pFront = edge;
+		return Plane::eFront;
+	}
+	else if ( counts[Plane::eFront] == 0 )
+	{
+		if ( pBack ) *pBack = edge;
+		return Plane::eBack;
+	}
+
+	// counts[Front] and [Back] are both > 0 
+	//	one is front, one is back
+
+	ASSERT( sides[0] == Plane::eFront || sides[0] == Plane::eBack );
+	ASSERT( sides[1] == Plane::eFront || sides[1] == Plane::eBack );
+	
+	// generate a split point
+			
+	float denom = dists[0] - dists[1];
+	// denom should actually be >= 2*epsilon, but allow some slip
+	ASSERT( fabsf(denom) > epsilon );
+	float t = dists[0] / denom;
+	ASSERT( fiszerotoone(t,0.f) );
+
+	//Vec3 mid = p1 + t*(p2-p1);
+	Vec3 mid = (1.f-t)*edge.verts[0] + t*edge.verts[1];
+	
+	ASSERT( plane.PointSideOrOn(mid,epsilon*2) == Plane::eIntersecting );
+		
+	if ( pFront ) 
+	{
+		pFront->verts[0] = ( sides[0] == Plane::eFront ) ? edge.verts[0] : edge.verts[1];; 
+		pFront->verts[1] = mid;
+	}
+	if ( pBack )
+	{
+		pBack->verts[0] = mid;
+		pBack->verts[1] = ( sides[0] == Plane::eFront ) ? edge.verts[1] : edge.verts[0];;
+	}
+	
+	return Plane::eIntersecting;
 }
 
-bool Poly3Util::ClipToFrustum(Poly3*         pInto,
+bool ClipToBox(Edge * pInto, const Edge & from, const AxialBox & _refBox)
+{
+	AxialBox refBox(_refBox);
+	refBox.Expand(EPSILON);
+
+	Plane plane;
+
+	plane.SetFromNormalAndPoint( Vec3::unitX, refBox.GetMin() );
+	if ( ! ClipEdgeF(from,pInto,plane) )
+		return false;
+		
+	Edge work;
+	Edge * p1 = pInto;
+	Edge * p2 = &work;
+	
+	plane.SetFromNormalAndPoint( Vec3::unitY, refBox.GetMin() );
+	if ( ! ClipEdgeF(*p1,p2,plane) )
+		return false;
+	Swap(p1,p2);
+	
+	plane.SetFromNormalAndPoint( Vec3::unitZ, refBox.GetMin() );
+	if ( ! ClipEdgeF(*p1,p2,plane) )
+		return false;
+	Swap(p1,p2);
+	
+	plane.SetFromNormalAndPoint( Vec3::unitXneg, refBox.GetMax() );
+	if ( ! ClipEdgeF(*p1,p2,plane) )
+		return false;
+	Swap(p1,p2);
+	
+	plane.SetFromNormalAndPoint( Vec3::unitYneg, refBox.GetMax() );
+	if ( ! ClipEdgeF(*p1,p2,plane) )
+		return false;
+	Swap(p1,p2);
+	
+	plane.SetFromNormalAndPoint( Vec3::unitZneg, refBox.GetMax() );
+	if ( ! ClipEdgeF(*p1,p2,plane) )
+		return false;
+
+	if ( p2 != pInto )
+		*pInto = *p2;
+
+	return true;
+}
+
+bool ClipToFrustum(Poly3*         pInto,
 							  const Poly3&   from,
 							  const Frustum& frustum)
 {
@@ -403,7 +464,7 @@ bool Poly3Util::ClipToFrustum(Poly3*         pInto,
 	for (int i = 0; i < frustum.GetNumPlanes(); i++)
 	{
 		if ( ! ClipPolyF(*p1,p2, frustum.GetPlane(i)) )
-			return false;
+		return false;
 		
 		if ( p2 == pInto )
 		{
@@ -426,13 +487,55 @@ bool Poly3Util::ClipToFrustum(Poly3*         pInto,
 	return true;
 }
 
-bool Poly3Util::ClipToBox(Poly3 * pInto, const Poly3 & from, const AxialBox & refBox)
+void PutPointsOnPlane(Poly3 * pInto,const Plane & plane)
 {
+	for(int v=0;v<pInto->GetNumVerts();v++)
+	{
+		pInto->m_verts[v] = plane.GetClosestPointOnPlane(pInto->m_verts[v]);
+	}
+}
+
+void MakeQuadOnPlane(Poly3 * pInto, const Plane & onPlane, const AxialBox & refBox)
+{
+	const Vec3 c = refBox.GetCenter();
+	const Vec3 p = onPlane.GetClosestPointOnPlane(c);
+	const float radius = sqrtf( refBox.GetRadiusSqr() );
+
+	Vec3 n1,n2;
+	GetTwoPerpNormals(onPlane.GetNormal(),&n1,&n2);
+
+	const float d = radius * 3.f;
+
+	pInto->m_verts.resize(4);
+	pInto->m_verts[0] = onPlane.GetClosestPointOnPlane( p + n1 * d + n2 * d );
+	pInto->m_verts[1] = onPlane.GetClosestPointOnPlane( p + n1 * d - n2 * d );
+	pInto->m_verts[2] = onPlane.GetClosestPointOnPlane( p - n1 * d - n2 * d );
+	pInto->m_verts[3] = onPlane.GetClosestPointOnPlane( p - n1 * d + n2 * d );
+
+	// now get the winding right :
+	Vec3 cross;
+	SetTriangleCross(&cross,pInto->m_verts[0],pInto->m_verts[1],pInto->m_verts[2]);
+	if ( (cross * onPlane.GetNormal()) < 0.f )
+	{
+		pInto->Reverse();
+	}
+
+	//pInto->m_plane = onPlane;
+}
+
+
+bool ClipToBox(Poly3 * pInto, const Poly3 & from, const AxialBox & _refBox)
+{
+	AxialBox refBox(_refBox);
+	refBox.Expand(EPSILON);
+
+	/*
 	if ( refBox.PlaneSide(pInto->m_plane) != Plane::eIntersecting )
 	{
 		pInto->Clear();
 		return false;
 	}
+	*/
 
 	Plane plane;
 
@@ -447,22 +550,22 @@ bool Poly3Util::ClipToBox(Poly3 * pInto, const Poly3 & from, const AxialBox & re
 	plane.SetFromNormalAndPoint( Vec3::unitY, refBox.GetMin() );
 	if ( ! ClipPolyF(*p1,p2,plane) )
 		return false;
-	Util::Swap(p1,p2);
+	Swap(p1,p2);
 	
 	plane.SetFromNormalAndPoint( Vec3::unitZ, refBox.GetMin() );
 	if ( ! ClipPolyF(*p1,p2,plane) )
 		return false;
-	Util::Swap(p1,p2);
+	Swap(p1,p2);
 	
 	plane.SetFromNormalAndPoint( Vec3::unitXneg, refBox.GetMax() );
 	if ( ! ClipPolyF(*p1,p2,plane) )
 		return false;
-	Util::Swap(p1,p2);
+	Swap(p1,p2);
 	
 	plane.SetFromNormalAndPoint( Vec3::unitYneg, refBox.GetMax() );
 	if ( ! ClipPolyF(*p1,p2,plane) )
 		return false;
-	Util::Swap(p1,p2);
+	Swap(p1,p2);
 	
 	plane.SetFromNormalAndPoint( Vec3::unitZneg, refBox.GetMax() );
 	if ( ! ClipPolyF(*p1,p2,plane) )
@@ -476,16 +579,16 @@ bool Poly3Util::ClipToBox(Poly3 * pInto, const Poly3 & from, const AxialBox & re
 
 
 
-
-// fit a plane to the points of the polygon
-bool Poly3Util::FitPlane(Poly3 * pPoly)
+// fit a plane to 4 points
+// could easily support any number of points
+bool FitPlane(const Poly3 & poly,Plane * pPlane)
 {
-	ASSERT( pPoly->GetNumVerts() >= 3 );
-	const int numVerts = pPoly->GetNumVerts();
+	ASSERT( poly.GetNumVerts() >= 3 );
+	const int numVerts = poly.GetNumVerts();
 
-	const Vec3 center = pPoly->ComputeCenter();
+	const Vec3 center = poly.ComputeCenter();
 
-	Plane fallbackPlane;
+	Plane fallbackPlane(Vec3::unitZ,0.f);
 	{
 		bool ok = false;
 		int i;
@@ -493,20 +596,21 @@ bool Poly3Util::FitPlane(Poly3 * pPoly)
 		{
 			for(int j=i+1;!ok && j<numVerts;j++)
 			{
-				if ( fallbackPlane.SetFromThreePoints(pPoly->m_verts[0],pPoly->m_verts[i],pPoly->m_verts[j]) > 0.f )
+				if ( fallbackPlane.SetFromThreePoints(poly.m_verts[0],poly.m_verts[i],poly.m_verts[j]) > 0.f )
 				{
 					ok = true;
 					break;
 				}
 			}
 		}
-		pPoly->m_plane = fallbackPlane;
+		ASSERT(ok);
+		*pPlane = fallbackPlane;
 	
 		// check for an exact match
 		
 		for(i=0;i<numVerts;i++)
 		{
-			if ( fallbackPlane.PointSideOrOn(pPoly->m_verts[i]) != Plane::eIntersecting )
+			if ( fallbackPlane.PointSideOrOn(poly.m_verts[i]) != Plane::eIntersecting )
 				break;
 		}
 		if ( i == numVerts )
@@ -526,7 +630,7 @@ bool Poly3Util::FitPlane(Poly3 * pPoly)
 			el = 0.f;
 			for(int v=0;v<numVerts;v++)
 			{
-				Vec3 d = pPoly->m_verts[v] - center;
+				Vec3 d = poly.m_verts[v] - center;
 				el += d[r] * d[c];
 			}
 		}
@@ -635,25 +739,25 @@ bool Poly3Util::FitPlane(Poly3 * pPoly)
 	
 	for(int v=0;v<numVerts;v++)
 	{
-		d1 += fsquare( plane1.DistanceToPoint(pPoly->m_verts[v]) );
-		d2 += fsquare( plane2.DistanceToPoint(pPoly->m_verts[v]) );
+		d1 += fsquare( plane1.DistanceToPoint(poly.m_verts[v]) );
+		d2 += fsquare( plane2.DistanceToPoint(poly.m_verts[v]) );
 	}
 
 	if ( d1 <= d2 )
 	{
-		pPoly->m_plane = plane1;
+		*pPlane = plane1;
 	}
 	else
 	{
-		pPoly->m_plane = plane2;
+		*pPlane = plane2;
 	}
 
 	return true;
 }
 
-bool Poly3Util::LineSegmentIntersects(const Poly3 & poly,const Vec3& start,const Vec3& end)
+bool LineSegmentIntersects(const Poly3 & poly,const Plane & polyPlane,const Vec3& start,const Vec3& end)
 {
-	const Plane & plane = poly.m_plane;
+	const Plane & plane = polyPlane;
 	const float ds = plane.DistanceToPoint(start);
 	const float de = plane.DistanceToPoint(end);
 	if ( ds > 0.f && de > 0.f )	return false;
@@ -672,18 +776,19 @@ bool Poly3Util::LineSegmentIntersects(const Poly3 & poly,const Vec3& start,const
 	}
 	ASSERT( plane.PointSideOrOn(intersection) == Plane::eIntersecting );
 
-	return IsProjectedPointInPoly(poly, intersection);
+	return IsProjectedPointInPoly(poly,polyPlane, intersection);
 }
 
 // IsProjectedPointInPoly tests if "point" is inside "poly" in a 2d sense (eg. using the edge perp planes)
-bool Poly3Util::IsProjectedPointInPoly(const Poly3& poly,
+bool IsProjectedPointInPoly(const Poly3& poly,
+										const Plane & polyPlane,
 									   const Vec3&  point)
 {
 	ASSERT(poly.IsValid());
 	ASSERT(point.IsValid());
 
-	const Vec3 & normal = poly.m_plane.GetNormal();
-	const int numVerts  = poly.m_verts.size();
+	const Vec3 & normal =polyPlane.GetNormal();
+	const int numVerts  = poly.m_verts.size32();
 
 	int prev = numVerts-1;
 	for (int v = 0; v < numVerts; v++)
@@ -715,7 +820,8 @@ bool Poly3Util::IsProjectedPointInPoly(const Poly3& poly,
 }
 
 
-bool Poly3Util::PolyIntersectsSphere(const Poly3& poly, const Sphere& sphere)
+bool PolyIntersectsSphere(const Poly3& poly,
+										const Plane & polyPlane, const Sphere& sphere)
 {
 	// Test is: find the closest point on the polygon to the center of the sphere, then
 	//  check the distance.  Very simplistic, we do this by:
@@ -726,10 +832,10 @@ bool Poly3Util::PolyIntersectsSphere(const Poly3& poly, const Sphere& sphere)
 	ASSERT(poly.IsValid());
 	ASSERT(sphere.IsValid());
 
-	const Vec3 & normal = poly.m_plane.GetNormal();
-	const int numVerts  = poly.m_verts.size();
+	const Vec3 & normal = polyPlane.GetNormal();
+	const int numVerts  = poly.m_verts.size32();
 
-	Vec3 workPoint = poly.m_plane.GetClosestPointOnPlane(sphere.GetCenter());
+	Vec3 workPoint = polyPlane.GetClosestPointOnPlane(sphere.GetCenter());
 
 	int prev = numVerts-1;
 	for (int v = 0; v < numVerts; v++)
@@ -743,7 +849,7 @@ bool Poly3Util::PolyIntersectsSphere(const Poly3& poly, const Sphere& sphere)
 		Vec3 outwards = edge ^ normal;
 		if (outwards.NormalizeSafe() == 0)
 		{
-			DO_N_TIMES(30, LOGERROR("Very suspicious poly normalization bug\n"));
+			DO_N_TIMES(30, lprintf("Very suspicious poly normalization bug\n"));
 			continue;
 		}
 		ASSERT( fequal( outwards*v0 , outwards*v1 , 0.01f) );
@@ -767,7 +873,7 @@ bool Poly3Util::PolyIntersectsSphere(const Poly3& poly, const Sphere& sphere)
 
 CB 8-24-04 :
 
-A better way to do Poly3Util::SegmentIntersects would be with a direct distance computation.
+A better way to do SegmentIntersects would be with a direct distance computation.
 
 I think you can compute the distance quickly like this :
 
@@ -783,9 +889,7 @@ return false
 
 **/
 
-//bool Poly3Util::SegmentIntersects(const Poly3& poly, const CollisionQuery & query)
-// SegmentIntersects
-bool Poly3Util::SegmentIntersects(const Poly3& poly, const Segment & seg)
+bool SegmentIntersects(const Poly3& poly,const Plane & polyPlane, const Segment & seg)
 {
 	ASSERT( poly.IsValid() );
 	ASSERT( seg.IsValid() );
@@ -796,14 +900,14 @@ bool Poly3Util::SegmentIntersects(const Poly3& poly, const Segment & seg)
 	// use SAT test :
 	
 	const Vec3 segCenter = seg.GetCenter();
-	const Vec3 & polyNormal = poly.GetNormal();
-	const int numVerts  = poly.m_verts.size();
+	const Vec3 & polyNormal = polyPlane.GetNormal();
+	const int numVerts  = poly.m_verts.size32();
 	const float segR = seg.GetRadius();
 	const float segL = seg.GetLength();
 
 	// axis 1 : poly normal :
 	{
-		const float d = fabsf( poly.m_plane.DistanceToPoint(segCenter) );
+		const float d = fabsf( polyPlane.DistanceToPoint(segCenter) );
 		const float r = seg.GetRadiusInDirection(polyNormal);
 		if ( d > r )
 		{
@@ -830,10 +934,10 @@ bool Poly3Util::SegmentIntersects(const Poly3& poly, const Segment & seg)
 			const Vec3 V = poly.m_verts[v] - segCenter;
 			const float segNormalD = segNormal * V;
 			const float crossNormalD = crossNormal * V;
-			segNormalDMin = OwMin(segNormalDMin,segNormalD);
-			segNormalDMax = OwMax(segNormalDMax,segNormalD);
-			crossNormalDMin = OwMin(crossNormalDMin,crossNormalD);
-			crossNormalDMax = OwMax(crossNormalDMax,crossNormalD);
+			segNormalDMin = MIN(segNormalDMin,segNormalD);
+			segNormalDMax = MAX(segNormalDMax,segNormalD);
+			crossNormalDMin = MIN(crossNormalDMin,crossNormalD);
+			crossNormalDMax = MAX(crossNormalDMax,crossNormalD);
 		}
 		
 		float segNormalSeparation;
@@ -901,8 +1005,8 @@ bool Poly3Util::SegmentIntersects(const Poly3& poly, const Segment & seg)
 	}
 		
 	// CB 11-18-04 : check sphere of the whole segment
-	Sphere segSphere(segCenter,segR + seg.GetLength()*0.5f);
-	if ( ! PolyIntersectsSphere(poly,segSphere) )
+	Sphere seSphere(segCenter,segR + seg.GetLength()*0.5f);
+	if ( ! PolyIntersectsSphere(poly,polyPlane,seSphere) )
 	{
 		return false;
 	}
@@ -920,3 +1024,4 @@ bool Poly3Util::SegmentIntersects(const Poly3& poly, const Segment & seg)
 	return true;
 }
 
+END_CB

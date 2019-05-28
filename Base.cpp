@@ -15,7 +15,7 @@ void AssertMessage(const char * fileName,const int line,const char * message)
 	inAssertMessage = true;
 
 	fprintf(stderr,"%s (%d) : %s\n",fileName,line,message);
-	Log("%s (%d) : %s\n",fileName,line,message);
+	lprintf("%s (%d) : %s\n",fileName,line,message);
 	
 	inAssertMessage = false;
 }

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "cblib/Base.h"
-#include "cblib/ReflectionMacros.h"
 #include "cblib/Util.h"
+#include "cblib/StrUtil.h"
 #include "cblib/safeprintf.h"
-#include "cblib/vector.h" // ICK this is just for function protos
+//#include "cblib/vector.h" // ICK this is just for function protos
 //#include "cblib/stl_basics.h" // need vecto
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,70 +42,11 @@ Any adding or removing of nulls must be done through the APIs (Append/Truncate/e
 
 START_CB
 
-//template <class t_entry> class vector;
+template <class t_entry> class vector;
 //typedef vector<char> vector_char;
 
-struct StringData
-{
-public:
+struct StringData;
 
-	// constructed with one ref
-	StringData() : m_refCount(1)
-	{
-		// when you just construct vector<> it does no allocations
-	}
-	
-	enum ECOW { eCOW };
-	
-	// constructed with one ref
-	// COW : break link to old data; copy it and de-ref it
-	StringData( ECOW, StringData * pOldData ) : m_refCount(1), m_vec(pOldData->m_vec)
-	{
-		pOldData->FreeRef();
-	}
-
-	enum EEmpty { eEmpty };
-
-	// just for GetStaticEmptyStringData :
-	explicit StringData( EEmpty ) : m_refCount(1)
-	{
-		m_vec.resize(1);
-		m_vec[0] = 0;
-	}
-
-	~StringData()
-	{
-		ASSERT( m_refCount == 0 );
-	}
-
-	void TakeRef()
-	{
-		m_refCount++;
-	}
-	void FreeRef()
-	{
-		m_refCount--;
-		if ( m_refCount == 0 )
-			delete this;
-	}
-	int GetRefCount() const
-	{
-		ASSERT( m_refCount > 0 );
-		return m_refCount;
-	}
-
-    /*
-	REFLECT_BEGIN_CBLIB( StringData );
-		REFLECT( m_vec );
-		REFLECT( m_refCount );
-	REFLECT_END();
-    */
-
-	vector<char>	m_vec;
-
-private:
-	int				m_refCount;
-};
 /*
 namespace std {
 template<class T> class vector;
@@ -121,20 +62,20 @@ public:
 	enum EConcat	{ eConcat };
 	enum EPrintf	{ ePrintf };
 
-	String();	// makes an empty string.
-	String( const String &str );
+			 String();	// makes an empty string.
+	         String( const String &str );
 	explicit String( const EEmpty e );
 	explicit String( const char *const pStr );
-	explicit String( const char c );
+	//explicit String( const char c );
 	explicit String( const EReserve e, const int reserve );
 
 	// @@ this ePrintf sucks, but if I don't do it it makes the basic char * constructor
 	//	ambiguous; I could get rid of that and always go through here, but that's lame too
 	//explicit String( const EPrintf e, const char *format, ... );
 
-	String( const EReserve e, const char * const pStr, const int reserve);
-	String( const ESubString e, const char * const pStr, const int len);
-	String( const EConcat e, const char * const pStr1, const char * const pStr2);
+	         String( const EReserve e, const char * const pStr, const int reserve);
+	         String( const ESubString e, const char * const pStr, const int len);
+	         String( const EConcat e, const char * const pStr1, const char * const pStr2);
 
 	~String();
 
@@ -152,21 +93,45 @@ public:
 	void Append( const char c);
 	void Append( const String &str) { Append(str.CStr()); }
 
+	//Insert :
+	void Insert(const int at, const char *const pStr );
+	void Insert(const int at, const char c);
+	//void Insert(const int at, const String &str) { Append(str.CStr()); }
+
+	// FindReplace returns the number of times "from" was found
+	int FindReplace(const char * const from, const char * const to );
+
 	void operator +=( const char * const  pStr  ) { Append(pStr); }
 	void operator +=( const String &str   ) { Append(str); }
 	void operator +=( const char c ) { Append(c); }
 
+	// call Printf() or CatPrintf()
+	//	they will redirect to these
 	void rawPrintf( const char *format, ... );
 	// catprintf sticks it on the back
 	void rawCatPrintf( const char *format, ... );
 
-	char operator []( const int index ) const;
+	// convert pointer in me to an Index (throws if bad)
+	int Index(const char * ptr) const;
 
-	//! SetChar(index,0) truncates to length 0
+	char GetChar( const int index ) const;
+	char operator []( const int index ) const;
+	
+	// SetCharProxy handles doing str[i] = 0;
+	class SetCharProxy;
+	SetCharProxy operator []( const int index );
+
+	char operator []( const char * ptr ) const;
+	SetCharProxy operator []( const char * ptr );
+	
+	char PopBack();
+	
+	void Truncate( const int newLength ); 
+	//! SetChar(index,0) truncates to length "index"
 	//! Truncate takes care of truncation.
 	void SetChar( const int index, const char c );
-	void Truncate( const int newLength ); 
-	char PopBack();
+	// Split is like SetChar(index,0) - returns the tail that's cut off
+	String Split( const int index );
 
 	//Comparisons
 	bool operator ==( const String &str ) const;	
@@ -184,6 +149,16 @@ public:
 	//! @name Get at the string in a (const char *) kind of way
 	const char *CStr( void ) const;
 	
+	// WriteableCStr : do NOT set nulls !
+	//	eh. actually you CAN set nulls, but if you do, then do not call any String() interfaces
+	//	 until you call FixLength
+	//  eg. :
+	//		char * buf = str.WriteableCStr(maxlength);
+	//		.. jam on buf but do not touch str ! ..
+	//		str.FixLength();
+	char * WriteableCStr( int size = 0 );
+	void FixLength();
+	
 	// CB - try the automatic conversion and see how it works out
 	// this is horrific, it allows conversion of String to bool !!
 	//const char * operator ()() const { return CStr(); }
@@ -196,12 +171,14 @@ public:
 	int Capacity( void ) const;
 
 	void Clear();
+	void Release();
 
 	bool IsValid() const;
 
 	// fast swap :
-	void Swap(String * pOther);
-
+	//void Swap(String * pOther);
+	void Swap(String & rhs);
+	
 	void WriteBinary(FILE * fp) const;
 	void ReadBinary(FILE * fp);
 	void WriteText(FILE * fp) const; // just writes the string, no delimiters
@@ -233,17 +210,44 @@ public:
 #undef SPI_CALLARG
 #undef SPI_BADRETURN
 
-/*
-	REFLECT_BEGIN_CBLIB( String );
-		REFLECT( m_pData );
-	REFLECT_END();
-    */
 private:
 
 	StringData *	m_pData;
 	const vector<char> & Readable() const;
 	vector<char> & Writeable();
 	vector<char> & WriteableEmpty(const int reserve = 16);
+};
+
+//---------------------------------------------------------------------------
+
+class String::SetCharProxy
+{
+public:
+	SetCharProxy(String * str,const int i) : 
+		m_str(str), m_index(i)
+	{
+	
+	}
+	
+	operator char () const
+	{
+		return m_str->GetChar(m_index);
+	}
+	
+	void operator = (const char c)
+	{
+		m_str->SetChar( m_index, c );	
+	}
+	void operator = (const String::SetCharProxy & rhs)
+	{
+		const char c = rhs;
+		*this = c;
+	}
+	
+
+private:
+	String * m_str;
+	int m_index;
 };
 
 //---------------------------------------------------------------------------
@@ -266,13 +270,26 @@ inline const String operator +(const char * s1,const String & s2)
 	return String(String::eConcat,s1,s2.CStr());
 }
 
-inline const String ToString(const int i)
+inline char String::operator []( const int i ) const
 {
-	char temp[10];
-	itoa(i,temp,10);
-	return String(temp);
+	return GetChar(i);
 }
 
+inline String::SetCharProxy String::operator [] (const int i)
+{
+	return SetCharProxy(this,i);
+}
+
+inline char String::operator []( const char * ptr ) const
+{
+	return GetChar( Index(ptr) );
+}
+
+inline String::SetCharProxy String::operator []( const char * ptr ) 
+{
+	return SetCharProxy(this, Index(ptr) ); 
+}
+	
 inline bool LessI(const String &s1,const String &s2)
 {
 	return stricmp(s1.CStr(),s2.CStr()) < 0;
@@ -291,14 +308,20 @@ struct LessIFunc // : public binary_function
 	}
 };
 
-/*
-inline String StringPrintf(const char *format, ...)
-{
-	String ret;
-	ret.Printf(format,...);
-	return ret;
-}
-*/
+String rawStringPrintf(const char *fmt, ...);
+String StringRawPrintfVA(const char *pFormat, va_list varargs);
+ 
+#define SPI_SAFEDECL String StringPrintf
+#define SPI_CALLRAW return rawStringPrintf
+#define SPI_PREARG 
+#define SPI_CALLARG fmt
+#define SPI_BADRETURN return String("invalid");
+#include "safeprintf.inc"
+#undef SPI_SAFEDECL
+#undef SPI_CALLRAW
+#undef SPI_PREARG
+#undef SPI_CALLARG
+#undef SPI_BADRETURN
 
 //---------------------------------------------------------------------------
 
@@ -308,7 +331,7 @@ END_CB
 // overload swap<> on String
 // need to make sure we see the generic template decl before we overload
 
-//*
+/*
 #include "cblib/stl_basics.h"
 
 CB_STL_BEGIN
@@ -321,3 +344,5 @@ void swap<cb::String>(cb::String& _Left, cb::String& _Right)
 
 CB_STL_END
 /**/
+
+CB_DEFINE_MEMBER_SWAP(String,Swap);

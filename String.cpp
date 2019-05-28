@@ -4,6 +4,7 @@
 #include "cblib/File.h"
 #include "cblib/FileUtil.h"
 #include "cblib/vector.h"
+#include "cblib/Log.h"
 
 #include <stdarg.h>
 #include <string.h>
@@ -14,7 +15,7 @@
 START_CB
 
 //! Printf strings are not meant to exceed this value
-const int c_bigAssSize = 1024;
+//const int c_bigAssSize = 2048;
 
 //}{= StringData ======================================================================================
 
@@ -40,22 +41,127 @@ actually isn't a terrible idea...
 
 */
 
+#pragma pack(push)
+#pragma pack(4)
 
+struct StringData
+{
+public:
 
+	// constructed with one ref
+	StringData() : m_refCount(1)
+	{
+		// when you just construct vector<> it does no allocations
+	}
+	
+	enum ECOW { eCOW };
+	
+	// constructed with one ref
+	// COW : break link to old data; copy it and de-ref it
+	StringData( ECOW e, StringData * pOldData ) : m_refCount(1), m_vec(pOldData->m_vec)
+	{
+		pOldData->FreeRef();
+	}
+
+	enum EEmpty { eEmpty };
+
+	// just for GetStaticEmptyStringData :
+	explicit StringData( EEmpty e ) : m_refCount(1)
+	{
+		m_vec.resize(1);
+		m_vec[0] = 0;
+	}
+
+	~StringData()
+	{
+		ASSERT( m_refCount == 0 );
+	}
+
+	void TakeRef()
+	{
+		m_refCount++;
+	}
+	void FreeRef()
+	{
+		m_refCount--;
+		if ( m_refCount == 0 )
+			delete this;
+	}
+	int GetRefCount() const
+	{
+		ASSERT( m_refCount > 0 );
+		return m_refCount;
+	}
+
+	vector<char>	m_vec;
+
+private:
+	int				m_refCount;
+};
+
+/*
+
+// safe version does an alloc :
 static StringData * GetStaticEmptyStringData()
 {
-	static bool s_inited = false;
 	static StringData*	s_pData = NULL;
-	if (s_inited == false)
+	if (s_pData == NULL)
 	{
 		s_pData = new StringData(StringData::eEmpty);
 		s_pData->TakeRef();
-
-		s_inited = true;
 	}
 
 	return s_pData;
 }
+
+/*/
+
+// unsafe version :
+//	make the const empty string data just point at a chunk of memory 
+// this is really just to avoid a tiny alloc that leaks so that my leak check is clean
+
+struct StringDataHammer
+{
+	char *		begin;
+	vecsize_t	capacity;
+	vecsize_t	size;
+	int			refCount;
+};
+#pragma pack(pop)
+
+//COMPILER_ASSERT( sizeof(cb::vector<char>) == sizeof(char *) + sizeof(vecsize_t) + sizeof(vecsize_t) );
+COMPILER_ASSERT( sizeof(StringData) == sizeof(StringDataHammer) );
+
+/*
+struct Test
+{
+	char * ptr;
+	int	x;
+};
+COMPILER_ASSERT( sizeof(Test) == 16 );
+*/
+
+static StringData * GetStaticEmptyStringData()
+{
+	//static StringData s_data; // can't do that cuz I never want to destruct
+	static StringData*	s_pData = NULL;
+	if (s_pData == NULL)
+	{
+		static StringDataHammer s_hammer = { 0 };
+		s_pData = (StringData *) &s_hammer;
+	
+		s_hammer.begin = "";
+		s_hammer.size = 1;
+		s_hammer.capacity = 8;
+		s_hammer.refCount = 2;
+
+		ASSERT_RELEASE( s_pData->m_vec.size() == 1 );
+		ASSERT_RELEASE( s_pData->m_vec[0] == 0 );
+	}
+
+	return s_pData;
+}
+/**/
 
 //}{= constructors ======================================================================================
 
@@ -67,7 +173,7 @@ String::String()
 	ASSERT(m_pData != NULL);
 	m_pData->TakeRef();
 
-	ASSERT(IsValid());
+	//ASSERT(IsValid());
 }
 
 
@@ -77,7 +183,7 @@ String::String( const String &str )
 	ASSERT( m_pData != NULL );
 	m_pData->TakeRef();
 
-	ASSERT( IsValid() );
+	//ASSERT( IsValid() );
 }
 
 String::String( const char * const pStr )
@@ -86,13 +192,14 @@ String::String( const char * const pStr )
 	ASSERT( pStr != NULL );
 
 	// can't call Set cuz we're not yet Valid
-	int size = strlen(pStr) + 1;
+	int size = strlen32(pStr) + 1;
 	m_pData->m_vec.resize( size );
 	strcpy( &m_pData->m_vec[0], pStr );
 
-	ASSERT( IsValid() );
+	//ASSERT( IsValid() );
 }
 
+/*
 String::String( const char c )
 	: m_pData(new StringData)
 {
@@ -103,10 +210,11 @@ String::String( const char c )
 
 	ASSERT( IsValid() );
 }
+*/
 	
 // do NOT use s_empty here
 //	make sure I'm safe to use in other static initializers
-String::String( const EEmpty  ) :
+String::String( const EEmpty e ) :
 	m_pData( GetStaticEmptyStringData() )
 {
 	ASSERT( m_pData != NULL );
@@ -114,19 +222,19 @@ String::String( const EEmpty  ) :
 
 	ASSERT( Readable()[0] == 0 );
 
-	ASSERT( IsValid() );
+	//ASSERT( IsValid() );
 }
 
-String::String( const EReserve , const int amount )
+String::String( const EReserve e, const int amount )
 	: m_pData(new StringData)
 {
 	m_pData->m_vec.reserve( amount );
 	m_pData->m_vec.push_back( 0 );
 
-	ASSERT( IsValid() );
+	//ASSERT( IsValid() );
 }
 
-String::String( const EReserve , const char * const pStr, const int amount) 
+String::String( const EReserve e, const char * const pStr, const int amount) 
 	: m_pData(new StringData)
 {
 	ASSERT( pStr != NULL );
@@ -136,61 +244,41 @@ String::String( const EReserve , const char * const pStr, const int amount)
 
 	Set(pStr);
 	
-	ASSERT( IsValid() );
+	//ASSERT( IsValid() );
 }
 
-String::String( const ESubString , const char * const pStr, const int len)
+String::String( const ESubString e, const char * const pStr, const int len)
 	: m_pData(new StringData)
 {
 	ASSERT( pStr != NULL );
 
 	m_pData->m_vec.assign( pStr, pStr+len );
-	ASSERT( m_pData->m_vec.size() == len );
+	ASSERT( m_pData->m_vec.size32() == len );
 	m_pData->m_vec.push_back( 0 );
 	
-	ASSERT( IsValid() );
+	//ASSERT( IsValid() );
 }
 
-String::String( const EConcat , const char * const pStr1, const char * const pStr2)
+String::String( const EConcat e, const char * const pStr1, const char * const pStr2)
 	: m_pData(new StringData)
 {
 	ASSERT( pStr1 != NULL );
 	ASSERT( pStr2 != NULL );
 
-	int l1 = strlen(pStr1);
-	int l2 = strlen(pStr2);
+	int l1 = strlen32(pStr1);
+	int l2 = strlen32(pStr2);
 	
 	m_pData->m_vec.resize(l1+l2+1);
 	memcpy(&m_pData->m_vec[0],pStr1,l1);
 	memcpy(&m_pData->m_vec[0]+l1,pStr2,l2);
 	m_pData->m_vec.back() = 0;
 	
-	ASSERT( IsValid() );
+	//ASSERT( IsValid() );
 }
 
-/*	         
-String::String(const EPrintf e, const char *pFormat, ... )
-	: m_pData(new StringData)
-{
-	char bigAssBuffer[ c_bigAssSize ];
-
-	va_list argPtr;
-
-	va_start( argPtr, pFormat );
-	const int length = _vsnprintf( bigAssBuffer, c_bigAssSize, pFormat, argPtr);
-	va_end( argPtr );
-
-	ASSERT( length != -1 );
-
-	m_pData->m_vec.resize( length+1 );
-	memcpy(&m_pData->m_vec[0],bigAssBuffer,length);
-	m_pData->m_vec.back() = 0;
-}
-*/
-	
 String::~String( void )
 {
-	ASSERT( IsValid() );
+	//ASSERT( IsValid() );
 
 	m_pData->FreeRef();
 	m_pData = NULL;
@@ -201,7 +289,7 @@ String::~String( void )
 {
 	static String s_empty( String::eEmpty ); // DO use eEmpty here
 
-	ASSERT(s_empty.IsValid());
+	//ASSERT(s_empty.IsValid());
 	return s_empty;
 }
 
@@ -301,10 +389,11 @@ bool String::Write( const StreamPtr &out ) const
 */
 
 // fast swap :
-void String::Swap(String * pOther)
+//void String::Swap(String * pOther)
+void String::Swap(String & rhs)
 {
 	// just swap impl pointers :
-	cb::Swap( m_pData, pOther->m_pData );
+	cb::Swap( m_pData, rhs.m_pData );
 }
 
 void String::operator=(const String& str)
@@ -384,7 +473,7 @@ void String::Set( const char *const pStr )
 {
 	if( pStr != NULL )
 	{
-		const int len = strlen(pStr);
+		const int len = strlen32(pStr);
 		
 		vector<char> & vec = WriteableEmpty(len+1);
 
@@ -394,10 +483,14 @@ void String::Set( const char *const pStr )
 	}
 	else
 	{
+		/*
 		vector<char> & vec = WriteableEmpty();
 
 		vec.resize(1);
 		vec[0] = 0;
+		*/
+		
+		*this = GetEmpty();
 	}
 }
 
@@ -406,7 +499,7 @@ void String::Append( const char * const pStr )
 	vector<char> & vec = Writeable();
 
 	int old_len = Length();
-	int add_len = strlen(pStr);
+	int add_len = strlen32(pStr);
 	vec.resize( old_len + add_len + 1 );
 	strcpy( &vec[0] + old_len, pStr );
 }
@@ -419,39 +512,104 @@ void String::Append( const char c )
 	vec.push_back(0);
 }
 
-void String::rawPrintf( const char *pFormat, ... )
+int String::Index(const char * ptr) const
 {
-	char bigAssBuffer[ c_bigAssSize ];
+	int index = ptr_diff_32( ptr - CStr() );
+	ASSERT_RELEASE( index >= 0 && index <= Length() );
+	return index;
+}
 
+void String::Insert(const int at, const char * const pStr )
+{
+	int old_len = Length();
+	ASSERT( at >= 0 && at <= old_len );
+	
+	vector<char> & vec = Writeable();
+	
+	int add_len = strlen32(pStr);
+	vec.resize( old_len + add_len + 1 );
+	
+	char * buf = vec.data();
+	
+	memmove(buf+at+add_len,buf+at,old_len-at);
+	strcpy( buf+at + old_len, pStr );
+}
+
+void String::Insert(const int at, const char c )
+{
+	int old_len = Length();
+	ASSERT( at >= 0 && at <= old_len );
+	
+	vector<char> & vec = Writeable();
+
+	vec.push_back(0);
+	
+	char * buf = vec.data();
+	
+	memmove(buf+at+1,buf+at,old_len-at);
+	
+	buf[at] = c;
+}
+	
+String StringRawPrintfVA(const char *pFormat, va_list varargs)
+{
+	// try to print to a moderate size stack array first :
+
+	char stackBuf[1024];
+	int wroteLen = vsnprintf(stackBuf,sizeof(stackBuf)-1,pFormat,varargs);
+	if ( wroteLen >= 0 )
+	{
+		// tack it on :
+		//Set(stackBuf);
+		return String(stackBuf);
+	}
+	else
+	{
+		// very big string, make a dynamic alloc buffer :
+	
+		// could just work into my vec directly :
+		//String ret;
+		//vector<char> & vBuf = ret.Writeable();
+		vector<char> vBuf;
+		
+		vsnprintfdynamic(&vBuf,pFormat,varargs);
+		
+		// this is an unnecessary strcpy , but also does a tighten for us :
+		return String(vBuf.data());
+	}	
+}
+
+String rawStringPrintf(const char *pFormat, ...)
+{
 	va_list argPtr;
-
 	va_start( argPtr, pFormat );
-	const int length = _vsnprintf( bigAssBuffer, c_bigAssSize, pFormat, argPtr);
+	String s = StringRawPrintfVA(pFormat,argPtr);
 	va_end( argPtr );
 
-	ASSERT( length != -1 );
-	UNUSED_PARAMETER(length);
+	return s;
+}
 
-	Set(bigAssBuffer);
+void String::rawPrintf( const char *pFormat, ... )
+{
+	va_list argPtr;
+	va_start( argPtr, pFormat );
+	String s = StringRawPrintfVA(pFormat,argPtr);
+	va_end( argPtr );
+	
+	*this = s;
 }
 
 void String::rawCatPrintf( const char *pFormat, ... )
 {
-	char bigAssBuffer[ c_bigAssSize ];
-
 	va_list argPtr;
-
 	va_start( argPtr, pFormat );
-	const int length = _vsnprintf( bigAssBuffer, c_bigAssSize, pFormat, argPtr);
+	String s = StringRawPrintfVA(pFormat,argPtr);
 	va_end( argPtr );
-
-	ASSERT( length != -1 );
-	UNUSED_PARAMETER(length);
-
-	Append(bigAssBuffer);
+	
+	*this += s;
 }
 
-char String::operator []( const int index ) const
+char String::GetChar( const int index ) const
 {
 	ASSERT( IsValid() );
 	ASSERT( index >= 0 );
@@ -478,20 +636,27 @@ void String::SetChar( const int index, const char c )
 	ASSERT( IsValid() );
 }
 
-void String::Truncate( const int newLength ) //!< equivalent to what you'd imagine SetChar(index,0); would do
+// Split is like SetChar(index,0) - returns the tail that's cut off
+String String::Split( const int index )
 {
 	ASSERT( IsValid() );
-	ASSERT( newLength >= 0 );
-	ASSERT( newLength < Length() );
-
-	vector<char> & vec = Writeable();
-		
-	vec[ newLength ] = 0;
-	vec.resize( newLength + 1 );
+	ASSERT( index >= 0 );
+	ASSERT( index <= Length() );
 	
-	ASSERT( IsValid() );
+	if ( index == Length() )
+	{
+		return String::GetEmpty();
+	}
+	
+	// index == Length()-1 also returns empty, but cuts off one char
+	
+	String ret( CStr() + index + 1 );
+	
+	Truncate(index);
+	
+	return ret;
 }
-
+	
 char String::PopBack()
 {
 	ASSERT( IsValid() );
@@ -532,7 +697,7 @@ void String::Reserve( const int amount )
 int String::Capacity( void ) const
 {
 	ASSERT( IsValid() );
-	return Readable().capacity();
+	return check_value_cast<int>( Readable().capacity() );
 }
 
 const char *String::CStr( void ) const
@@ -541,10 +706,50 @@ const char *String::CStr( void ) const
 	return &Readable()[0];
 }
 
+// WriteableCStr : do NOT set nulls !
+char * String::WriteableCStr( int size )
+{
+	vector<char> & vec = Writeable();
+
+	//vec.reserve( size );
+	if ( size > vec.size() )
+		vec.resize( size );
+	
+	return vec.data();
+}
+	
+void String::Truncate( const int newLength ) //!< equivalent to what you'd imagine SetChar(index,0); would do
+{
+	//ASSERT( IsValid() );
+	// Truncate is intentionally allowed to work on invalid strings
+	//	it's my hack for jamming illegally on a string
+	vector<char> & vec = Writeable();
+		
+	ASSERT( newLength >= 0 );
+	ASSERT( newLength < vec.capacity() );
+	
+	vec.resize( newLength + 1 );
+	vec[ newLength ] = 0;
+	
+	ASSERT( IsValid() );
+}
+
+void String::FixLength()
+{
+	//ASSERT( IsValid() );
+	// FixLength is intentionally allowed to work on invalid strings
+	//	it's my hack for jamming illegally on a string
+	vector<char> & vec = Writeable();
+	
+	int newLength = strlen32(vec.data());
+	
+	Truncate(newLength);
+}
+	
 int String::Length( void ) const
 {
 	ASSERT( IsValid() );
-	return Readable().size() - 1;
+	return Readable().size32() - 1;
 }
 
 bool String::IsValid() const
@@ -569,6 +774,11 @@ void String::Clear()
 	ASSERT( IsValid() );
 }
 
+void String::Release()
+{
+	*this = GetEmpty();
+}
+	
 void String::WriteBinary(FILE * fp) const
 {
 	int len = Length();
@@ -606,6 +816,64 @@ void String::ReadText(FILE * fp)
 }
 */
 	
+int String::FindReplace(const char * const from, const char * const to )
+{
+	int old_len = Length();
+	
+	vector<char> & vec = Writeable();
+	
+	int from_len = strlen32(from);
+	int to_len = strlen32(to);
+	
+	int add_len = to_len - from_len;
+	
+	int replaces = 0;
+	
+	char * buf = vec.data();
+	char * ptr = buf;
+	while(*ptr)
+	{
+		if ( stripresame(ptr,from) )
+		{
+			replaces++;
+			int at = (int)(ptr - buf);
+				
+			// cut out from and put in to
+			if ( add_len > 0 )
+			{
+				// to_len > from_len
+				// slide up to make space
+				vec.resize( old_len + add_len + 1 );
+				buf = vec.data();
+				ptr = buf+at;
+				memmove(ptr+add_len,ptr,old_len-at);
+				memcpy(ptr,to,to_len);
+				ptr += to_len;	
+			}
+			else
+			{
+				// from_len >= to_len
+				// slide down
+				memcpy(ptr,to,to_len);
+				ptr += to_len;
+				// add_len <= 0
+				memmove(ptr,ptr-add_len,old_len-at-from_len+1);
+			}
+
+			old_len += add_len;
+		}
+		else
+		{
+			ptr++;
+		}
+	}
+	
+	FixLength();
+	ASSERT( Length() == old_len );
+	
+	return replaces;
+}
+
 //=======================================================================================
 
 void String_Test()

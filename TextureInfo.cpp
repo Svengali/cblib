@@ -4,7 +4,8 @@
 #include "cblib/File.h"
 
 #include <windows.h>
-#include <d3d9types.h> // for D3DFMT
+//#include <d3d8types.h> // for D3DFMT
+#include <d3d9.h> // for D3DFMT
 
 START_CB
 
@@ -76,22 +77,24 @@ const char * const TextureInfo::GetFormatDescription(const D3DFORMAT format)
 void TextureInfo::Log() const
 {
 	lprintf("TextureInfo : %s\n",m_fileName.CStr());
-	lprintf("w : %d, h : %d, mips : %d, format = %04X = %s\n",m_width,m_height,m_format,
+	lprintf("w : %d, h : %d, g:%s, format = %04X = %s\n",m_width,m_height,
+					m_gammaCorrected?"y":"n",
+					(int)m_format,
 					GetFormatDescription(m_format));
 }
 
 // binary IO :
 void TextureInfo::IO(File & file)
 {
-	static const ulong c_tag = 'TxIn';
-	static const ulong c_ver = 1;
+	static const uint32 c_tag = 'TxIn';
+	static const uint32 c_ver = 1;
 
-	ulong tag = c_tag;
+	uint32 tag = c_tag;
 	file.IO(tag);
 	if ( tag != c_tag )
 		throw String("didn't match tag in TextureInfo::IO");
 
-	ulong ver = c_ver;
+	uint32 ver = c_ver;
 	file.IO(ver);
 	if ( ver != c_ver )
 		throw String("didn't match ver in TextureInfo::IO");

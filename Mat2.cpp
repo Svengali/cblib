@@ -3,7 +3,7 @@
 
 START_CB
 
-float Mat2U::GetInverse(const Mat2 & fm,Mat2 * pTo)
+float GetInverse(const Mat2 & fm,Mat2 * pTo)
 {
 	ASSERT( fm.IsValid() );
 	ASSERT( pTo != NULL );

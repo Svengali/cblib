@@ -3,122 +3,155 @@
 #include "cblib/Vec3.h"
 #include "cblib/AxialBox.h"
 #include "cblib/Plane.h"
-#include "Core/vector.h"
+#include "cblib/vector.h"
 
-struct Poly2;
-class Frustum;
-class Segment;
+START_CB
 
-#define POLY_MAX_VERTS	(64)
+//#define POLY_MAX_VERTS	(64)
 
 /*
 
-Poly for math work.
+gPoly for math work.
 
 NOT FOR STORAGE
 
 Poly2/Poly3 are nearly identical; maintain changes across them
-
 --------------------------------------
 
 Poly3 is *convex* , *planar*, and *counterclockwise*
 
+
 */
+
+struct Poly2;
+class Frustum;
+class Segment;
+class Sphere;
 
 //==========================================================================================================
 
-// Poly should be *counterclockwise*
+// gPoly should be *counterclockwise*
 struct Poly3
 {
+	//vector_s<Vec3,POLY_MAX_VERTS>	m_verts;
 	vector<Vec3>	m_verts;
-	Plane			m_plane;
+	
+	// just hold the plane on the side if you want it
+	//Plane							m_plane;
 
-	bool IsValid() const;
+	bool IsValid() const { return true; }
 
 	void Clear();
 	void Reverse();
 
-	int GetNumVerts() const { return m_verts.size(); }
-	const Vec3 & GetNormal() const { return m_plane.GetNormal(); }
+	int GetNumVerts() const { return m_verts.size32(); }
 	
 	float ComputeArea() const;
 	const Vec3 ComputeCenter() const;
 	void ComputeBBox(AxialBox * pBox) const;
 
 	void ComputeSphereFast(Sphere * pSphere) const;
-	
-	#ifndef _XBOX
 	void ComputeSphereGood(Sphere * pSphere) const;
-	#endif
+
+//	const Vec3 & GetNormal() const { return m_plane.GetNormal(); }
 	
-	//! Poly::PlaneSide return Front,Back,On,Intersecting
+	//! gPoly::PlaneSide return Front,Back,On,Intersecting
 	Plane::ESide PlaneSide(const Plane & plane,const float epsilon = EPSILON) const;
 };
 
 //==========================================================================================================
 
-namespace Poly3Util
-{
+//namespace Poly3Util {
 
-	void MakeQuadOnPlane(Poly3 * pInto, const Plane & onPlane, const AxialBox & refBox);
+void MakeQuadOnPlane(Poly3 * pInto, const Plane & onPlane, const AxialBox & refBox);
 
-	bool ClipToBox(Poly3 * pInto, const Poly3 & from, const AxialBox & refBox);
-	bool ClipToFrustum(Poly3*         pInto,
+bool ClipToBox(Poly3 * pInto, const Poly3 & from, const AxialBox & refBox);
+
+bool ClipToFrustum(Poly3*         pInto,
 					   const Poly3&   front,
 					   const Frustum& frustum);
+					   
+bool LineSegmentIntersects(const Poly3 & poly,const Plane & polyPlane,const Vec3& start,const Vec3& end);
 
-	//! PutPointsOnPlane pushes the points in Poly back onto its plane
-	void PutPointsOnPlane(Poly3 * pInto);
+// Projects the point onto the polygon's plane, and tests if the polygon it
+bool IsProjectedPointInPoly(const Poly3& poly,	const Plane & polyPlane, const Vec3& point);
 
-	//! FitPlane fills pPoly->m_plane
-	//	"false" indicates a bad error
-	bool FitPlane(Poly3 * pPoly);
+bool PolyIntersectsSphere(const Poly3& poly,const Plane & polyPlane, const Sphere& sphere);
 
-	/*
-	  CleanPoly removes colinear segments, and tries
-	  to makes poly convex if it's gotten little wiggles
-	*/
-	bool CleanPoly(const Poly3 & from,Poly3 * pTo);
+bool SegmentIntersects(const Poly3& poly,const Plane & polyPlane, const Segment & seg);
+//bool SegmentIntersects(const Poly3& poly, const CollisionQuery & q);
 
-	/*
-	  CleanPoly removes colinear segments, and tries
-	  to makes poly convex if it's gotten little wiggles
-	  
-	  CleanPolySerious uses rigorous integer 2d convex hull
-	*/
-	bool CleanPolySerious(const Poly3 & from,Poly3 * pTo);
+//! PutPointsOnPlane pushes the points in Poly back onto its plane
+void PutPointsOnPlane(Poly3 * pInto, const Plane & onPlane);
 
-	void Project2d(Poly2 * pInto, const Poly3 & from,const Vec3 & basePos);
-	void Lift2d(Poly3 * pInto, const Poly2 & from, const Plane & onPlane,const Vec3 & basePos);
+//! FitPlane fills pPlane
+//	"false" indicates a bad error
+bool FitPlane(const Poly3 & poly,Plane * pPlane);
 
-	/*
-	  ClipPoly to a plane; makes front-side and back-side results.
-	  Result poly points can be NULL if you don't care about either one of them.
-	  Plane has a thickness of epsilon.
-	*/
-	Plane::ESide ClipPoly(const Poly3 & from,Poly3 * pToF,Poly3 * pToB,const Plane & plane,const float epsilon = EPSILON);
+/*
+	CleanPoly removes colinear segments, and tries
+	to makes poly convex if it's gotten little wiggles
+*/
+bool CleanPoly(const Poly3 & from,Poly3 * pTo);
 
-	inline bool ClipPolyB(const Poly3 & from,Poly3 * pTo,const Plane & plane,const float epsilon = EPSILON)
-	{
-		ClipPoly(from,NULL,pTo,plane,epsilon);
-		return pTo->GetNumVerts() >= 3;
-	}
+/*
+	CleanPoly removes colinear segments, and tries
+	to makes poly convex if it's gotten little wiggles
 
-	inline bool ClipPolyF(const Poly3 & from,Poly3 * pTo,const Plane & plane,const float epsilon = EPSILON)
-	{
-		ClipPoly(from,pTo,NULL,plane,epsilon);
-		return pTo->GetNumVerts() >= 3;
-	}
+	CleanPolySerious uses rigorous integer 3d convex hull
+*/
+bool CleanPolySerious(const Poly3 & from,const Plane & plane,Poly3 * pTo);
 
-	bool LineSegmentIntersects(const Poly3 & poly,const Vec3& start,const Vec3& end);
+void Project2d(Poly2 * pInto, const Poly3 & from,const Plane & onPlane,const Vec3 & basePos);
+void Lift2d(Poly3 * pInto, const Poly2 & from, const Plane & onPlane,const Vec3 & basePos);
 
-	// Projects the point onto the polygon's plane, and tests if the polygon it
-	bool IsProjectedPointInPoly(const Poly3& poly, const Vec3& point);
+/*
+	ClipPoly to a plane; makes front-side and back-side results.
+	Result poly points can be NULL if you don't care about either one of them.
+	Plane has a thickness of epsilon.
+*/
+Plane::ESide ClipPoly(const Poly3 & from,Poly3 * pToF,Poly3 * pToB,const Plane & plane,const float epsilon = EPSILON);
 
-	bool PolyIntersectsSphere(const Poly3& poly, const Sphere& sphere);
-	
-	bool SegmentIntersects(const Poly3& poly, const Segment & seg);
-	//bool SegmentIntersects(const Poly3& poly, const CollisionQuery & q);
-}; // Poly3Util
+inline bool ClipPolyB(const Poly3 & from,Poly3 * pTo,const Plane & plane,const float epsilon = EPSILON)
+{
+	ClipPoly(from,NULL,pTo,plane,epsilon);
+	return pTo->GetNumVerts() >= 3;
+}
+
+inline bool ClipPolyF(const Poly3 & from,Poly3 * pTo,const Plane & plane,const float epsilon = EPSILON)
+{
+	ClipPoly(from,pTo,NULL,plane,epsilon);
+	return pTo->GetNumVerts() >= 3;
+}
 
 //==========================================================================================================
+// Edge
+
+// ClipEdge isn't really a Poly3 thing, but it's basically ClipPoly so put it here
+struct Edge
+{
+	Vec3	verts[2];
+};
+
+Plane::ESide ClipEdge(const Edge &edge,
+										Edge * pFront,
+										Edge * pBack,
+										const Plane & plane,
+										const float epsilon = EPSILON);
+
+inline bool ClipEdgeF(const Edge &edge,
+										Edge * pFront,
+										const Plane & plane,
+										const float epsilon = EPSILON)
+{
+	Plane::ESide side = ClipEdge(edge,pFront,NULL,plane,epsilon);
+	return ( side != Plane::eBack );
+}
+
+bool ClipToBox(Edge * pInto, const Edge & from, const AxialBox & refBox);
+
+//}; // Poly3Util
+
+//==========================================================================================================
+
+END_CB

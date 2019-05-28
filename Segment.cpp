@@ -100,7 +100,7 @@ void Segment::MakeInvNormal()
 {
 	// make m_invNormal
 	// being careful not to divide by ~zero
-	// used by gAxialBox & KDTree
+	// used by AxialBox & KDTree
 	for(int i=0;i<3;i++)
 	{
 		static const float	SAFETY_FACTOR = 1000000.f;
@@ -120,7 +120,7 @@ void Segment::MakeInvNormal()
 			// val is tiny tiny, we don't want to divide by it.
 
 			m_invNormal[i] = - FLT_MAX;
-			// it's important that this be negative for gAxialBox
+			// it's important that this be negative for AxialBox
 
 			// this axis is nearly degenerate, so just force it to be
 			// totally degenerate so that KDTree and AxialBox can
@@ -136,18 +136,6 @@ void Segment::MakeInvNormal()
 }
 
 //-------------------------------------------------------
-
-const Vec3 Segment::GetHitPoint(const float tHit) const
-{
-	ASSERT( IsValid() );
-	return MakeLerp( GetFm(), GetTo(), tHit );
-}
-
-const Vec3 Segment::GetCenter() const
-{
-	ASSERT( IsValid() );
-	return MakeAverage(m_fm,m_to);
-}
 
 bool Segment::IsValid() const
 {
@@ -283,7 +271,7 @@ void	Segment::TransformByTranspose(const Frame3& xform)
 
 
 /** Return true if the given segment intersects this segment. */
-bool Segment::IntersectVolume(const Segment &) const
+bool Segment::IntersectVolume(const Segment & seg) const
 {
 	ASSERT(0);	// \todo implement!
 
@@ -431,10 +419,7 @@ bool	Segment::IntersectSurface(const Segment& seg, SegmentResults* pResults) con
 
 	if (tLimit0 > tLimit1)
 	{
-		// swap.
-		float	temp = tLimit0;
-		tLimit0 = tLimit1;
-		tLimit1 = temp;
+		Swap(tLimit0,tLimit1);
 	}
 
 	// Only look for hits within the bounds of the cylinder body.
@@ -517,10 +502,7 @@ bool	Segment::IntersectSurface(const Segment& seg, SegmentResults* pResults) con
 	// Make sure t0 <= t1
 	if (t0 > t1)
 	{
-		// swap.
-		float	temp = t0;
-		t0 = t1;
-		t1 = temp;
+		Swap(t0,t1);
 	}
 
 	if (t0 < tmin)

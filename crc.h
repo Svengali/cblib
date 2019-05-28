@@ -82,4 +82,11 @@ private:
 	uint32 m_crc;
 };
 
+extern uint32 crc_table[256];
+
+static inline void stepCRC(uint32 & crc,const int byte)
+{
+	crc = crc_table[(crc ^ byte) & 0xFF] ^ (crc >> 8);
+}
+
 END_CB

@@ -26,8 +26,6 @@ class WeakPtrBase;
 template <class BaseClass> class SPtr;
 template <class BaseClass> class WeakPtr;
 
-END_CB
-
 //! forward declaration and smart pointer def with Name-Ptr convention :
 //!	 PtrC holds a const version of the same class
 #define SPtrDef(BaseClass)	typedef cb::SPtr<BaseClass> BaseClass##Ptr; \
@@ -38,8 +36,6 @@ END_CB
 #define SPtrFwd(BaseClass)	class BaseClass;	\
 							SPtrDef(BaseClass);
 
-
-START_CB
 
 // base class : RefCountedPtr, RefCountedPtrC
 SPtrDef(RefCounted);
@@ -60,10 +56,9 @@ typedef Link<void *>		SptrVoidLink;
 //	limits you to 65535 objects total
 //#define DO_16BIT_INDEX
 
-void DestroyPointerTable();
-
 //= RefCounted =======================================================
 
+// CLASS_ABSTRACT_BASE
 class RefCounted
 {
 public:
@@ -98,7 +93,6 @@ public:
 	///////////////////////////
 	// internal stuff ; you should never be calling these :
 
-	void SetRefCount( const int newRefCount ) { m_refCount = newRefCount; }
 	int GetRefCount() const { return m_refCount; }
 
 	index_type	GetPointerTableIndex() const;
@@ -123,21 +117,18 @@ public:
 	//	DO NOT USE UNLESS YOU ARE A WIZARD OR NINJA
 	void ClearWeakPtrs();
 
-	void RefCounted_TakeRef() const;
-	void RefCounted_FreeRef() const;
-
 private:
 
 	// Ref count mutiliation can only be done by the smart pointer classes :
-	template <class BaseClass> 
-	friend class WeakPtr;
-	
-	template <class BaseClass> 	
-	friend class SPtr;
+	template <class BaseClass> friend class WeakPtr;
+	template <class BaseClass> friend class SPtr;
 
 	//	refCount is const_cast'ed so that the class can act like its const
 	//	even when its being passed around in smart pointers, which
 	//	will necessarily modify the refCount
+
+	void TakeRef() const;
+	void FreeRef() const;
 
 	FORBID_ASSIGNMENT(RefCounted);
 	FORBID_COPY_CTOR(RefCounted);

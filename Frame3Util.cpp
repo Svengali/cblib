@@ -39,6 +39,34 @@ void	SetOrientedToSurface(Frame3 * pFrame, const Vec3& up, const Vec3 & pos)
 	pFrame->SetTranslation(pos);
 }
 	
+void SetLookAt(Frame3 * pFrame,const Vec3 & fm,const Vec3 & to,
+			   const Vec3 & up /*= Vec3::unitZ*/)
+{
+	ASSERT( ! Vec3::Equals(fm,to) );
+	// position is at "fm"
+	pFrame->SetTranslation( fm );
+	
+	Vec3 viewIn = to - fm;
+	if ( viewIn.NormalizeSafe() == 0.f )
+	{
+		FAIL("Degenerate vector in LookAt!");
+		return; // do nada
+	}
+	
+	SetLookDirection(&pFrame->MutableMatrix(),viewIn,up);
+}
+
+
+void MakeFromArray(Frame3 * pm, const float *array)
+{
+	ASSERT(pm && array);
+
+	pm->MutableMatrix().SetColumnX( *((Vec3 *)(&array[0])) );
+	pm->MutableMatrix().SetColumnY( *((Vec3 *)(&array[4])) );
+	pm->MutableMatrix().SetColumnZ( *((Vec3 *)(&array[8])) );
+	pm->SetTranslation( *((Vec3 *)(&array[12])) );
+}
+
 //! MakeFrameFromThreePoints makes an *orthonormal* basis from 3 points
 bool MakeFrameFromThreePoints(Frame3 * pFrame,const Vec3 &a, const Vec3 &b,const Vec3 &c)
 {
@@ -102,24 +130,6 @@ bool MakeBarycentricFrame(Frame3 * pFrame,const Vec3 &a,const Vec3 &b,const Vec3
 	#endif
 
 	return true;
-}
-
-void SetLookAt(Frame3 * pFrame,const Vec3 & fm,const Vec3 & to,
-			   const Vec3 & up /*= Vec3::unitZ*/)
-{
-	ASSERT( ! Vec3::Equals(fm,to) );
-	// position is at "fm"
-	pFrame->SetTranslation( fm );
-	
-	Vec3 viewIn = to - fm;
-	if ( viewIn.NormalizeSafe(Vec3::unitX) == 0.f )
-	{
-		FAIL("Degenerate vector in LookAt!");
-		// use the fallback unitX, sort of appropriate for our
-		//	cameras with unitZ up
-	}
-	
-	SetLookDirection(&pFrame->MutableMatrix(),viewIn,up);
 }
 
 void SetLerped(Frame3 * result, const Frame3& from, const Frame3& to, const float t)

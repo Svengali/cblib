@@ -2,6 +2,7 @@
 
 #include "cblib/Util.h"
 #include "cblib/Vec2.h"
+#include "cblib/Vec2i.h"
 
 START_CB
 
@@ -54,7 +55,7 @@ public:
 
 	enum EConstructorZero		{ eZero };
 
-	explicit inline RectTemplate(const EConstructorZero) :
+	explicit inline RectTemplate(const EConstructorZero e) :
 		m_xLo(0),m_xHi(0),m_yLo(0),m_yHi(0)
 	{
 	}
@@ -277,17 +278,48 @@ public:
 		return MAX( Width(), Height() );
 	}
 
-	////////////////////////////////////////////////////////////////
+	void GrowToSquare() //!< become square by growing the smaller dimension
+	{
+		value_type w = Width();
+		value_type h = Height();
 
+		if ( w < h )
+		{
+			// grow x
+			value_type delta = (h-w)/value_type(2);
+			ASSERT( delta >= 0 );
+			SetX( LoX() - delta, HiX() + delta );
+		}
+		else if ( h > w )
+		{
+			value_type delta = (w-h)/value_type(2);
+			ASSERT( delta >= 0 );
+			SetY( LoY() - delta, HiY() + delta );
+		}
+
+		//ASSERT( fequal(Width(),Height()) );
+	}
+
+	/*
+    LONG    left;
+    LONG    top;
+    LONG    right;
+    LONG    bottom;
+    */
+    
+	value_type	m_xLo;
+	value_type  m_yLo;
+	value_type	m_xHi;
+	value_type	m_yHi;
+	
 protected:
 
 	enum EConstructorNoInit		{ eNoInit };
 
-	explicit inline RectTemplate(const EConstructorNoInit)
+	explicit inline RectTemplate(const EConstructorNoInit e)
 	{
 	}
 
-	value_type	m_xLo,m_yLo,m_xHi,m_yHi;
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -322,10 +354,40 @@ public:
 		ASSERT( IsValid() );
 	}
 
+
+	explicit inline  RectI(const Vec2i & v) : parent_type(v.x,v.y)
+	{
+		ASSERT( IsValid() );
+	}
+
+	explicit inline  RectI(const Vec2i & u,const Vec2i & v) : parent_type(MIN(u.x,v.x),MAX(u.x,v.x),MIN(u.y,v.y),MAX(u.y,v.y))
+	{
+		ASSERT( IsValid() );
+	}
+
+
+	//-------------------------------------------------------------------------
+	// Conversions/helpers for Vec2 :
+
+	void SetToTwoPointsV(const Vec2i &u,const Vec2i &v)	{ Set(MIN(u.x,v.x),MAX(u.x,v.x),MIN(u.y,v.y),MAX(u.y,v.y)); }
+	void SetLoHiV(const Vec2i &lo,const Vec2i &hi)		{ Set(lo.x,hi.x,lo.y,hi.y); }
+
+	bool ContainsV(const Vec2i &v) const				{ return Contains(v.x,v.y); }
+	void SetToPointV(const Vec2i &v)					{ SetToPoint(v.x,v.y); }
+	void ExtendToPointV(const Vec2i &v)				{ ExtendToPoint(v.x,v.y); }
+	void SetEnclosingV(const Vec2i &u,const Vec2i &v){ SetToPointV(u); ExtendToPointV(v); }
+
+	const Vec2i GetLo() const { return Vec2i( LoX(), LoY() ); }
+	const Vec2i GetHi() const { return Vec2i( HiX(), HiY() ); }
+	
+	void Translate(const Vec2i &t)	{ SetLoHiV( GetLo() + t, GetHi() + t ); }
+
+	//-------------------------------------------------------------------------
+
 	bool operator == (const RectI & other) const;
 	
 	static const RectI zero;
-	static const RectI unit;
+	static const RectI unit; //0->1,0->1
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -383,11 +445,9 @@ public:
 	const Vec2 GetLo() const { return Vec2( LoX(), LoY() ); }
 	const Vec2 GetHi() const { return Vec2( HiX(), HiY() ); }
 	
-	const Vec2 GetCenter() const { return Vec2( (LoX()+HiX())*0.5f, (LoY()+HiY())*0.5f ); }
-	
 	void Translate(const Vec2 &t)	{ SetLoHiV( GetLo() + t, GetHi() + t ); }
 
-	void GrowToSquare(); //!< become square by growing the smaller dimension
+	const Vec2 GetCenter() const { return Vec2( (LoX()+HiX())*0.5f, (LoY()+HiY())*0.5f ); }
 
 	void SetScaled(const RectF & r,const float f);
 	void SetScaled(const RectF & r,const float xs,const float ys);
@@ -397,11 +457,13 @@ public:
 	const Vec2 ScaleVectorIntoRect(const Vec2 & from) const;
 	const Vec2 ScaleVectorFromRect(const Vec2 & from) const;
 
+	//-------------------------------------------------------------------------
+
 	// override the parent version :
 	bool IsValid() const;
 
 	static const RectF zero;
-	static const RectF unit;
+	static const RectF unit; //0->1,0->1
 };
 
 /////////////////////////////////////////////////////////////////////////////

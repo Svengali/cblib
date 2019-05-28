@@ -1,5 +1,6 @@
 #include "cblib/Base.h"
 #include "cblib/Util.h"
+#include "cblib/StrUtil.h"
 #include "cblib/FloatUtil.h"
 #include "CRC.h"
 
@@ -8,7 +9,7 @@ START_CB
 //}{=========================================================================
 
 // Adler32 CRC table :
-static uint32 crc_table[256] =
+uint32 crc_table[256] =
 {
   0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419,
   0x706AF48F, 0xE963A535, 0x9E6495A3, 0x0EDB8832, 0x79DCB8A4,
@@ -63,11 +64,6 @@ static uint32 crc_table[256] =
   0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B,
   0x2D02EF8D
 };
-
-static inline void stepCRC(uint32 & crc,const int byte)
-{
-	crc = crc_table[(crc ^ byte) & 0xFF] ^ (crc >> 8);
-}
 
 //}{=========================================================================
 

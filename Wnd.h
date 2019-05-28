@@ -18,28 +18,28 @@ public:
 	static void		RegisterWindowClass(void);
 	
 	// message maps
-	virtual void	WmCommand(WPARAM, LPARAM) { }
+	virtual void	WmCommand(WPARAM wParam, LPARAM lParam) { }
 	virtual void	WmCreate(void) { }
 	virtual void	WmDestroy(void) { }
-	virtual void	WmKeydown(WPARAM, LPARAM) { }
-	virtual void	WmKeyup(WPARAM, LPARAM) { }
-	virtual void	WmLButtonDown(int , int ) { }
-	virtual void	WmLButtonDoubleClick(int , int ) { }
-	virtual void	WmLButtonUp(int , int ) { }
-	virtual void	WmMButtonDown(int, int ) { }
-	virtual void	WmMButtonUp(int, int ) { }
-	virtual void	WmRButtonDown(int, int ) { }
-	virtual void	WmRButtonUp(int, int ) { }
-	virtual void	WmMouseMove(int, int ) { }
-	virtual void	WmMouseWheel(int , int, int ) { }
-	virtual void	WmNotify(WPARAM , LPARAM ) { }
-	virtual void	WmPaint(HDC ) { }
-	virtual void	WmSize(int, int );
-	virtual void	WmSysKeydown(WPARAM , LPARAM ) { }
-	virtual void	WmSysKeyup(WPARAM , LPARAM ) { }
+	virtual void	WmKeydown(WPARAM wParam, LPARAM lParam) { }
+	virtual void	WmKeyup(WPARAM wParam, LPARAM lParam) { }
+	virtual void	WmLButtonDown(int x, int y) { }
+	virtual void	WmLButtonDoubleClick(int x, int y) { }
+	virtual void	WmLButtonUp(int x, int y) { }
+	virtual void	WmMButtonDown(int x, int y) { }
+	virtual void	WmMButtonUp(int x, int y) { }
+	virtual void	WmRButtonDown(int x, int y) { }
+	virtual void	WmRButtonUp(int x, int y) { }
+	virtual void	WmMouseMove(int x, int y) { }
+	virtual void	WmMouseWheel(int wheelDelta, int x, int y) { }
+	virtual void	WmNotify(WPARAM wParam, LPARAM lParam) { }
+	virtual void	WmPaint(HDC hdc) { }
+	virtual void	WmSize(int x, int y);
+	virtual void	WmSysKeydown(WPARAM wParam, LPARAM lParam) { }
+	virtual void	WmSysKeyup(WPARAM wParam, LPARAM lParam) { }
 	virtual void	WmTimer(void) { }
-	virtual void	WmVScroll(WPARAM , HWND ) { }
-	virtual void	WmHScroll(WPARAM , HWND ) { }
+	virtual void	WmVScroll(WPARAM wParam, HWND lParam) { }
+	virtual void	WmHScroll(WPARAM wParam, HWND lParam) { }
 	
 	// window procedure
 	static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

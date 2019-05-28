@@ -27,7 +27,7 @@ HWND Wnd::CreateWnd(HWND parent,
 {
 	RegisterWindowClass();
 
-	m_hwnd = CreateWindowExA(	
+	m_hwnd = CreateWindowEx(	
 		exstyle,
 		c_WndClassName,
 		NULL,
@@ -49,9 +49,9 @@ HWND Wnd::CreateWnd(HWND parent,
 
 void Wnd::RegisterWindowClass(void)
 {
-	WNDCLASSA wndclass;
+	WNDCLASS wndclass;
 
-	if (!GetClassInfoA(GetModuleHandle(NULL), c_WndClassName, &wndclass))
+	if (!GetClassInfo(GetModuleHandle(NULL), c_WndClassName, &wndclass))
 	{
 		memset(&wndclass, 0, sizeof(WNDCLASS));
 		// CS_OWNDC
@@ -61,14 +61,14 @@ void Wnd::RegisterWindowClass(void)
 		wndclass.cbClsExtra = 0;
 		wndclass.cbWndExtra = sizeof(Wnd*);
 		wndclass.hInstance = GetModuleHandle(NULL);
-		wndclass.hIcon = LoadIconA(GetModuleHandle(NULL), "IDI_ICON1");//MAKEINTRESOURCE(IDI_ICON1));
+		wndclass.hIcon = LoadIcon(GetModuleHandle(NULL), "IDI_ICON1");//MAKEINTRESOURCE(IDI_ICON1));
 		wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
 		//wndclass.hbrBackground = (HBRUSH) (COLOR_BTNFACE+1);
 		//wndclass.hbrBackground = (HBRUSH) COLOR_BACKGROUND;
 		wndclass.hbrBackground = CreateSolidBrush(RGB(225, 225, 225));
 		wndclass.lpszMenuName = NULL;
 		wndclass.lpszClassName = (char*)c_WndClassName;
-		RegisterClassA(&wndclass);
+		RegisterClass(&wndclass);
 	}
 }
 
@@ -99,11 +99,11 @@ LRESULT CALLBACK Wnd::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		wnd->m_hwnd = hwnd;
 		wnd->WmCreate();
 
- 		SetWindowLong(hwnd, 0, (LONG)wnd);
+ 		SetWindowLongPtr(hwnd, 0, (LONG_PTR)wnd);
 		return 0;
 	}
 
-	wnd = (Wnd*)GetWindowLong(hwnd, 0);
+	wnd = (Wnd*)GetWindowLongPtr(hwnd, 0);
 
 	if (wnd != NULL)
 	{

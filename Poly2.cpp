@@ -26,7 +26,7 @@ float Poly2::GetArea() const
 	{
 		const Vec2 & b = m_verts[i-1];
 		const Vec2 & c = m_verts[i];
-		area += Vec2U::TriangleAreaCCW(a,b,c);
+		area += TriangleAreaCCW(a,b,c);
 	}
 	return area;
 }
@@ -96,7 +96,7 @@ Plane::ESide Poly2::PlaneSide(const Plane2 & plane) const
 	CleanPoly removes colinear segments, and tries
 	to makes poly convex if it's gotten little wiggles
 */
-bool Poly2Util::CleanPoly(const Poly2 & from,Poly2 * pTo)
+bool CleanPoly(const Poly2 & from,Poly2 * pTo)
 {
 	// copy all verts
 	pTo->m_verts = from.m_verts;
@@ -113,7 +113,7 @@ bool Poly2Util::CleanPoly(const Poly2 & from,Poly2 * pTo)
 		const Vec2 & c = pTo->m_verts[in2];
 
 		// a,b,c should be counterclockwise
-		float cross = Vec2U::TriangleCrossCCW(a,b,c);
+		float cross = TriangleCrossCCW(a,b,c);
 
 		if ( cross <= 0.f ) // @@ <= EPSILON ?
 		{
@@ -142,19 +142,26 @@ bool Poly2Util::CleanPoly(const Poly2 & from,Poly2 * pTo)
 
 	CleanPolySerious uses rigorous integer 2d convex hull
 */
-bool Poly2Util::CleanPolySerious(const Poly2 & from,Poly2 * pTo)
+bool CleanPolySerious(const Poly2 & from,Poly2 * pTo)
 {
 	RectF box(0,0);
 	from.GetBBox(&box);
+	box.GrowToSquare();
+
+	if ( box.Width() < EPSILON || box.Height() < EPSILON )
+	{
+		pTo->Clear();
+		return false;
+	}
 
 	// quantize to ints
-	vector_s<Vec2i,POLY_MAX_VERTS>	vi;
+	vector<Vec2i>	vi;
 	vi.resize(from.GetNumVerts());
 	IntGeometry::Quantize(vi.data(),from.m_verts.data(),from.GetNumVerts(),box);
 
 	// build the convex hull in ints
 	vector<Vec2i> hullPolygon;
-	ConvexHullBuilder2d::Make2d(vi.data(),vi.size(),hullPolygon);
+	ConvexHullBuilder2d::Make2d(vi.data(),vi.size32(),hullPolygon);
 
 	if ( hullPolygon.size() < 3 )
 	{
@@ -163,23 +170,24 @@ bool Poly2Util::CleanPolySerious(const Poly2 & from,Poly2 * pTo)
 	}
 
 	// dequantize back to floats
-	pTo->m_verts.resize(hullPolygon.size());
-	IntGeometry::Dequantize(pTo->m_verts.data(),hullPolygon.data(),hullPolygon.size(),box);
+	pTo->m_verts.resize(hullPolygon.size32());
+	IntGeometry::Dequantize(pTo->m_verts.data(),hullPolygon.data(),hullPolygon.size32(),box);
 
 	return true;
 }
 
 
 
-Plane::ESide Poly2Util::ClipPoly(const Poly2 & from,Poly2 * pToF,Poly2 * pToB,const Plane2 & plane,const float epsilon /*= EPSILON*/)
+Plane::ESide ClipPoly(const Poly2 & from,Poly2 * pToF,Poly2 * pToB,const Plane2 & plane,const float epsilon /*= EPSILON*/)
 {
 	ASSERT( from.m_verts.size() >= 3 );
 	int numVerts = from.GetNumVerts();
 
 
-	//STACK_ARRAY(dists,float,numVerts+1);
-	float				dists[POLY_MAX_VERTS+1];
-	Plane::ESide		sides[POLY_MAX_VERTS+1];
+	STACK_ARRAY(dists,float,numVerts+1);
+	STACK_ARRAY(sides,Plane::ESide,numVerts+1);
+	//float				dists[POLY_MAX_VERTS+1];
+	//Plane::ESide		sides[POLY_MAX_VERTS+1];
 	int					counts[3] = { 0 };
 	COMPILER_ASSERT( Plane::eFront == 0 );
 	COMPILER_ASSERT( Plane::eBack == 1 );
@@ -258,7 +266,7 @@ Plane::ESide Poly2Util::ClipPoly(const Poly2 & from,Poly2 * pToF,Poly2 * pToB,co
 		//Vec2 mid = p1 + t*(p2-p1);
 		Vec2 mid = (1.f-t)*p1 + t*p2;
 		
-		ASSERT( plane.PointSideOrOn(mid,EPSILON*2) == Plane::eIntersecting );
+		ASSERT( plane.PointSideOrOn(mid,epsilon*2) == Plane::eIntersecting );
 			
 		if ( pToF ) pToF->m_verts.push_back(mid);
 		if ( pToB ) pToB->m_verts.push_back(mid);
@@ -266,3 +274,5 @@ Plane::ESide Poly2Util::ClipPoly(const Poly2 & from,Poly2 * pToF,Poly2 * pToB,co
 	
 	return Plane::eIntersecting;
 }
+
+END_CB

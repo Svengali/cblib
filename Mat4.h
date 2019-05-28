@@ -40,7 +40,11 @@ START_CB
 
 //{= decl ======================================================================
 
-__declspec(align(16)) class Mat4
+// try to use Mat4Aligned not Mat4 when possible
+#define Mat4Aligned DECL_ALIGN(16) Mat4
+
+//DECL_ALIGN(16) 
+class Mat4
 {
 public:
 	enum EConstructorIdentity	{ eIdentity };
@@ -60,24 +64,24 @@ public:
 	//	VC needs you to not declare them for it to do full return-value optimization!
 	// default operator = is fine
 
-	explicit __forceinline Mat4(const EConstructorRows,const Vec4 & rx,const Vec4 & ry,const Vec4 & rz,const Vec4 & rw)
+	explicit __forceinline Mat4(const EConstructorRows e,const Vec4 & rx,const Vec4 & ry,const Vec4 & rz,const Vec4 & rw)
 		: m_x(rx.x,ry.x,rz.x,rw.x) , m_y(rx.y,ry.y,rz.y,rw.y) , m_z(rx.z,ry.z,rz.z,rw.z), m_w(rx.w,ry.w,rz.w,rw.w)
 	{
 	}
 
-	explicit __forceinline Mat4(const EConstructorCols,const Vec4 & cx,const Vec4 & cy,const Vec4 & cz,const Vec4 & cw)
+	explicit __forceinline Mat4(const EConstructorCols e,const Vec4 & cx,const Vec4 & cy,const Vec4 & cz,const Vec4 & cw)
 		: m_x(cx) , m_y(cy) , m_z(cz), m_w(cw)
 	{
 	}
 
 	//! use like this : Mat4(Mat4::eIdentity);
 	//!	(quite intentionally not using Vec3::unitX, etc. here)
-	explicit __forceinline Mat4(const EConstructorIdentity) 
+	explicit __forceinline Mat4(const EConstructorIdentity e) 
 		: m_x(1.f,0.f,0.f,0.f) , m_y(0.f,1.f,0.f,0.f) , m_z(0.f,0.f,1.f,0.f) , m_w(0.f,0.f,0.f,1.f)
 	{
 	}
 	
-	explicit __forceinline Mat4(const EConstructorZero) 
+	explicit __forceinline Mat4(const EConstructorZero e) 
 		: m_x(0.f,0.f,0.f,0.f) , m_y(0.f,0.f,0.f,0.f) , m_z(0.f,0.f,0.f,0.f), m_w(0.f,0.f,0.f,0.f)
 	{
 	}

@@ -55,8 +55,8 @@ public:
 	bool IsValid() const;
 	bool IsNormalized(const float tolerance = EPSILON) const;
 
-	float LengthSqr() const;
-	float Length() const;
+	double LengthSqr() const;
+	double Length() const;
 	
 	//! Normalize :
 	//!	returns the length
@@ -90,6 +90,9 @@ public:
 	//-------------------------------------------------------------------
 	// just IO as bytes
 
+	float * GetData() { return m_data; }
+	const float * GetData() const { return m_data; }
+
 private:
 	float	m_data[c_size];
 
@@ -101,10 +104,17 @@ private:
 #define T_THIS_TYPE	VecN<t_size>
 #define T_PRE2	T_THIS_TYPE
 
+/*
 T_PRE1 inline bool T_PRE2::IsValid() const
 {
 	for(int i=0;i<c_size;i++)
 		ASSERT( fisvalid(m_data[i]) );
+	return true;
+}
+*/
+
+T_PRE1 inline bool T_PRE2::IsValid() const
+{
 	return true;
 }
 
@@ -208,18 +218,18 @@ T_PRE1 inline Vec2 & T_PRE2::MutableVec2(const int c)
 
 //-------------------------------------------------------------------
 
-T_PRE1 inline float T_PRE2::LengthSqr() const
+T_PRE1 inline double T_PRE2::LengthSqr() const
 {
 	ASSERT( IsValid() );
-	float ret = 0.f;
+	double ret = 0.0;
 	for(int i=0;i<c_size;i++)
 		ret += fsquare( m_data[i] );
 	return ret;
 }
 
-T_PRE1 inline float T_PRE2::Length() const
+T_PRE1 inline double T_PRE2::Length() const
 {
-	return sqrtf( LengthSqr() );
+	return sqrt( LengthSqr() );
 }
 
 //! NormalizeSafe :
@@ -329,10 +339,10 @@ T_PRE1 inline void T_PRE2::AddScaled(const T_THIS_TYPE &v,const float scale)
 //		vec = ((- Mat) * Mat) * vec
 //	with way-below-best efficiency
 
-T_PRE1 __forceinline float operator * (const T_THIS_TYPE & u,const T_THIS_TYPE & v) // dot
+T_PRE1 __forceinline double operator * (const T_THIS_TYPE & u,const T_THIS_TYPE & v) // dot
 {
 	ASSERT( u.IsValid() && v.IsValid() );
-	float ret = 0.f;
+	double ret = 0.0;
 	for(int i=0;i<t_size;i++)
 		ret += u[i] * v[i];
 	return ret;
@@ -379,25 +389,21 @@ T_PRE1 __forceinline const T_THIS_TYPE operator - (const T_THIS_TYPE & u,const T
 	return temp;
 }
 
-// VecNU for similarity with Vec3U
-namespace VecNU
-{
 
-T_PRE1 inline float DistanceSqr(const T_THIS_TYPE & a,const T_THIS_TYPE &b)
+T_PRE1 inline double DistanceSqr(const T_THIS_TYPE & a,const T_THIS_TYPE &b)
 {
 	ASSERT( a.IsValid() && b.IsValid() );
-	float ret = 0.f;
+	double ret = 0.0;
 	for(int i=0;i<t_size;i++)
 		ret += fsquare( a[i] - b[i] );
 	return ret;
 }
 
-T_PRE1 inline float Distance(const T_THIS_TYPE & a,const T_THIS_TYPE &b)
+T_PRE1 inline double Distance(const T_THIS_TYPE & a,const T_THIS_TYPE &b)
 {
-	return sqrtf( DistanceSqr(a,b) );
+	return sqrt( DistanceSqr(a,b) );
 }
 
-};
 
 #undef T_PRE1
 #undef T_THIS_TYPE

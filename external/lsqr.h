@@ -80,21 +80,21 @@ namespace lsqr
 
 typedef vector<double> VectorDouble;
 
-class SimpleMatrixBase
+class lsqrMatrixBase
 {
 public:
 	virtual int GetNumRows() const = 0;
 	virtual int GetNumColumns() const = 0;
-	virtual void SetNumRows(int num) = 0;
+	//virtual void SetNumRows(int num) = 0;
 	// GetPtr() returns an array that's just like a rows x cols array
-	virtual float * GetPtr() = 0;
-	virtual const float * GetPtr() const = 0;
+	//virtual float * GetPtr() = 0;
+	//virtual const float * GetPtr() const = 0;
 	
 	//float * GetRowPtr(int row) { return GetPtr() + GetNumColumns() * row; }
 	//const float * GetRowPtr(int row) const { return GetPtr() + GetNumColumns() * row; }
 };
 
-template <int t_columns> class SimpleMatrix : public SimpleMatrixBase
+template <int t_columns> class SimpleMatrix : public lsqrMatrixBase
 {
 public:
 	SimpleMatrix() { }
@@ -103,18 +103,49 @@ public:
 	virtual int GetNumRows() const { return matrix.size(); }
 	virtual int GetNumColumns() const { return t_columns; }
 
-	virtual void SetNumRows(int num) { matrix.resize(num); }
+	//virtual 
+	void SetNumRows(int num) { matrix.resize(num); }
 		
 	// GetPtr() returns an array that's just like a rows x cols array
-	virtual float * GetPtr() { return &matrix[0][0]; }
-	virtual const float * GetPtr() const { return &matrix[0][0]; }
+	float * GetPtr() { return &matrix[0][0]; }
+	const float * GetPtr() const { return &matrix[0][0]; }
 	
-	cb::vector< cb::array<float,t_columns> > matrix; //matrix[row][col]
+	typedef cb::array<float,t_columns> t_rowType;
+	
+	t_rowType & Row(int n) { return matrix[n]; }
+	const t_rowType & GetRow(int n) const { return matrix[n]; }
+	
+	cb::vector< t_rowType > matrix; //matrix[row][col]
+};
+
+class SparseMatrix : public lsqrMatrixBase
+{
+public:
+	SparseMatrix(int rows,int cols) : m_cols(cols) { matrix.resize(rows); }
+	~SparseMatrix() { }
+
+	virtual int GetNumRows() const { return matrix.size(); }
+	virtual int GetNumColumns() const { return m_cols; }
+	
+	struct SparseEntry
+	{
+		int col;
+		float val;
+		
+		SparseEntry() { }
+		SparseEntry(int i,float f) : col(i), val(f) { }
+	};
+	
+	int m_cols;
+	typedef cb::vector< SparseEntry > t_row;
+	cb::vector< t_row > matrix; //matrix[row][col]
 };
 
 // (void *) data should be a SimpleMatrix of t_columns
 template <int t_columns>
 void SimpleMatrixLsqrMatVecProd(long mode, VectorDouble * x, VectorDouble * y, void * _data);
+
+void SparseMatrixLsqrMatVecProd(long mode, VectorDouble * x, VectorDouble * y, void * _data);
 
 // NormalizeColumn puts the column in [-1,1] with an avg of 0
 template <int t_columns>
@@ -126,7 +157,7 @@ void GetColumn(const SimpleMatrix<t_columns> & mat,int col,cb::vector<double> * 
 typedef void (*t_mat_vec_product) (long, VectorDouble *, VectorDouble *, void *);
 
 // solve_lsqr_std returns sqrError
-double solve_lsqr_std(const cb::vector<double> & rhs,SimpleMatrixBase * matrix,t_mat_vec_product mvp,VectorDouble * solution,double damping = 0.0);
+double solve_lsqr_std(const cb::vector<double> & rhs,lsqrMatrixBase * matrix,t_mat_vec_product mvp,VectorDouble * solution,double damping = 0.0);
 
 // y = m * x + b
 double solve_simple_linear(const cb::vector<double> & y,const cb::vector<double> & x, double * pM, double * pB);
@@ -222,7 +253,7 @@ typedef struct LSQR_INPUTS {
   
   LSQR_INPUTS()
   {
-	ZERO(this);
+	ZERO_PTR(this);
   }
   
 } lsqr_input;
@@ -336,7 +367,7 @@ typedef struct LSQR_OUTPUTS
   
   LSQR_OUTPUTS()
   {
-	ZERO(this);
+	ZERO_PTR(this);
   }
 } lsqr_output;
 
@@ -429,6 +460,9 @@ void SimpleMatrixLsqrMatVecProd(long mode, VectorDouble * x, VectorDouble * y, v
 	}
 }
 
+void SparseMatrixLsqrMatVecProd(long mode, VectorDouble * x, VectorDouble * y, void * _data);
+
+
 // NormalizeColumn puts the column in [-1,1] with an avg of 0
 template <int t_columns>
 void NormalizeColumn(SimpleMatrix<t_columns> & mat,int col,bool log)
@@ -484,6 +518,76 @@ void GetColumn(const SimpleMatrix<t_columns> & mat,int col,cb::vector<double> * 
 	for(int r=0;r<rows;r++)
 	{
 		pvec->at(r) = mat.matrix[r][col];
+	}
+}
+
+
+//=======================
+
+// solve_lsqr_exact :
+//	solve A x = B
+//	 (A^T A) x = (A^T B)
+//	 x = (A^T A)^-1 * (A^T B)
+
+template <int terms>
+void solve_lsqr_exact( const VectorDouble & B, const SimpleMatrix<terms> * A, VectorDouble * solution)
+{
+	// just make A^T * A :
+	
+	MatN<terms> AT_A;
+	
+	int rows = B.size();
+	ASSERT( rows == A->matrix.size() );
+	
+	for(int r=0;r<terms;r++)
+	{
+		// AT_A is symmetric, so we could skip half of these -
+		for(int c=0;c<=r;c++)
+		{
+			double sum = 0;
+			for(int t=0;t<rows;t++)
+			{
+				sum += A->matrix[t][r] * A->matrix[t][c];
+			}
+			AT_A.Element(r,c) = (float) sum;
+		}		
+	}
+	for(int r=0;r<terms;r++)
+	{
+		for(int c=r+1;c<terms;c++)
+		{
+			AT_A.Element(r,c) = AT_A.Element(c,r);
+		}
+	}
+	
+	// make A^T * B :
+	
+	VecN<terms> AT_B;
+		
+	for(int c=0;c<terms;c++)
+	{
+		double sum = 0;
+		for(int t=0;t<rows;t++)
+		{
+			sum += A->matrix[t][c] * B[t];
+		}
+		AT_B[c] = (float) sum;
+	}	
+	
+	// find (A^T A)^-1 :
+	
+	MatN<terms> AT_A_Inverse;
+
+	AT_A.GetInverse(&AT_A_Inverse);
+	
+	//	 x = (A^T A)^-1 * (A^T B)
+	
+	VecN<terms> solve;
+	AT_A_Inverse.TransformVector(&solve,AT_B);
+	
+	for(int t=0;t<terms;t++)
+	{
+		(*solution)[t] = solve[t];
 	}
 }
 

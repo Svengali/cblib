@@ -4,10 +4,26 @@
 START_CB
 
 //----------------------------------------------------------------------------------
+void SetRandomNormal(Vec2 * pv)
+{
+	/*
+	ASSERT(pv);
+	do
+	{
+		pv->x = gRand::GetRangedFloat(-1.f,1.f);
+		pv->y = gRand::GetRangedFloat(-1.f,1.f);
+	} while( pv->LengthSqr() > 1.f );
+	pv->NormalizeSafe();
+	*/
+
+	ASSERT(pv);
+	const float theta = frandranged(0.f,TWO_PIf);
+	*pv = MakeRotation(theta);
+}
 
 const Vec2 MakeRandomNormal()
 {
-	const float theta = frand(0.f,TWO_PIf);
+	const float theta = frandranged(0.f,TWO_PIf);
 	Vec2 v;
 	v = MakeRotation(theta);
 	return v;
@@ -47,8 +63,19 @@ const Vec2 MakeRotated(const Vec2 & v,const float radians)
 {
 	ASSERT( fisvalid(radians) );
 
+	// dmoore: tiny bit of opt here, no sense in using 2 trancendentals when
+	//  one slightly larger one will do...
 	float c, s;
 	fsincos(radians, &s, &c);
+
+	/*
+
+	rotation matrix around Z is :
+
+	pm->RowX().Set( cosa,-sina,    0 );
+	pm->RowY().Set( sina, cosa,    0 );
+	pm->RowZ().Set(    0,    0,    1 );
+	*/
 
 	return Vec2( 
 			v.x * c - v.y * s ,
@@ -62,7 +89,7 @@ const bool SetAngularRotated(Vec2 * pLerp,const Vec2 & normal1,const Vec2 & norm
 
 	//rotate normal1 toward normal2
 	DURING_ASSERT( const float angle = GetAngleBetweenNormals( normal1, normal2 ) );
-	ASSERT( angle <= CBPI );
+	ASSERT( angle <= PI );
 	const float dot = normal1 * normal2;
 	const float cosAngle = cosf(radians);
 	//if( angle <= radians )
@@ -78,12 +105,12 @@ const bool SetAngularRotated(Vec2 * pLerp,const Vec2 & normal1,const Vec2 & norm
 		const Vec2 normal2Cross(normal2.y, -normal2.x);
 		if( normal2Cross * normal1 > 0.f ) //This way is shorter. 
 		{
-			ASSERT( Vec2::Equals( normal2 , MakeRotated( normal1, angle ) , EPSILON*2) );
+			ASSERT( Vec2::Equals( normal2 , MakeRotated( normal1, angle ) , EPSILON_NORMALS*2) );
 			*pLerp = MakeRotated( normal1, radians );
 		}
 		else	//No, this way is shorter. 
 		{
-			ASSERT( Vec2::Equals( normal2 , MakeRotated( normal1, -angle ) , EPSILON*2) );
+			ASSERT( Vec2::Equals( normal2 , MakeRotated( normal1, -angle ) , EPSILON_NORMALS*2) );
 			*pLerp = MakeRotated( normal1, -radians );
 		}
 		return false;
@@ -109,6 +136,24 @@ const float GetSignOfAngleBetweenNormals(const Vec2 &a,const Vec2 & b)
 }
 
 
+
+//! Returns a random point around center that is in the AABB cube bounding the sphere given by the radius
+const Vec2 MakeRandomInBox( const Vec2 &center, const float radius )
+{
+	const float xVal = frandunit() * radius * 2 - radius;
+	const float yVal = frandunit() * radius * 2 - radius;
+
+	return Vec2( center.x + xVal, center.y + yVal );
+}
+
+
+const Vec2 MakeRandomInBox( const Vec2 &center, const Vec2 &halfSize )
+{
+	const float xVal = frandunit() * halfSize.x * 2 - halfSize.x;
+	const float yVal = frandunit() * halfSize.y * 2 - halfSize.y;
+
+	return Vec2( center.x + xVal, center.y + yVal );
+}
 //----------------------------------------------------------------------------------
 
 END_CB

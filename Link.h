@@ -103,7 +103,7 @@ protected:
 
 //{=======================================================================
 
-template <typename t_element> 
+template <class t_element> 
 class Link : public LinkBase
 {
 private:

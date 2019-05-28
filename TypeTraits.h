@@ -33,9 +33,8 @@ You can do compile-time switches on TypeTraits like this :
 
 template <typename C_T> struct TypeTraits
 {
-	BoolAsType_True		hasReflection;
+	BoolAsType_True	hasReflection;
 	BoolAsType_False	isPrimitive;
-	BoolAsType_False	isContainer;
 	BoolAsType_False	ioBytes;
 };
 
@@ -44,7 +43,6 @@ template <> struct TypeTraits<type>\
 {									\
 	BoolAsType_False	hasReflection;\
 	BoolAsType_True	isPrimitive;\
-	BoolAsType_False	isContainer; \
 	BoolAsType_True	ioBytes;	\
 };
 #define TT_DECLARE_ISPODCLASS(type)		\
@@ -52,20 +50,8 @@ template <> struct TypeTraits<type>\
 {									\
 	BoolAsType_False	hasReflection;\
 	BoolAsType_False	isPrimitive;\
-	BoolAsType_False	isContainer; \
 	BoolAsType_True	ioBytes;	\
 };
-#define TT_DECLARE_ISCONTAINER( container )		\
-template < typename type > struct TypeTraits< container<type> >\
-{									\
-	BoolAsType_False	hasReflection;\
-	BoolAsType_False	isPrimitive;\
-	BoolAsType_True		isContainer; \
-	BoolAsType_False	ioBytes;	\
-};
-
-template <class t_entry> class vector;
-TT_DECLARE_ISCONTAINER( vector );
 
 #define TT_DECLARE_ISPRIMITIVE_US(type) \
 	TT_DECLARE_ISPRIMITIVE(type) \
@@ -100,20 +86,20 @@ class gCRC;
 class gVec2;
 class gVec3;
 class gVec4;
-class gVec2i;
-class gVec3i;
-class gMat2;
+class Vec2i;
+class Vec3i;
+class Mat2;
 class Mat3;
-class gMat4;
+class Mat4;
 class gQuat;
 class gColor;
 class gFrame3;
-class gFrame3Scaled;
+class Frame3Scaled;
 class gAxialBox;
 class gCone;
 class gSphere;
 class gRect;
-class gOrientedBox;
+class OrientedBox;
 
 // @@ some of these should have Reflection and still be IO-Bytes
 TT_DECLARE_ISPODCLASS(Token)
@@ -121,20 +107,20 @@ TT_DECLARE_ISPODCLASS(gCRC)
 TT_DECLARE_ISPODCLASS(gVec2)
 TT_DECLARE_ISPODCLASS(gVec3)
 TT_DECLARE_ISPODCLASS(gVec4)
-TT_DECLARE_ISPODCLASS(gVec2i)
-TT_DECLARE_ISPODCLASS(gVec3i)
-TT_DECLARE_ISPODCLASS(gMat2)
+TT_DECLARE_ISPODCLASS(Vec2i)
+TT_DECLARE_ISPODCLASS(Vec3i)
+TT_DECLARE_ISPODCLASS(Mat2)
 TT_DECLARE_ISPODCLASS(Mat3)
-TT_DECLARE_ISPODCLASS(gMat4)
+TT_DECLARE_ISPODCLASS(Mat4)
 TT_DECLARE_ISPODCLASS(gQuat)
 TT_DECLARE_ISPODCLASS(gColor)
 TT_DECLARE_ISPODCLASS(gFrame3)
-TT_DECLARE_ISPODCLASS(gFrame3Scaled)
+TT_DECLARE_ISPODCLASS(Frame3Scaled)
 TT_DECLARE_ISPODCLASS(gAxialBox)
 TT_DECLARE_ISPODCLASS(gCone)
 TT_DECLARE_ISPODCLASS(gSphere)
 TT_DECLARE_ISPODCLASS(gRect)
-TT_DECLARE_ISPODCLASS(gOrientedBox)
+TT_DECLARE_ISPODCLASS(OrientedBox)
 */
 
 //============================================================

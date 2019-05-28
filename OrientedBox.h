@@ -34,8 +34,6 @@ class OrientedBox
 {
 public:
 
-	void	NotifyTweaked() {}
-
 	//-----------------------------------------------------
 	// Constructors :
 
@@ -57,7 +55,7 @@ public:
 	enum EUnitBox { eUnitBox };
 	//! the UnitBox is from -0.5 to 0.5
 	//! it has a volume of 1.0
-	explicit OrientedBox(const EUnitBox) :
+	explicit OrientedBox(const EUnitBox e) :
 		m_axes(Mat3::eIdentity), m_radii(0.5f,0.5f,0.5f), m_center(0.f,0.f,0.f)
 	{
 		// do NOT use Vec3::zero here ; cannot use other statics
@@ -153,6 +151,7 @@ public:
 
 	//! does this box Contain other things?
 	bool Contains(const Vec3 & v) const;
+	bool Contains(const Vec3 & v,const float tolerance = CB_EPSILON) const;
 
 	//! ExtendToPoint just increases radii
 	void ExtendToPoint(const Vec3 & v);
@@ -239,7 +238,7 @@ inline float OrientedBox::GetVolume() const
 inline float OrientedBox::GetSurfaceArea() const
 {
 	ASSERT(IsValid());
-	return m_radii.LengthSqr() * 8.f;
+	return ( m_radii.x * m_radii.y + m_radii.x * m_radii.z + m_radii.y * m_radii.z ) * 8.f; 
 }
 
 inline float OrientedBox::GetRadiusSqr() const

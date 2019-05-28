@@ -23,7 +23,7 @@ static void Vec2iTest()
 	a = b;
 }
 
-void Vec2i::gLog() const //!< writes xyz to gLog; does NOT add a \n !
+void Vec2i::Log() const //!< writes xyz to Log; does NOT add a \n !
 {
 	lprintf("{%d,%d}",x,y);
 }

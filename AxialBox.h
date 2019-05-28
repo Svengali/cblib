@@ -43,7 +43,7 @@ public:
 		// NOT necessarilly valid
 		//ASSERT( IsValid() );
 	}
-
+	
 	AxialBox(const float lo,const float hi) : m_min(lo,lo,lo), m_max(hi,hi,hi)
 	{
 		// NOT necessarilly valid
@@ -151,7 +151,7 @@ public:
 	//! does this box Contain other things?
 	bool Contains(const Vec3 & v) const;
 	bool Contains(const AxialBox & ab) const;
-	
+
 	bool ContainsXY(const Vec3 & v) const;
 	bool ContainsXY(const AxialBox & ab) const;
 
@@ -181,10 +181,13 @@ public:
 	*/
 	const Vec3 GetCorner(const int corner) const;
 
+	//! face in [0,6) , fills four verts in pVerts
+	//  CounterClockwise points *out* of the box
+	void GetFace(const int face,Vec3 * pVerts) const;
+
 	float GetVolume() const;
-
 	float GetSurfaceArea() const;
-
+	
 	/////////////////////////////////////////////////////
 
 	//! v should be in the box
@@ -208,6 +211,10 @@ public:
 	float DifferenceDistSqr(const AxialBox &ab ) const;
 
 	/////////////////////////////////////////////////////
+
+	void	Log() const; //!< writes xyz to Log; does NOT add a \n !
+
+	// IO as bytes
 
 private:
 

@@ -1,5 +1,7 @@
 #include "Base.h"
 #include "cblib/Vec3.h"
+#include "cblib/Log.h"
+#include <stddef.h>
 
 START_CB
 
@@ -30,4 +32,14 @@ static void Vec3Test()
 	a = b;
 }
 
+//-------------------------------------------------------------------
+
+void Vec3::Log() const //!< writes xyz to Log; does NOT add a \n !
+{
+	// compact display :
+	//lprintf("{%1.3f,%1.3f,%1.3f}",x,y,z);
+	lprintf("{%1.6ff,%1.6ff,%1.6ff}",x,y,z);
+}
+
+//-------------------------------------------------------------------
 END_CB

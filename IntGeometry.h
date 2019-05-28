@@ -90,7 +90,7 @@ namespace IntGeometry
 	extern const int c_coordinateMax;
 
 	//-----------------------------------------
-};
+//};
 
 	void Quantize(   Vec3i * pTo, const Vec3 * pFrom, const int numVerts, const AxialBox & ab );
 	void Dequantize( Vec3 * pTo, const Vec3i * pFrom, const int numVerts, const AxialBox & ab );
@@ -105,7 +105,7 @@ namespace IntGeometry
 	const Vec2  Dequantize(const Vec2i & from, const RectF & ab );
 
 	//-----------------------------------------
-//};
+};
 
 END_CB
 

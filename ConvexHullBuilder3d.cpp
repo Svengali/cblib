@@ -59,7 +59,7 @@ static Facei::ESide AllVertsSide(const Facei & face,const Vec3i * pVerts,const i
 #ifdef DO_ASSERTS
 static bool HullIsValid(const vector<Facei> & vHullFaces)
 {
-	int size = vHullFaces.size();
+	int size = vHullFaces.size32();
 
 	int f;
 	for(f=0;f<size;f++)
@@ -134,7 +134,7 @@ bool ConvexHullBuilder3d::IsConvexHull3d(
 {
 	ASSERT( HullIsValid(vHullFaces) );
 
-	const int numFaces = vHullFaces.size();
+	const int numFaces = vHullFaces.size32();
 	for(int h=0;h<numFaces;h++)
 	{
 		if ( ! AllVertsFront(vHullFaces[h],pVerts,numVerts,allowedError) )
@@ -267,7 +267,7 @@ static bool FindSeedTetrahedron(
 
 //---------------------------------------------------------------------------
 
-struct EqualFlippedFunc : public cb::binary_function<Edgei,Edgei,bool>
+struct EqualFlippedFunc : public std::binary_function<Edgei,Edgei,bool>
 {
 	bool operator() (const Edgei &a,const Edgei &b) const
 	{
@@ -286,13 +286,7 @@ static void AddEdgeToHangingList(vector<Edgei> & hanging,
 	// see if it's in there already :
 	ASSERT( hanging.find(edge) == hanging.end() );
 	
-	//vector<Edgei>::iterator it = hanging.find_if( std::bind1st( EqualFlippedFunc(), edge) );
-
-	vector<Edgei>::iterator it = hanging.find_if( [&]( auto const& elem ) {
-		return edge == elem;
-	} );
-
-
+	vector<Edgei>::iterator it = hanging.find_if( std::bind1st( EqualFlippedFunc(), edge) );
 	if ( it == hanging.end() )
 	{
 		hanging.push_back(edge);
@@ -312,8 +306,8 @@ bool HanginEdgeListIsValid(const vector<Edgei> & edges,const vector<Facei> & fac
 	// hanging should also form a closed polygon
 	
 	// first check that "edges" forms a closed loop :
-	const int numEdges = edges.size();
-	const int numFaces = faces.size();
+	const int numEdges = edges.size32();
+	const int numFaces = faces.size32();
 
 	for(int i=0;i<numEdges;i++)
 	{
@@ -361,7 +355,7 @@ void AddVert(vector<Facei> & vHullFaces, const Vec3i & vert,
 	vector<int> backFaces;
 
 	// walk the faces ; backwards, cuz we're deleting :
-	for(int f = 0;f<vHullFaces.size();f++)
+	for(int f = 0;f<vHullFaces.size32();f++)
 	{
 		const Facei & face = vHullFaces[f];
 		Facei::ESide side = face.Side(vert);
@@ -399,7 +393,7 @@ void AddVert(vector<Facei> & vHullFaces, const Vec3i & vert,
 	vector<Edgei> hanging;
 
 	// walk the faces ; backwards, cuz we're deleting :
-	for(int bf = backFaces.size() - 1; bf >= 0; bf--)
+	for(int bf = backFaces.size32() - 1; bf >= 0; bf--)
 	{
 		const int f = backFaces[bf];
 		const Facei & face = vHullFaces[f];
@@ -423,7 +417,7 @@ void AddVert(vector<Facei> & vHullFaces, const Vec3i & vert,
 
 	// add faces from all the edges in "hanging" to "vert"
 	vHullFaces.reserve( vHullFaces.size() + hanging.size() );
-	for(int e=0;e<hanging.size();e++)
+	for(int e=0;e<hanging.size32();e++)
 	{
 		const Edgei & edge = hanging[e];
 		// add [edge,vert]
@@ -500,7 +494,7 @@ void ConvexHullBuilder3d::Make3d_Incremental(
 	
 	// make a random permutation of indices
 	
-	vector<int> permutation(numVerts,0);
+	vector<int> permutation((vecsize_t)numVerts,0);
 	int i;
 	for(i=0;i<numVerts;i++)
 	{
@@ -508,14 +502,16 @@ void ConvexHullBuilder3d::Make3d_Incremental(
 	}
 
 	// do a bunch of swaps : 
-	//*
 	for(i=0;i<numVerts;i++)
 	{
+		/*
 		const int a = irandranged(0,numVerts-1);
 		const int b = irandranged(0,numVerts-1);
 		Swap( permutation[a] , permutation[b] );
+		*/
+		const int b = irandranged(i,numVerts-1);
+		Swap( permutation[i] , permutation[b] );
 	}
-	/**/
 
 	//@@ is there a way to favor adding more extreme verts first ?
 
@@ -558,7 +554,7 @@ void ConvexHullBuilder3d::GetHullVerts(const vector<Facei> & vHullFaces,
 	vHullVerts.clear();
 	vHullVerts.reserve( vHullFaces.size() * 3 );
 
-	for(int f=0;f<vHullFaces.size();f++)
+	for(int f=0;f<vHullFaces.size32();f++)
 	{
 		vHullVerts.push_back( vHullFaces[f].a );
 		vHullVerts.push_back( vHullFaces[f].b );
@@ -584,7 +580,7 @@ void ConvexHullBuilder3d::RemoveDegenerateVerts(vector<Vec3i> & verts)
 	// now run through the verts and see if they snap :
 
 	// go backwards, cuz we're deleting:
-	for(int vertI= verts.size()-1;vertI>=0;vertI--)
+	for(int vertI= verts.size32()-1;vertI>=0;vertI--)
 	{
 		const Vec3i & vert = verts[vertI];
 
@@ -639,18 +635,18 @@ void ConvexHullBuilder3d_Test()
 			verts[i].z = irandranged(-COORD_RANGE,COORD_RANGE);
 		}
 
-		ConvexHullBuilder3d::Make3d_Incremental( verts.data(), verts.size(), vHullFaces );
+		ConvexHullBuilder3d::Make3d_Incremental( verts.data(), verts.size32(), vHullFaces );
 
-		if ( ! ConvexHullBuilder3d::IsConvexHull3d(verts.data(), verts.size(),vHullFaces) )
-			lprintf("gFailURE!\n");
+		if ( ! ConvexHullBuilder3d::IsConvexHull3d(verts.data(), verts.size32(),vHullFaces) )
+			lprintf("FAILURE!\n");
 
-		lprintf("num faces in hull = %d\n",vHullFaces.size());
+		lprintf("num faces in hull = %d\n",vHullFaces.size32());
 
 		ConvexHullBuilder3d::GetHullVerts(vHullFaces,vHullVerts);
 		
-		lprintf("num verts in hull = %d\n",vHullVerts.size());
+		lprintf("num verts in hull = %d\n",vHullVerts.size32());
 
-		ASSERT( (vHullVerts.size()-2)*2 == vHullFaces.size() );
+		ASSERT( (vHullVerts.size32()-2)*2 == vHullFaces.size32() );
 	}
 }
 

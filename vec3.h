@@ -125,12 +125,15 @@ public:
 	static bool Equals(const Vec3 &a,const Vec3 &b,const float tolerance = EPSILON);
 
 	//-------------------------------------------------------------------
+	// just IO as bytes
+
+	void	Log() const; //!< writes xyz to Log; does NOT add a \n !
 
 }; // end of class Vec3
 
 //}{===========================================================================================
 
-inline Vec3::Vec3(const EConstructorNormalized,const float ix,const float iy,const float iz)
+inline Vec3::Vec3(const EConstructorNormalized e,const float ix,const float iy,const float iz)
 {
 	const float lengthSqr = ix*ix + iy*iy + iz*iz;
 	ASSERT( lengthSqr > 0.f );
@@ -140,7 +143,7 @@ inline Vec3::Vec3(const EConstructorNormalized,const float ix,const float iy,con
 	z = iz * scale;	
 }
 
-inline Vec3::Vec3(const EConstructorNormalized,const Vec3 & other)
+inline Vec3::Vec3(const EConstructorNormalized e,const Vec3 & other)
 {
 	const float lengthSqr = other.LengthSqr();
 	ASSERT( lengthSqr > 0.f );
@@ -152,7 +155,7 @@ inline Vec3::Vec3(const EConstructorNormalized,const Vec3 & other)
 	
 inline bool Vec3::IsValid() const
 {
-	ASSERT( fisvalid(x) && fisvalid(y) && fisvalid(z) );
+	ASSERT_LOW( fisvalid(x) && fisvalid(y) && fisvalid(z) );
 	return true;
 }
 

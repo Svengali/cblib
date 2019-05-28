@@ -1,5 +1,6 @@
 #include "Base.h"
 #include "cblib/Vec2.h"
+#include "cblib/Log.h"
 
 START_CB
 
@@ -23,4 +24,10 @@ static void Vec2Test()
 	a = b;
 }
 
+void Vec2::Log() const //!< writes xyz to Log; does NOT add a \n !
+{
+	lprintf("{%1.3f,%1.3f}",x,y);
+}
+
+//-------------------------------------------------------------------
 END_CB

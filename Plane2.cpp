@@ -23,10 +23,10 @@ bool Plane2::IsValid() const
 /*
 float Plane2::SetFromThreePoints(const Vec2 & point1,const Vec2 & point2,const Vec2 & point3)
 {
-	Vec2U::SetTriangleCross(&m_normal,point1,point2,point3);
+	SetTriangleCross(&m_normal,point1,point2,point3);
 	const float areaSqr = m_normal.LengthSqr();
 
-	if ( areaSqr < EPSILON )
+	if ( areaSqr < EPSILON*EPSILON )
 	{
 		m_normal = Vec2::zero;
 		m_offset = 0;

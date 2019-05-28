@@ -2,6 +2,7 @@
 
 #include "cblib/Base.h"
 #include "cblib/Vec3.h"
+#include "cblib/Vec4.h"
 
 START_CB
 
@@ -131,6 +132,7 @@ public:
 	//! if you do MoveForwards( DistanceToPoint( vert ) );
 	//! then you will be on vert
 	void MoveForwards(const float delta);
+	void MoveForwardsToPoint(const Vec3 & v);
 
 	//! reverse the facing of the plane
 	void FlipNormal(void);
@@ -177,6 +179,11 @@ public:
 	float ProjectOneAxisToPlane(const Vec3 & pos,const int axis) const;
 
 	//-------------------------------------------------------------------------------
+	// Vec4 converters :
+	//	normal & offset are treated just like a vec4
+
+	const Vec4 & GetVec4() const;
+	void SetFromVec4(const Vec4 &v);
 
 private:
 
@@ -208,6 +215,16 @@ inline void Plane::SetFromNormalAndPoint(const Vec3 & normal,const Vec3 & point)
 	m_normal = normal;
 	m_offset = - (m_normal * point);
 
+	ASSERT( IsValid() );
+}
+
+inline const Vec4 & Plane::GetVec4() const
+{
+	return *((const Vec4 *)this);
+}
+inline void Plane::SetFromVec4(const Vec4 &v)
+{
+	*((Vec4 *)this) = v;
 	ASSERT( IsValid() );
 }
 
@@ -259,6 +276,12 @@ inline void Plane::MoveForwards(const float delta)
 	ASSERT(IsValid());
 }
 
+inline void Plane::MoveForwardsToPoint(const Vec3 & point)
+{
+	float dot = m_normal * point;
+	m_offset = MIN(m_offset, -dot);	
+}
+	
 inline void Plane::FlipNormal(void)
 {
 	ASSERT(IsValid());

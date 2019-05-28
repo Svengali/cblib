@@ -1,8 +1,12 @@
 #pragma once
 
-#include "cblib/Base.h"
 #include "cblib/stl_basics.h"
-//#include <functional>
+
+// GET RID OF ME
+#if 0
+
+#include "cblib/Base.h"
+#include <functional>
 
 START_CB
 
@@ -13,8 +17,8 @@ START_CB
   by definition : if two things are equivalent , then m_compare
 	 says they are not different
 */
-template<typename Comparison> 
-struct equivalent_functor : public cb::binary_function<typename Comparison::first_argument_type, typename Comparison::second_argument_type,bool>
+template<class Comparison> struct equivalent_functor : 
+	public std::binary_function<typename Comparison::first_argument_type,typename Comparison::second_argument_type,bool>
 {
 	bool operator()(const typename Comparison::first_argument_type & __x, const typename Comparison::second_argument_type & __y) const
 	{
@@ -23,3 +27,5 @@ struct equivalent_functor : public cb::binary_function<typename Comparison::firs
 };
 
 END_CB
+
+#endif

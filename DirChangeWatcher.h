@@ -3,6 +3,7 @@
 #include "cblib/Base.h"
 #include "cblib/Sptr.h"
 #include <cblib/vector.h>
+#include <cblib/String.h>
 
 START_CB
 
@@ -19,11 +20,11 @@ struct DirChangeRecord
 {
 	// Command is added from the thread
 	char	path[_MAX_PATH];
-	DWORD	action;
+	uint32	action;
 	time_t	time;
 };
 
-extern const DWORD c_dirChangeDefaultNotifyFlags;
+extern const uint32 c_dirChangeDefaultNotifyFlags;
 extern const char * c_dirChangeActionStrings[];
 
 //-----------------------------------------------------
@@ -48,7 +49,8 @@ protected:
 	DirChangeWatcher() { }
 };
 
-DirChangeWatcherPtr StartWatchingDirs(const char ** dirs,const int numDirs,DWORD notifyFlags);
+DirChangeWatcherPtr StartWatchingDirs(const char ** dirs,const int numDirs,uint32 notifyFlags);
+DirChangeWatcherPtr StartWatchingDirs(const vector<String> & dirs,uint32 notifyFlags);
 
 
 END_CB

@@ -91,8 +91,8 @@ SEE ALSO "CommonPrefs.h"
 
 SPtrFwd(PrefFile);
 
-template <typename T> void ReadFromText(T * pValue, const char * const text);
-template <typename T> void WriteToText(const T & val, String * pInto);
+template <class T> void ReadFromText(T * pValue, const char * const text);
+template <class T> void WriteToText(const T & val, String * pInto);
 
 //-----------------------------------------------------------------
 
@@ -113,7 +113,7 @@ public:
 	void Reset() { m_data.Clear(); }
 	const String & GetBuffer() const { return m_data; }
 
-	template <typename T> void IO( const char * const name, T * pValue )
+	template <class T> void IO( const char * const name, T * pValue )
 	{
 		m_data += name;
 		m_data += ':';
@@ -121,7 +121,7 @@ public:
 		m_data += '\n';
 	}
 
-	template <typename T> void IOV( const char * const name, vector<T> * pVector )
+	template <class T> void IOV( const char * const name, vector<T> * pVector )
 	{
 		m_data += name;
 		m_data += ':';
@@ -152,7 +152,7 @@ public:
 
 	typedef vecsortedpair< vector< std::pair<Token,String> > >	t_vec;
 
-	template <typename T> void IO( const char * const name, T * pValue ) const
+	template <class T> void IO( const char * const name, T * pValue ) const
 	{
 		const Token token(name);
 		ASSERT( pValue != NULL );
@@ -169,7 +169,7 @@ public:
 		}
 	}
 
-	template <typename T> void IOV( const char * const name, vector<T> * pVector ) const
+	template <class T> void IOV( const char * const name, vector<T> * pVector ) const
 	{
 		const Token token(name);
 		ASSERT( pVector != NULL );
@@ -227,14 +227,14 @@ public:
 	void FinishWriting();
 	bool IsWriting() const { return m_pWriter != NULL; }
 
-	template <typename T> void IO( const char * const name, T * pValue ) const
+	template <class T> void IO( const char * const name, T * pValue ) const
 	{
 		if ( m_pReader )	m_pReader->IO(name,pValue);
 		else				m_pWriter->IO(name,pValue);
 	}
 	
 	// IOAsInt is for enums and shorts and such that can be converted to int
-	template <typename T> void IOAsInt( const char * const name, T * pValue ) const
+	template <class T> void IOAsInt( const char * const name, T * pValue ) const
 	{
 		int x = (int) *pValue;
 		if ( m_pReader )	m_pReader->IO(name,&x);
@@ -242,7 +242,7 @@ public:
 		*pValue = (T) x;
 	}
 
-	template <typename T> void IOV( const char * const name, vector<T> * pVector ) const
+	template <class T> void IOV( const char * const name, vector<T> * pVector ) const
 	{
 		if ( m_pReader )	m_pReader->IOV(name,pVector);
 		else				m_pWriter->IOV(name,pVector);
@@ -324,9 +324,9 @@ template <> inline void WriteToText<intlike_type>(const intlike_type & val, Stri
 	pInto->CatPrintf("%ul",val);	\
 }
 
-UINT_TEXT_IO(ulong);
-UINT_TEXT_IO(uword);
-UINT_TEXT_IO(ubyte);
+UINT_TEXT_IO(uint32);
+UINT_TEXT_IO(uint16);
+UINT_TEXT_IO(uint8);
 
 extern bool Prefs_ReadBool(const char * const text);
 
@@ -390,14 +390,14 @@ inline void WriteToText<String>(const String & val, String * pInto)
 	pInto->Append('\"');
 }
 
-inline void ReadFromTextULHex(ulong * pValue, const char * const text)
+inline void ReadFromTextULHex(uint32 * pValue, const char * const text)
 {
-	ulong ul = 0;
+	uint32 ul = 0;
 	sscanf(text,"%x",&ul);
 	*pValue = ul;
 }
 
-inline void WriteToTextULHex(const ulong val, String * pInto)
+inline void WriteToTextULHex(const uint32 val, String * pInto)
 {
 	pInto->CatPrintf("%08X",val);
 }
@@ -407,7 +407,7 @@ inline void WriteToTextULHex(const ulong val, String * pInto)
 template <>
 inline void ReadFromText<Token>(Token * pValue, const char * const text)
 {
-	ulong ul;
+	uint32 ul;
 	ReadFromTextULHex(&ul,text);
 	pValue->SetHash(ul);
 }

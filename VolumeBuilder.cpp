@@ -21,6 +21,7 @@
 #include "SphereNormals.h"
 #include <limits.h>
 #include "cblib/vector.h"
+#include "External/MiniBall.h"
 
 START_CB
 
@@ -29,22 +30,24 @@ START_CB
 #ifdef DO_ASSERTS
 static bool SphereContainsAll(const Sphere & s,
 				const Vec3 * pVerts,
-				const int numVerts)
+				const int numVerts,
+				const float tolerance = CB_EPSILON)
 {
 	for(int i=0;i<numVerts;i++)
 	{
-		ASSERT( s.Contains(pVerts[i]) );
+		ASSERT( s.Contains(pVerts[i],tolerance) );
 	}
 	return true;
 }
 
 static bool OBBContainsAll(const OrientedBox & ob,
 				const Vec3 * pVerts,
-				const int numVerts)
+				const int numVerts,
+				const float tolerance = CB_EPSILON)
 {
 	for(int i=0;i<numVerts;i++)
 	{
-		ASSERT( ob.Contains(pVerts[i]) );
+		ASSERT( ob.Contains(pVerts[i],tolerance) );
 	}
 	return true;
 }
@@ -80,9 +83,17 @@ void MakeFastSphere(Sphere * pS,
 	ASSERT( SphereContainsAll(*pS,pVerts,numVerts) );
 }
 
+
+void MakeMiniSphere(Sphere * pS,
+				const Vec3 * pVerts,
+				const int numVerts)
+{
+	MiniBall::Make(pS,pVerts,numVerts);
+}
+
 //=============================================================
 
-void BoundinRectangle(RectF * pR,
+void BoundingRectangle(RectF * pR,
 				const Vec2 * pVerts,
 				const int numVerts)
 {
@@ -135,7 +146,7 @@ void AxialOBB(OrientedBox * pBox,
 }
 
 //-----------------------------------------------------
-static void FinishBuildOBB(
+void BuildBoxGivenAxes(
 			OrientedBox * pBox,
 			const Vec3 * pVerts,
 			const int numVerts,
@@ -162,7 +173,8 @@ static void FinishBuildOBB(
 
 	pBox->SetCenter( worldSpaceCenter );
 	// expand a bit to make sure we're conservative
-	pBox->SetRadii( ab.GetDiagonal() * (0.5f + 1e-16f) + Vec3(EPSILON,EPSILON,EPSILON) );
+	//pBox->SetRadii( ab.GetDiagonal() * (0.5f + 1e-5f) + Vec3(EPSILON,EPSILON,EPSILON) );
+	pBox->SetRadii( ab.GetDiagonal() * (0.5f + 1e-9f) );
 	pBox->SetMatrix( axes );
 	
 	ASSERT( OBBContainsAll(*pBox,pVerts,numVerts) );
@@ -199,13 +211,13 @@ static void BuildBox(OrientedBox * pBox,
 
 	// axes is the world-to-box rotation
 
-	FinishBuildOBB(pBox,pVerts,numVerts,axes);
+	BuildBoxGivenAxes(pBox,pVerts,numVerts,axes);
 }
 
 //=============================================================
 
 // lower rating is better
-static float RateOBB(const OrientedBox & obb,
+float RateOBB(const OrientedBox & obb,
 					EOBBCriterion eCrit)
 {
 	switch(eCrit)
@@ -253,7 +265,9 @@ void OptimalOBB(OrientedBox * pBox,
 	// initialize with OptimalOBBFixedDirections
 	//	this gives us a very good box to start with
 	AxialBox ab;
-	OptimalOBBFixedDirections(pBox,pVerts,numVerts,eCrit,&ab);
+	OptimalOBBFixedDirections(pBox,pVerts,numVerts,eCrit,true,&ab);
+	
+	IterativeRefineOBB(pBox,ab,pVerts,numVerts,eCrit,false);
 	
 	if ( pAB ) *pAB = ab;
 
@@ -265,6 +279,8 @@ void OptimalOBB(OrientedBox * pBox,
 		OrientedBox testBox;
 		BuildBox(&testBox,pVerts,numVerts,ab,n);
 			
+		IterativeRefineOBB(&testBox,ab,pVerts,numVerts,eCrit,false);
+	
 		/// take the box with the smallest rating :
 		if ( RateOBB(testBox,eCrit) < RateOBB(*pBox,eCrit) )
 		{
@@ -278,6 +294,7 @@ void OptimalOBBFixedDirections(OrientedBox * pBox,
 				const Vec3 * pVerts,
 				const int numVerts,
 				EOBBCriterion eCrit,
+				bool optimize,
 				AxialBox * pAB /*= NULL*/)
 {
 	ASSERT(pBox);
@@ -293,13 +310,26 @@ void OptimalOBBFixedDirections(OrientedBox * pBox,
 
 	MakeOrientedBoxFromAxialBox(pBox,ab);
 
-	for(int i=0;i< c_numSphereNormals;i++)
+	if ( optimize )
+	{
+		IterativeRefineOBB(pBox,ab,pVerts,numVerts,eCrit,true);
+	}
+		
+	// then try various directions -
+	//	only need to do one quadrant (?)
+
+	for(int i=0;i< c_numSpherePositiveNormals;i++)
 	{
 		const Vec3 & n = GetSphereNormal(i);
 
 		OrientedBox testBox;
 		BuildBox(&testBox,pVerts,numVerts,ab,n);
-			
+		
+		if ( optimize )
+		{
+			IterativeRefineOBB(&testBox,ab,pVerts,numVerts,eCrit,false);
+		}
+		
 		/// take the box with the smallest rating :
 		if ( RateOBB(testBox,eCrit) < RateOBB(*pBox,eCrit) )
 		{
@@ -309,6 +339,166 @@ void OptimalOBBFixedDirections(OrientedBox * pBox,
 
 }
 
+void OptimalOBBBarequetHarPeled(OrientedBox * pBox,
+			const Vec3 * pVerts,
+			const int numVerts,
+			EOBBCriterion eCrit,
+			const int kLimit)
+{
+	// make the seed box :
+	
+	OBBByCovarianceOptimized(pBox,pVerts,numVerts,eCrit);
+	//OBBByCovariance(pBox,pVerts,numVerts);
+	
+	const Mat3 axes = pBox->GetMatrix();
+
+	Vec3 ax = axes.GetRowX();
+	Vec3 ay = axes.GetRowY();
+	Vec3 az = axes.GetRowZ();
+
+	// @@ should thse be scaled by the box radii ?
+	// perhaps a tiny bit better ?
+	//	you're still searching a quadrant of axes, but the distribution is heavily biased by this
+	/*
+	ax *= pBox->GetRadii().x;
+	ay *= pBox->GetRadii().y;	
+	az *= pBox->GetRadii().z;
+	/**/
+
+	AxialBox ab;
+	MakeAxialBox(&ab,pVerts,numVerts);
+	
+	// try all normals of the form
+	//	 axes.x *i + axes.y * j + axes.z *k
+	//	with (i+j+k) <= kLimit		
+	
+	vector<char> blocks;
+	blocks.resize(kLimit*kLimit*kLimit,0);
+	
+	// no need to consider the two-zero cases cuz those give the original axes
+	for(int k=0;k<kLimit;k++)
+	{
+		blocks[ k ] = 1;
+		blocks[ k * kLimit ] = 1;
+		blocks[ k * kLimit * kLimit ] = 1;
+	}
+	
+	int numBuilds = 0;
+	
+	for(int i=0;i<kLimit;i++)
+	{
+		for(int j=0;j<(kLimit-i);j++)
+		{
+			for(int k=0;k<(kLimit-i-j);k++)
+			{
+				if ( blocks[ i + j * kLimit + k * kLimit * kLimit ] )
+					continue;
+			
+				Vec3 normal = 
+					float(i) * ax +
+					float(j) * ay +
+					float(k) * az;
+				
+				normal.NormalizeFast();
+				
+				numBuilds++;
+				
+				OrientedBox testBox;
+				BuildBox(&testBox,pVerts,numVerts,ab,normal);
+					
+				// @@ option ? (this must be in the inner loop, not after)
+				IterativeRefineOBB(&testBox,ab,pVerts,numVerts,eCrit,false);
+	
+				/// take the box with the smallest rating :
+				if ( RateOBB(testBox,eCrit) < RateOBB(*pBox,eCrit) )
+				{
+					*pBox = testBox;
+				}
+
+				// block out multiples : (don't need to do self)	
+				//	so when we do 1,1,1 then we block 2,2,2		
+				for(int mul=2;;mul++)
+				{
+					int ti = i * mul;
+					int tj = j * mul;
+					int tk = k * mul;
+					
+					if ( ti >= kLimit || tj >= kLimit || tk >= kLimit )
+						break;
+					
+					blocks[ ti + tj * kLimit + tk * kLimit * kLimit ] = 1;
+				}
+			}
+		}
+	}
+	
+	lprintf(" kLimit : %d , numBuilds : %d\n",kLimit,numBuilds);
+}
+
+/**
+
+IterativeRefineOBB : step by using one of the calipers axis
+ as the new fixed axis, then do calipers again
+
+**/
+void IterativeRefineOBB_Sub(OrientedBox * pBox,
+				const AxialBox & ab,
+				const Vec3 * pVerts,
+				const int numVerts,
+				EOBBCriterion eCrit,
+				const int firstAxis)
+{
+	int nextAxis = firstAxis;
+
+	// @@ 3 steps or 4 ?
+	const int c_numSteps = 3;
+	for(int step=0;step<c_numSteps;step++)
+	{
+		Vec3 axis = pBox->GetMatrix().GetRow(nextAxis);
+		
+		// use row Y or Z (never X because it was the last fixed axis)
+		nextAxis = (nextAxis+1)%3;
+		if ( nextAxis == 0 ) nextAxis++;
+	
+		OrientedBox testBox;
+		BuildBox(&testBox,pVerts,numVerts,ab,axis);
+			
+		/// take the box with the smallest rating :
+		if ( RateOBB(testBox,eCrit) < RateOBB(*pBox,eCrit) )
+		{
+			*pBox = testBox;
+		}		
+	}
+}
+
+void IterativeRefineOBB(OrientedBox * pBox,
+				const AxialBox & ab,
+				const Vec3 * pVerts,
+				const int numVerts,
+				EOBBCriterion eCrit,
+				const bool tryAxes)
+{
+	if ( tryAxes )
+	{
+		OrientedBox startBox(*pBox);
+		
+		for(int firstAxis=0;firstAxis<3;firstAxis++)
+		{
+			OrientedBox testBox(startBox);
+			IterativeRefineOBB_Sub(&testBox,ab,pVerts,numVerts,eCrit,firstAxis);
+			
+			/// take the box with the smallest rating :
+			if ( RateOBB(testBox,eCrit) < RateOBB(*pBox,eCrit) )
+			{
+				*pBox = testBox;
+			}		
+		}
+	}
+	else
+	{
+		IterativeRefineOBB_Sub(pBox,ab,pVerts,numVerts,eCrit,1);		
+	}
+}
 
 /*
 // LinearExtent
@@ -335,6 +525,75 @@ static float LinearExtent(const Vec3 & normal,
 }
 */
 
+void OBBGivenCOV(OrientedBox * pBox,
+			const Vec3 * pVerts,
+			const int numVerts,
+			const Mat3 & givenCOV,
+			EOBBCriterion eCrit,
+			bool optimize)
+{
+	ASSERT(pBox);
+	ASSERT( pVerts );
+	ASSERT( numVerts > 0 );
+
+	Vec3 eigenValues;
+	Mat3 eigenVectors;
+	EigenSolveSymmetric(givenCOV,&eigenValues,&eigenVectors);
+	
+	// @@ ??
+	/*
+	Mat3 axes;
+	GetTranspose(eigenVectors,&axes);
+	/*/
+	Mat3 axes(eigenVectors);
+	/**/
+	
+	// get largest 
+	
+	//	I want my largest-eigenvalue vector to be preserved as much as possible
+
+	// largest-E is in X, swap it to Z :
+	Swap(axes.RowX(),axes.RowZ());
+	
+	// Orthonormalize preserves the Z axis :
+	Orthonormalize(&axes);
+
+	Swap(axes.RowX(),axes.RowZ());
+	
+	BuildBoxGivenAxes(pBox,pVerts,numVerts,axes);
+	
+	if ( optimize )
+	{
+		AxialBox ab;
+		MakeAxialBox(&ab,pVerts,numVerts);
+
+		{
+			OrientedBox testBox;
+			MakeOrientedBoxFromAxialBox(&testBox,ab);
+			
+			/// take the box with the smallest rating :
+			if ( RateOBB(testBox,eCrit) < RateOBB(*pBox,eCrit) )
+			{
+				*pBox = testBox;
+			}
+		}
+		
+		for(int axis=0;axis<3;axis++)
+		{
+			OrientedBox testBox;
+			BuildBox(&testBox,pVerts,numVerts,ab,axes[axis]);
+				
+			IterativeRefineOBB(&testBox,ab,pVerts,numVerts,eCrit,false);
+
+			/// take the box with the smallest rating :
+			if ( RateOBB(testBox,eCrit) < RateOBB(*pBox,eCrit) )
+			{
+				*pBox = testBox;
+			}
+		}
+	}
+}
+
 void OBBByCovariance(OrientedBox * pBox,
 			const Vec3 * pVerts,
 			const int numVerts)
@@ -346,12 +605,13 @@ void OBBByCovariance(OrientedBox * pBox,
 	Mat3 axes;
 	ComputeCovariantBasis(&axes,pVerts,numVerts);
 	
-	FinishBuildOBB(pBox,pVerts,numVerts,axes);
+	BuildBoxGivenAxes(pBox,pVerts,numVerts,axes);
 }
 
 void OBBByCovarianceOptimized(OrientedBox * pBox,
 			const Vec3 * pVerts,
-			const int numVerts)
+			const int numVerts,
+			EOBBCriterion eCrit)
 {
 	ASSERT(pBox);
 	ASSERT( pVerts );
@@ -367,22 +627,36 @@ void OBBByCovarianceOptimized(OrientedBox * pBox,
 	//	basis of comparsion :
 	MakeOrientedBoxFromAxialBox(pBox,ab);
 
-	// try the three axes of the covariance matrix :
-	for(int axis=0;axis<3;axis++)
-	{
-		// one axis is the normal
+	OrientedBox testBox;
+	BuildBox(&testBox,pVerts,numVerts,ab,axes.GetRowX());
+		
+	IterativeRefineOBB(&testBox,ab,pVerts,numVerts,eCrit,true);
 
-		OrientedBox testBox;
-		BuildBox(&testBox,pVerts,numVerts,ab,axes.GetRow(axis));
-			
-		/// take the box with the smallest volume :
-		if ( testBox.GetVolume() < pBox->GetVolume() )
-		{
-			*pBox = testBox;
-		}
+	/// take the box with the smallest rating :
+	if ( RateOBB(testBox,eCrit) < RateOBB(*pBox,eCrit) )
+	{
+		*pBox = testBox;
 	}
 }
 
+void OBBGoodHeuristic(OrientedBox * pBox,
+			const Vec3 * pVerts,
+			const int numVerts,
+			EOBBCriterion eCrit)
+{
+	OBBByCovarianceOptimized(pBox,pVerts,numVerts,eCrit);
+	
+	OrientedBox testBox;
+	AxialBox ab;
+	OptimalOBBFixedDirections(&testBox,pVerts,numVerts,eCrit,true,&ab);
+	
+	/// take the box with the smallest rating :
+	if ( RateOBB(testBox,eCrit) < RateOBB(*pBox,eCrit) )
+	{
+		*pBox = testBox;
+	}	
+}
+				
 //=====================================================================================
 
 void ComputeCovariance(Mat3 * pMat,
@@ -431,7 +705,15 @@ void ComputeCovariantBasis(Mat3 * pMat,
 	Vec3 eigenValues;
 	EigenSolveSymmetric(covariance,&eigenValues,pMat);
 
-	GetOrthonormalized(*pMat,pMat);
+	//	I want my largest-eigenvalue vector to be preserved as much as possible
+
+	// largest-E is in X, swap it to Z :
+	Swap(pMat->RowX(),pMat->RowZ());
+	
+	// preserves Z :
+	Orthonormalize(pMat);
+
+	Swap(pMat->RowX(),pMat->RowZ());
 }
 
 //=====================================================================================
@@ -612,6 +894,12 @@ static void FindOptimalRectangle_RotateCalipers(
 			Vec2i v0 = pVerts[i];
 			Vec2i v1 = pVerts[next];
 			Vec2i edge = v1 - v0;
+
+			if (edge.LengthSqr() == 0)
+			{
+				// degenerate edge; skip it!
+				continue;
+			}
 
 			Vec2 curBasisX = MakeVec2Normalized(edge);
 			Vec2 curBasisY = MakePerpCW(curBasisX);
@@ -869,7 +1157,7 @@ void FindOptimalRectangle(
 	int i;
 	for(i=0;i<numVerts;i++)
 	{
-		projection[i] = Quantize( MakeProjection( pVerts[i], basisX, basisY ) , quantizationRect );
+		projection[i] = IntGeometry::Quantize( MakeProjection( pVerts[i], basisX, basisY ) , quantizationRect );
 	}
 
 	v_Vec2i hull;
@@ -881,7 +1169,7 @@ void FindOptimalRectangle(
 	Vec2 bestRectBasis1,bestRectBasis2;
 
 	// now use rotating calipers
-	FindOptimalRectangle_RotateCalipers(hull.data(),hull.size(),
+	FindOptimalRectangle_RotateCalipers(hull.data(),(int)hull.size(),
 										&bestRectBasis1,&bestRectBasis2,NULL,eOptimal);
 
 	// turn the bases in 2d into real 3d vecs perp to normal1
@@ -920,7 +1208,7 @@ void FindOptimalRectangle(
 	int i;
 	for(i=0;i<numVerts;i++)
 	{
-		projection[i] = Quantize( pVerts[i], quantizationRect );
+		projection[i] = IntGeometry::Quantize( pVerts[i], quantizationRect );
 	}
 
 	v_Vec2i hull;
@@ -930,8 +1218,11 @@ void FindOptimalRectangle(
 	projection.clear();
 
 	// now use rotating calipers
-	FindOptimalRectangle_RotateCalipers(hull.data(),hull.size(),
+	FindOptimalRectangle_RotateCalipers(hull.data(),hull.size32(),
 										pBasis1,pBasis2,pRectInBasis,eOptimal);
+
+	// @@ pRectInBasis is still in the quantized coords!!!
+
 }
 
 //=====================================================================================

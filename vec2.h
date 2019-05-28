@@ -90,13 +90,15 @@ public:
 	//! fuzzy equality
 	static bool Equals(const Vec2 &a,const Vec2 &b,const float tolerance = EPSILON);
 
+	void	Log() const; //!< writes xy to Log; does NOT add a \n !
+
 	//-------------------------------------------------------------------
 }; // end of class Vec2
 
 //}{===========================================================================================
 // INLINE FUNCTIONS
 
-inline Vec2::Vec2(const EConstructorNormalized,const float ix,const float iy)
+inline Vec2::Vec2(const EConstructorNormalized e,const float ix,const float iy)
 {
 	const float lengthSqr = ix*ix + iy*iy;
 	ASSERT( lengthSqr > 0.f );
@@ -105,7 +107,7 @@ inline Vec2::Vec2(const EConstructorNormalized,const float ix,const float iy)
 	y = iy * scale;
 }
 
-inline Vec2::Vec2(const EConstructorNormalized,const Vec2 & other)
+inline Vec2::Vec2(const EConstructorNormalized e,const Vec2 & other)
 {
 	const float lengthSqr = other.LengthSqr();
 	ASSERT( lengthSqr > 0.f );

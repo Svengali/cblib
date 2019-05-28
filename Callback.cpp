@@ -31,7 +31,7 @@ void CallbackQueue::Tick()
 	double now = Timer::GetSeconds();
 	
 	// go backwards, deleting
-	for(int i=m_queue.size()-1;i>=0;i--)
+	for(int i=m_queue.size32()-1;i>=0;i--)
 	{
 		if ( now >= m_queue[i]->GetTime() )
 		{

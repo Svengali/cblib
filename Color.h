@@ -42,8 +42,10 @@ As long as the float is in { -0.5/255 , 255.5/255 } you don't need to clamp.
 
 */
 
-int		ColorFTOI(float f);
-float	ColorITOF(int i);
+inline int		ColorFTOI(float f);
+inline float	ColorITOF(int i);
+inline int		Clamp255( int i);
+
 
 //}{=================================================================================
 
@@ -52,6 +54,18 @@ float	ColorITOF(int i);
    a,r,g,b, normalized to 0->255
 	(can NOT go out of that range a-ok)
 	matches "D3DCOLOR" bitwise
+	
+	In bytes ColorDW is :
+		uint8	b,g,r,a;
+		
+	union ColorDWBytes
+	{
+		uint32		dw;
+		struct
+		{
+			uint8	b,g,r,a;
+		};
+	};
 */
 class ColorDW
 {
@@ -74,7 +88,7 @@ private:
 public:
 	// dmoore: make the debug color enum equal to the color of DEBUG_COLOR
 	enum EDebugColor { eDebugColor = DEBUG_COLOR };
-	
+
 	inline  ColorDW()
 	{
 		// load with invalid data in debug mode
@@ -101,7 +115,7 @@ public:
 
 	ColorDW(const EFromFloatUnsafe, const ColorF & f) { SetFloatUnsafe(f); }
 	ColorDW(const EFromFloatSafe, const ColorF & f) { SetFloatSafe(f); }
-
+	
 	//! no consistency conditions on a raw dword to validate !
 	bool IsValid() const { return true; }
 
@@ -115,10 +129,10 @@ public:
 	int GetA() const { return (m_color & AMASK) >> ASHIFT; }
 
 	//! Set the colors one by one, must be in 0->255 (ASSERTs if not)
-	void SetR(const int R) { ASSERT( R == Clamp(R,0,255) ); m_color = (m_color & ~RMASK) | (R << RSHIFT); }
-	void SetG(const int G) { ASSERT( G == Clamp(G,0,255) ); m_color = (m_color & ~GMASK) | (G << GSHIFT); }
-	void SetB(const int B) { ASSERT( B == Clamp(B,0,255) ); m_color = (m_color & ~BMASK) | (B << BSHIFT); }
-	void SetA(const int A) { ASSERT( A == Clamp(A,0,255) ); m_color = (m_color & ~AMASK) | (A << ASHIFT); }
+	void SetR(const int R) { ASSERT( R == Clamp255(R) ); m_color = (m_color & ~RMASK) | (R << RSHIFT); }
+	void SetG(const int G) { ASSERT( G == Clamp255(G) ); m_color = (m_color & ~GMASK) | (G << GSHIFT); }
+	void SetB(const int B) { ASSERT( B == Clamp255(B) ); m_color = (m_color & ~BMASK) | (B << BSHIFT); }
+	void SetA(const int A) { ASSERT( A == Clamp255(A) ); m_color = (m_color & ~AMASK) | (A << ASHIFT); }
 
 	//! set all components (more efficient than setting one by one)
 	//! default alpha is *opaque* (255)
@@ -143,12 +157,15 @@ public:
 	//! the colors of consecutive indices being very different
 	void SetDebugColor(const int index);
 	
+	void SetSumClamped(const ColorDW & fm,const ColorDW & to);
 	void SetAverage(const ColorDW & fm,const ColorDW & to);
-	void SetLerp(const ColorDW & fm,const ColorDW & to,const float t);
+	void SetLerpF(const ColorDW & fm,const ColorDW & to,const float t);
+	void SetLerpI(const ColorDW & fm,const ColorDW & to,const int i256); // i is in [0,256]
 
 	////////////////////////////////////////////////
 
 	static uint32 DistanceSqr(const ColorDW & fm,const ColorDW & to);
+	static uint32 DistanceSqrRGB(const ColorDW & fm,const ColorDW & to);
 	
 	////////////////////////////////////////////////
 	//! static colors for your convenience;
@@ -178,7 +195,7 @@ public:
 
 	bool operator==(const ColorDW& comp) const { return m_color == comp.m_color; }
 	bool operator!=(const ColorDW& comp) const { return !operator==(comp); }
-
+	
 private:
 
 	uint32	m_color;
@@ -217,6 +234,12 @@ public:
 		ASSERT(IsValid());
 	}
 
+	explicit inline  ColorF(const Vec3 & rgb,const float ia = 1.f) :
+								m_r(rgb.x),m_g(rgb.y),m_b(rgb.z),m_a(ia)
+	{
+		ASSERT(IsValid());
+	}
+	
 	//! explicit constructor from a dword color
 	explicit inline  ColorF(const ColorDW & dw)
 	{
@@ -226,7 +249,7 @@ public:
 
 	bool IsValid() const
 	{
-		ASSERT( fisvalid(m_r) && fisvalid(m_g) && fisvalid(m_b) && fisvalid(m_a) );
+		ASSERT_LOW( fisvalid(m_r) && fisvalid(m_g) && fisvalid(m_b) && fisvalid(m_a) );
 		return true;
 	}
 
@@ -254,14 +277,14 @@ public:
 	/////////////////////////////////////////////
 	//! basic GetRGB/SetRGB stuff
 
-	float GetR() const			{ ASSERT(IsValid()); return m_r; }
-	float GetG() const			{ ASSERT(IsValid()); return m_g; }
-	float GetB() const			{ ASSERT(IsValid()); return m_b; }
-	float GetA() const			{ ASSERT(IsValid()); return m_a; }
-	void  SetR(const float v)	{ ASSERT(IsValid()); m_r = v; ASSERT(IsValid()); }
-	void  SetG(const float v)	{ ASSERT(IsValid()); m_g = v; ASSERT(IsValid()); }
-	void  SetB(const float v)	{ ASSERT(IsValid()); m_b = v; ASSERT(IsValid()); }
-	void  SetA(const float v)	{ ASSERT(IsValid()); m_a = v; ASSERT(IsValid()); }
+	float GetR() const			{ ASSERT_LOW(IsValid()); return m_r; }
+	float GetG() const			{ ASSERT_LOW(IsValid()); return m_g; }
+	float GetB() const			{ ASSERT_LOW(IsValid()); return m_b; }
+	float GetA() const			{ ASSERT_LOW(IsValid()); return m_a; }
+	void  SetR(const float v)	{ ASSERT_LOW(IsValid()); m_r = v; ASSERT_LOW(IsValid()); }
+	void  SetG(const float v)	{ ASSERT_LOW(IsValid()); m_g = v; ASSERT_LOW(IsValid()); }
+	void  SetB(const float v)	{ ASSERT_LOW(IsValid()); m_b = v; ASSERT_LOW(IsValid()); }
+	void  SetA(const float v)	{ ASSERT_LOW(IsValid()); m_a = v; ASSERT_LOW(IsValid()); }
 
 	//! default alpha is *opaque* (1.f)
 	void Set(const float ir,const float ig,const float ib,const float ia = 1.f);
@@ -282,6 +305,7 @@ public:
 	void ScaleRGB(const float scale);
 
 	static float DistanceSqr(const ColorF & fm,const ColorF & to);
+	static float DistanceSqrRGB(const ColorF & fm,const ColorF & to);
 
 	/////////////////////////////////////////////
 
@@ -315,7 +339,7 @@ public:
 	/////////////////////////////////////////////
 
 public :
-
+	// no point in hiding this data with private
 	/////////////////////////////////////////////
 	// data :
 
@@ -340,10 +364,10 @@ inline void ColorDW::SetFloatSafe(const ColorF & cf)
 
 inline void ColorDW::Set(const int R,const int G,const int B,const int A /* = 0xFF*/)
 {
-	ASSERT( R == Clamp(R,0,255) );
-	ASSERT( G == Clamp(G,0,255) );
-	ASSERT( B == Clamp(B,0,255) );
-	ASSERT( A == Clamp(A,0,255) );
+	ASSERT_LOW( R == Clamp255(R) );
+	ASSERT_LOW( G == Clamp255(G) );
+	ASSERT_LOW( B == Clamp255(B) );
+	ASSERT_LOW( A == Clamp255(A) );
 	m_color = (R<<RSHIFT) | (G<<GSHIFT) | (B<<BSHIFT) | (A<<ASHIFT);
 }
 
@@ -359,16 +383,11 @@ inline void ColorDW::SetFloatUnsafe(const float R,const float G,const float B,co
 
 inline void ColorDW::SetFloatSafe(const float R,const float G,const float B,const float A /*= 1.f*/)
 {
-	const int r = Clamp( ColorFTOI(R) ,0, 255 );
-	const int g = Clamp( ColorFTOI(G) ,0, 255 );
-	const int b = Clamp( ColorFTOI(B) ,0, 255 );
-	const int a = Clamp( ColorFTOI(A) ,0, 255 );
+	const int r = Clamp255( ColorFTOI(R) );
+	const int g = Clamp255( ColorFTOI(G) );
+	const int b = Clamp255( ColorFTOI(B) );
+	const int a = Clamp255( ColorFTOI(A) );
 	Set(r,g,b,a);
-}
-
-inline void ColorDW::SetDebugColor(const int index)
-{
-	SetFromHueFast(index * 281);
 }
 
 /*static*/ inline uint32 ColorDW::DistanceSqr(const ColorDW & fm,const ColorDW & to)
@@ -383,6 +402,17 @@ inline void ColorDW::SetDebugColor(const int index)
 	return d;
 }
 
+/*static*/ inline uint32 ColorDW::DistanceSqrRGB(const ColorDW & fm,const ColorDW & to)
+{
+	// @@ could/should do a fast multi-bit version of this
+
+	uint32 d =
+		 (fm.GetR() - to.GetR())*(fm.GetR() - to.GetR());
+	d += (fm.GetG() - to.GetG())*(fm.GetG() - to.GetG());
+	d += (fm.GetB() - to.GetB())*(fm.GetB() - to.GetB());
+	return d;
+}
+
 /*static*/ inline float ColorF::DistanceSqr(const ColorF & fm,const ColorF & to)
 {
 	float d =
@@ -393,6 +423,15 @@ inline void ColorDW::SetDebugColor(const int index)
 	return d;
 }
 
+/*static*/ inline float ColorF::DistanceSqrRGB(const ColorF & fm,const ColorF & to)
+{
+	float d =
+		 (fm.GetR() - to.GetR())*(fm.GetR() - to.GetR());
+	d += (fm.GetG() - to.GetG())*(fm.GetG() - to.GetG());
+	d += (fm.GetB() - to.GetB())*(fm.GetB() - to.GetB());
+	return d;
+}
+
 inline void ColorF::Set(const ColorDW & cdw)
 {
 	Set(	
@@ -400,7 +439,7 @@ inline void ColorF::Set(const ColorDW & cdw)
 		ColorITOF(cdw.GetG()),
 		ColorITOF(cdw.GetB()),
 		ColorITOF(cdw.GetA())
-	);	
+		);
 }
 
 inline void ColorF::Clamp(const float Lo /*= 0.f*/, const float Hi /*= 1.f*/)
@@ -587,7 +626,8 @@ inline float	ColorITOF(int i)
 
 inline int		ColorFTOI(float f)
 {
-	return ftoi(f * 255.f + 0.5f);
+	//return ftoi(f * 255.f + 0.5f);
+	return ftoi_round(f * 255.f);
 }
 
 inline float	ColorITOF(int i)
@@ -595,16 +635,10 @@ inline float	ColorITOF(int i)
 	return i * (1.f/255.f);
 }
 
-
-ColorDW ColorTransformLocoWrap(const ColorDW & fm);
-ColorDW ColorTransformLocoWrapInverse(const ColorDW & fm);
-
-// standard "YUV" (Y Cb Cr)
-const ColorF MakeYUVFromRGB(const ColorF & fm);
-const ColorF MakeRGBFromYUV(const ColorF & fm);
-
-const ColorF MakeYCoCgFromRGB(const ColorF & fm);
-const ColorF MakeRGBFromYCoCg(const ColorF & fm);
+inline int		Clamp255( int i)
+{
+	return Clamp(i,0,255);
+}
 
 //}{=======================================================================
 

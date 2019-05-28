@@ -33,7 +33,7 @@ bool ConvexHullBuilder2d::IsConvexHull2d(
 		//const Vec2i normal = Vec2i::MakePerpCCW(edge);
 		//const int64 planeConstant = normal * pHull[h];
 
-		// we have a 2d gPlane : {normal,planeConstant}
+		// we have a 2d Plane : {normal,planeConstant}
 
 		// check that all the verts are on the "front" side of this ecge 
 		for(int i=0;i<numVerts;i++)
@@ -106,7 +106,11 @@ void ConvexHullBuilder2d::Make2d(
 			}
 		}
 	
-		ASSERT( IsConvexHull2d(pVerts,numVerts,vHullPolygon.data(),vHullPolygon.size()) );
+		if (numVerts == 3
+			&& ! Colinear(vHullPolygon[0], vHullPolygon[1], vHullPolygon[2]))	// Don't assert-check degenerate hulls.
+		{
+			ASSERT( IsConvexHull2d(pVerts,numVerts,vHullPolygon.data(),vHullPolygon.size32()) );
+		}
 
 		return;
 	}
@@ -114,7 +118,8 @@ void ConvexHullBuilder2d::Make2d(
 	// first find the point with lowest X to start the hull
 	int iBase = 0;
 	
-	for(int i=0;i<numVerts;i++)
+	int i;
+	for(i=0;i<numVerts;i++)
 	{
 		if ( pVerts[i].x < pVerts[iBase].x )
 		{
@@ -147,9 +152,9 @@ void ConvexHullBuilder2d::Make2d(
 	vHullPolygon[0] = vas[0];
 	vHullPolygon[1] = vas[1];
 
-	for(int i = 2;i<vas.size();)
+	for(i = 2;i<vas.size32();)
 	{
-		const int numHullVerts = vHullPolygon.size();
+		const int numHullVerts = vHullPolygon.size32();
 		ASSERT(numHullVerts>=2);
 		ASSERT( vas[i-1] != vas[i] ); // degenerates should be gone
 		ASSERT( LeftOrOn(s_base,vas[i-1],vas[i]) ); // check sort order
@@ -195,20 +200,22 @@ void ConvexHullBuilder2d::Make2d(
 		if ( i == numVerts )
 		{
 			// all verts identical !!
-			lprintf("Totally degenerate hull - it's a point!!");
+			vHullPolygon.resize(1);
+			lprintf("Totally degenerate hull - it's a point!!\n");
 			return;
 		}
 		for(int j=i;j<numVerts;j++)
 		{
 			ASSERT( Colinear( pVerts[0], pVerts[i], pVerts[j] ) ); 
 		}
-		lprintf("Totally degenerate hull - it's a line!!");
+		// vHullPolygon size is 2
+		lprintf("Totally degenerate hull - it's a line!!\n");
 	}
 	else
 	{
 		ASSERT( vHullPolygon.size() >= 3 );
 		ASSERT( ! Colinear( vHullPolygon.back(), vHullPolygon[0], vHullPolygon[1] ) );
-		ASSERT( IsConvexHull2d(pVerts,numVerts,vHullPolygon.data(),vHullPolygon.size()) );
+		ASSERT( IsConvexHull2d(pVerts,numVerts,vHullPolygon.data(),vHullPolygon.size32()) );
 	}
 }
 
@@ -216,8 +223,8 @@ void ConvexHullBuilder2d::Make2d(
 
 #if 0 //{
 
-#include "Math/gRand.h"
-#include "Core/gLog.h"
+#include "cblib/gRand.h"
+#include "cblib/Log.h"
 
 void ConvexHullBuilder2d_Test()
 {
@@ -234,8 +241,8 @@ void ConvexHullBuilder2d_Test()
 		int i;
 		for(i=0;i<NUM_VERTS;i++)
 		{
-			verts[i].x = gRand::Ranged(-COORD_RANGE,COORD_RANGE);
-			verts[i].y = gRand::Ranged(-COORD_RANGE,COORD_RANGE);
+			verts[i].x = irandranged(-COORD_RANGE,COORD_RANGE);
+			verts[i].y = irandranged(-COORD_RANGE,COORD_RANGE);
 		}
 
 		ConvexHullBuilder2d::Make2d( verts.data(), verts.size(), vHull );

@@ -71,7 +71,7 @@ public:
 
 	//-------------------------------------------------------------------
 	
-	void	gLog() const; //!< writes xy to gLog; does NOT add a \n !
+	void	Log() const; //!< writes xy to Log; does NOT add a \n !
 
 	static const Vec2i MakePerpCW(const Vec2i & v)
 	{
@@ -240,6 +240,8 @@ inline bool Left(const Vec2i & a,const Vec2i &b,const Vec2i &c)
 	return Area(a,b,c) > 0;
 }
 
+// Right indicates if "c" is left of the segment "ab"
+// same as asking of "abc" is counter-clockwise
 inline bool Right(const Vec2i & a,const Vec2i &b,const Vec2i &c)
 {
 	return Area(a,b,c) < 0;

@@ -3,11 +3,11 @@
 #include "cblib/Vec2.h"
 #include "cblib/Rect.h"
 #include "cblib/Plane2.h"
-#include "cblib/vector_s.h"
+#include "cblib/vector.h"
 
 START_CB
 
-#define POLY_MAX_VERTS	(64)
+//#define POLY_MAX_VERTS	(64)
 
 /*
 
@@ -24,12 +24,13 @@ Poly2/Poly3 are nearly identical; maintain changes across them
 // Poly should be *counterclockwise*
 struct Poly2
 {
-	vector_s<Vec2,POLY_MAX_VERTS>	m_verts;
+	//vector_s<Vec2,POLY_MAX_VERTS>	m_verts;
+	vector<Vec2>	m_verts;
 
 	void Clear();
 	void Reverse();
 
-	int GetNumVerts() const { return m_verts.size(); }
+	int GetNumVerts() const { return m_verts.size32(); }
 	
 	float GetArea() const;
 	const Vec2 GetCenter() const;
@@ -41,8 +42,7 @@ struct Poly2
 
 //==========================================================================================================
 
-namespace Poly2Util
-{
+//namespace Poly2Util {
 
 /*
 	CleanPoly removes colinear segments, and tries
@@ -77,7 +77,7 @@ inline bool ClipPolyF(const Poly2 & from,Poly2 * pTo,const Plane2 & plane,const 
 	return pTo->GetNumVerts() >= 3;
 }
 
-}; // Poly2Util
+//}; // Poly2Util
 
 //==========================================================================================================
 

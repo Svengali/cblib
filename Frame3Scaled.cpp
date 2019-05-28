@@ -37,12 +37,12 @@ bool Frame3Scaled::IsIdentity(const float tolerance /*= EPSILON*/) const
 	return ( m_frame.IsIdentity(tolerance) && fisone(m_scale,tolerance) );
 }
 
-bool Frame3Scaled::IsOrthonormal(const float tolerance/* = EPSILON*/) const
+bool Frame3Scaled::IsOrthonormal(const float tolerance/* = EPSILON_NORMALS*/) const
 {
 	return ( fisone(m_scale,tolerance) && m_frame.GetMatrix().IsOrthonormal(tolerance) );
 }
 
-bool Frame3Scaled::IsOrthogonal(const float tolerance/* = EPSILON*/) const
+bool Frame3Scaled::IsOrthogonal(const float tolerance/* = EPSILON_NORMALS*/) const
 {
 	return m_frame.GetMatrix().IsOrthogonal(tolerance);
 }

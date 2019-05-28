@@ -1,14 +1,20 @@
 #include "FloatImage.h"
 #include "cblib/Vec3.h"
+#include "cblib/Mat3.h"
 #include "cblib/Vec2.h"
 #include "cblib/FloatUtil.h"
 #include "cblib/Rand.h"
 #include "cblib/BmpImage.h"
 #include "cblib/File.h"
+#include "cblib/Log.h"
+#include "cblib/FileUtil.h"
+#include "cblib/ColorConversions.h"
 #include <string.h>
 
 START_CB
 
+
+//! \todo @@@@ support a few types of grey : Luminance and RGB average
 
 FloatImage::FloatImage(const TextureInfo & info, int depth)
 	: m_info(info), m_depth(depth)
@@ -53,6 +59,47 @@ FloatImagePtr FloatImage::CreateCopy(const FloatImagePtr & src, int depth)
 	return ret;
 }
 
+void FloatImage::CopyPlane(int top, const FloatImage * fm, int fmp)
+{
+	ASSERT_RELEASE( m_info.m_width  == fm->m_info.m_width );
+	ASSERT_RELEASE( m_info.m_height == fm->m_info.m_height );
+	
+	memcpy( m_planes[top], fm->m_planes[fmp], fm->m_info.m_width*fm->m_info.m_height*sizeof(float));
+}
+
+void FloatImage::CopyPlanePortion(int top, const FloatImage * fm, int fmp, int xlo, int ylo, int w, int h)
+{
+	ASSERT_RELEASE( w <= m_info.m_width  );
+	ASSERT_RELEASE( h <= m_info.m_height );
+	ASSERT_RELEASE( xlo+w <= fm->m_info.m_width  );
+	ASSERT_RELEASE( ylo+h <= fm->m_info.m_height );
+	
+	for(int y=0;y<h;y++)
+	{
+		for(int x=0;x<w;x++)
+		{
+			m_planes[top][x + y*m_info.m_width] = fm->m_planes[fmp][(x+xlo) + (y+ylo)*(fm->m_info.m_width)];
+		}
+	}		
+}
+
+void FloatImage::SetCopy(const FloatImage * src)
+{
+	ASSERT_RELEASE( m_info.m_width == src->m_info.m_width );
+	ASSERT_RELEASE( m_info.m_height == src->m_info.m_height );
+ 
+	int mdepth = MIN(m_depth,src->m_depth);
+	int i;
+	for(i=0;i<mdepth;i++)
+	{
+		memcpy( m_planes[i], src->m_planes[i], src->m_info.m_width*src->m_info.m_height*sizeof(float));
+	}
+	for(i=mdepth;i<m_depth;i++)
+	{
+		memset( m_planes[i], 0, src->m_info.m_width*src->m_info.m_height*sizeof(float));
+	}
+}
+
 FloatImagePtr FloatImage::CreateTranspose(const FloatImagePtr & src)
 {
 	FloatImagePtr ret( new FloatImage(src->GetInfo(),src->GetDepth()) );
@@ -77,32 +124,100 @@ FloatImagePtr FloatImage::CreateTranspose(const FloatImagePtr & src)
 	return ret;
 }
 
+FloatImagePtr FloatImage::CreateCopyPortion(const FloatImagePtr & src,int xlo,int ylo,int w,int h)
+{
+	const TextureInfo & srcInfo = src->GetInfo();
+	if ( xlo+w > srcInfo.m_width || ylo+h > srcInfo.m_height )
+		return FloatImagePtr(NULL);
+		
+	int d = src->GetDepth();	
+	TextureInfo newInfo = srcInfo;
+	newInfo.m_width  = w;
+	newInfo.m_height = h;
+	FloatImagePtr ret( new FloatImage(newInfo,d) );
+	
+	for(int p=0;p<d;p++)
+	{
+		for(int y=0;y<h;y++)
+		{
+			for(int x=0;x<w;x++)
+			{
+				ret->m_planes[p][x + y*w] = src->m_planes[p][(x+xlo) + (y+ylo)*(srcInfo.m_width)];
+			}
+		}		
+	}
+
+	return ret;
+}
+
+FloatImagePtr FloatImage::CreateGreyScale(const FloatImagePtr & src)
+{
+	FloatImagePtr ret( new FloatImage(src->GetInfo(),1) );
+	
+	int w = ret->m_info.m_width;
+	int h = ret->m_info.m_height;
+
+	for(int y=0;y<h;y++)
+	{
+		for(int x=0;x<w;x++)
+		{
+			ret->m_planes[0][x + y*w] = src->GetGrey(x + y*w);
+		}
+	}		
+
+	return ret;
+}
 
 // src high end points are not inclusive, eg. [0,0,w,h] is the whole thing
-FloatImagePtr FloatImage::CreateBilinearResize(const FloatImagePtr & src,const RectI & rect,int toW,int toH)
+FloatImagePtr FloatImage::CreateBilinearResize(const FloatImagePtr & src,int toW,int toH,const RectI * pRect, const Vec2 * pOffset)
 {
 	TextureInfo dstInfo(src->GetInfo());
 	dstInfo.m_width = toW;
 	dstInfo.m_height = toH;
 	FloatImagePtr dst( new FloatImage(dstInfo,src->GetDepth()) );
+	FloatImage * pSrc = src.GetPtr();
 	
+	RectI srcRectAll( 0, src->m_info.m_width, 0, src->m_info.m_height );
+	if ( pRect == NULL )
+	{
+		pRect = &srcRectAll;
+	}
+	float srcX = (float)pRect->LoX();
+	float srcY = (float)pRect->LoY();
+	float srcW = (float)pRect->Width();
+	float srcH = (float)pRect->Height();
+	
+	float srcVscale = 1.f/(float)src->m_info.m_height;
+	float srcUscale = 1.f/(float)src->m_info.m_width;
+	
+	float dstOffX = 0.5f;
+	float dstOffY = 0.5f;
+	
+	if ( pOffset )
+	{
+		dstOffX += pOffset->x;
+		dstOffY += pOffset->y;
+	}
+					
 	int d = src->GetDepth();	
 	for(int p=0;p<d;p++)
 	{
-		int w = dst->m_info.m_width;
-		int h = dst->m_info.m_height;
+		int dstW = dst->m_info.m_width;
+		int dstH = dst->m_info.m_height;
 
-		for(int y=0;y<h;y++)
+		for(int y=0;y<dstH;y++)
 		{
-			float dstV = (y + 0.5f)/h;
-			float srcV = (rect.LoY() + dstV * rect.Height())/(float)src->GetInfo().m_height;
+			float dstV = (y + dstOffY)/dstH;
+			float srcV = (srcY + dstV * srcH) * srcVscale;
 						
-			for(int x=0;x<w;x++)
+			for(int x=0;x<dstW;x++)
 			{
-				float dstU = (x + 0.5f)/w;
-				float srcU = (rect.LoX() + dstU * rect.Width())/(float)src->GetInfo().m_width;
+				float dstU = (x + dstOffX)/dstW;
+				float srcU = (srcX + dstU * srcW) * srcUscale;
 			
-				dst->m_planes[p][x + y*w] = src->SampleBilinearFiltered(p,Vec2(srcU,srcV));
+				Vec2 uv(srcU,srcV);
+				
+				dst->m_planes[p][x + y*dstW] = pSrc->SampleBilinearFiltered(p,uv);
 			}
 		}		
 	}
@@ -124,11 +239,8 @@ float FloatImage::GetGreyAroundEdge(const int x,const int y) const
 
 int FloatImage::IndexAroundEdge(const int x,const int y) const
 {
-	FloatRow row = GetRow(0,0);
-	int ix = row.Index(x);
-
-	FloatRow col = GetColumn(0,0);
-	int iy = col.Index(y);
+	int ix = TextureInfo::Index(x,m_info.m_width,m_info.m_eEdgeMode);
+	int iy = TextureInfo::Index(y,m_info.m_height,m_info.m_eEdgeMode);
 	
 	return iy * m_info.m_width + ix;
 }
@@ -161,6 +273,14 @@ int FloatImage::IndexMirror(const int x,const int y) const
 	return yy * m_info.m_width + xx;
 }
 
+int FloatImage::IndexClamp(const int x,const int y) const
+{
+	int xx = Clamp(x,0,m_info.m_width -1);
+	int yy = Clamp(y,0,m_info.m_height-1);
+
+	return yy * m_info.m_width + xx;
+}
+
 float FloatImage::GetGrey(const int x,const int y) const
 {
 	ASSERT( x >= 0 && x < m_info.m_width );
@@ -181,7 +301,8 @@ float FloatImage::GetGrey(const int i) const
 	{
 		//! \todo @@@@ support a few types of grey : Luminance and RGB average
 		ColorF color = GetPixel(i);
-		return (color.GetR() + color.GetG() + color.GetB()) / 3.f;
+		//return (color.GetR() + 2.f * color.GetG() + color.GetB()) / 4.f;
+		return ( 0.25f * color.GetR() + 0.55f * color.GetG() + 0.20f * color.GetB());
 	}
 }
 
@@ -230,6 +351,7 @@ ColorF FloatImage::GetPixel(const int i) const
 		default:
 		{
 			FAIL("Can't GetPixel for planes > 4");
+			CANT_GET_HERE();
 			return ColorF::debug;
 		}
 	}
@@ -325,7 +447,12 @@ const ColorF FloatImage::GetPixelBilinearFiltered(const Vec2 & uv) const
 	ColorF HL = GetPixel(i+1,j);
 	ColorF HH = GetPixel(i+1,j+1);
 
-	ColorF bilerp = LL * ((1-fx)*(1-fy)) + LH * ((1-fx)*fy) + HL*(fx*(1-fy)) + HH*(fx*fy);
+	float wLL = (1-fx)*(1-fy);
+	float wLH = (1-fx)*fy;
+	float wHL = fx*(1-fy);
+	float wHH = fx*fy;
+
+	ColorF bilerp = LL * wLL + LH * wLH + HL * wHL + HH * wHH;
 
 	return bilerp;
 }
@@ -380,9 +507,24 @@ float FloatImage::SampleBilinearFiltered(int p,const Vec2 & uv) const
 	float HL = GetSample(p,i+1,j);
 	float HH = GetSample(p,i+1,j+1);
 
-	float bilerp = LL * ((1-fx)*(1-fy)) + LH * ((1-fx)*fy) + HL*(fx*(1-fy)) + HH*(fx*fy);
+	float wLL = (1-fx)*(1-fy);
+	float wLH = (1-fx)*fy;
+	float wHL = fx*(1-fy);
+	float wHH = fx*fy;
+
+	float bilerp = LL * wLL + LH * wLH + HL * wHL + HH * wHH;
 
 	return bilerp;
+}
+
+void FloatImage::FillZero()
+{
+	int size = m_info.m_width*m_info.m_height;
+	for(int p = 0; p < m_depth;p++ )
+	{
+		float * plane = m_planes[p];
+		memset(plane,0,size*sizeof(float));
+	}
 }
 
 void FloatImage::FillPlane(const int p,const float f)
@@ -436,57 +578,74 @@ void FloatImage::FillSolidColor(const ColorF & color)
 	}
 }
 
-// optimization for gamma of 2.0 :
-inline float degamma(const float f)
+void FloatImage::ReGammaCorrect()
 {
-	return f*f;
-}
-inline float regamma(const float f)
-{
-	return sqrtf(f);
+	// @@ hmm.. you pretty much always want to ClampUnit before this
+	//	but I guess not always (eg. for HDR) so it's not done automatically
+	// I could do the clamp at zero though, since that's an assert/failure , not optional
+	FloatImage_ReGammaCorrect_SRGB(this);
 }
 
 void FloatImage::DeGammaCorrect()
 {
-	if ( ! m_info.m_gammaCorrected )
-		return;
-
-	for(int d=0;d<m_depth;d++)
-	{
-		float * plane = m_planes[d];
-		int size = m_info.m_width*m_info.m_height;
-		for(int i=0;i<size;i++)
-		{
-			ASSERT( plane[i] >= 0.f && plane[i] <= 1.f );
-			plane[i] = degamma( plane[i] );
-		}
-	}
-
-	m_info.m_gammaCorrected = false;
+	FloatImage_DeGammaCorrect_SRGB(this);
 }
 
-void FloatImage::ReGammaCorrect()
+void FloatImage::ClampUnit()
 {
-	if ( m_info.m_gammaCorrected )
-		return;
-
-	// do NOT ReGamma for a heightmap or normal map !
-	if ( m_info.m_usage == TextureInfo::eUsage_Heightmap ||
-		 m_info.m_usage == TextureInfo::eUsage_Normalmap )
-		return;
-
 	for(int d=0;d<m_depth;d++)
 	{
 		float * plane = m_planes[d];
 		int size = m_info.m_width*m_info.m_height;
 		for(int i=0;i<size;i++)
 		{
-			ASSERT( plane[i] >= 0.f && plane[i] <= 1.f );
-			plane[i] = regamma( plane[i] );
+			plane[i] = fclampunit( plane[i] );
 		}
 	}
+}
 
-	m_info.m_gammaCorrected = true;
+
+// ScaleBiasUnit :
+//	rescale such that Lo -> 0 , Hi - > 1
+//	note : uses the same range for all planes, not a range per plane
+void FloatImage::ScaleBiasUnit()
+{
+	float lo = FLT_MAX;
+	float hi = -FLT_MAX;
+	
+	for(int d=0;d<m_depth;d++)
+	{
+		float * plane = m_planes[d];
+		int size = m_info.m_width*m_info.m_height;
+		for(int i=0;i<size;i++)
+		{
+			lo = MIN(lo, plane[i] );
+			hi = MAX(hi, plane[i] );
+		}
+	}
+	
+	for(int d=0;d<m_depth;d++)
+	{
+		float * plane = m_planes[d];
+		int size = m_info.m_width*m_info.m_height;
+		for(int i=0;i<size;i++)
+		{
+			plane[i] = fmakelerperclamped(lo,hi, plane[i] );
+		}
+	}
+}
+
+void FloatImage::ScaleAndOffset(float scale,float offset)
+{
+	for(int d=0;d<m_depth;d++)
+	{
+		float * plane = m_planes[d];
+		int size = m_info.m_width*m_info.m_height;
+		for(int i=0;i<size;i++)
+		{
+			plane[i] = plane[i] * scale + offset;
+		}
+	}
 }
 
 void FloatImage::Normalize()
@@ -508,16 +667,55 @@ void FloatImage::Normalize()
 	}
 }
 
+void FloatImage::FillLinearCombo(
+		float w1,const FloatImage * fim1,
+		float w2,const FloatImage * fim2,float C)
+{
+	for(int d=0;d<m_depth;d++)
+	{
+		float * plane = m_planes[d];
+		int size = m_info.m_width*m_info.m_height;
+		const float * p1 = fim1->m_planes[d];
+		const float * p2 = fim2->m_planes[d];
+		for(int i=0;i<size;i++)
+		{
+			plane[i] = w1 * p1[i] + w2 * p2[i] + C;
+		}
+	}
+}
+
+// fim1 * fim2 + B
+void FloatImage::FillProduct(
+		const FloatImage * fim1,const FloatImage * fim2,float B)
+{
+	for(int d=0;d<m_depth;d++)
+	{
+		int size = m_info.m_width*m_info.m_height;
+		float * plane = m_planes[d];
+		const float * p1 = fim1->m_planes[d];
+		const float * p2 = fim2->m_planes[d];
+		for(int i=0;i<size;i++)
+		{
+			plane[i] = p1[i] * p2[i] + B;
+		}
+	}
+}
+
 #define SHIFT_RIGHT_ROUND_UP( val, shift )	( (val) + (1<<(shift)) - 1 ) >> (shift)
 
 FloatImagePtr FloatImage::CreateDownFiltered(const Filter & Filter) const
 {
 	//DeGammaCorrect();	
-	ASSERT( m_info.m_gammaCorrected == false );
+	// meh let him do what he wants :
+	//ASSERT( m_info.m_gammaCorrected == false );
 	ASSERT( ! Filter.IsOdd() );
 
+	int levels = Filter.GetLevels();
+	ASSERT( levels >= 1 );
+	int offset = 1<< (levels-1);
+
 	TextureInfo tempInfo = m_info;
-	tempInfo.m_width  = SHIFT_RIGHT_ROUND_UP( m_info.m_width  , Filter.GetLevels() );
+	tempInfo.m_width  = SHIFT_RIGHT_ROUND_UP( m_info.m_width  , levels );
 	tempInfo.m_height = m_info.m_height;
 
 	FloatImagePtr tempImage( new FloatImage(tempInfo,m_depth) );
@@ -536,15 +734,16 @@ FloatImagePtr FloatImage::CreateDownFiltered(const Filter & Filter) const
 
 			for(int x=0;x<tempInfo.m_width;x++)
 			{
-				int srcX = x << Filter.GetLevels();
-				dest[x] = srcRow.ApplyAndClamp(Filter,srcX);
+				int srcX = x << levels;
+				//dest[x] = srcRow.Apply(Filter,srcX);
+				dest[x] = srcRow.ApplyCentered(Filter,srcX+offset);
 			}
 		}
 	}
 
 	TextureInfo newInfo = m_info;
-	newInfo.m_width  = SHIFT_RIGHT_ROUND_UP( m_info.m_width  , Filter.GetLevels() );
-	newInfo.m_height = SHIFT_RIGHT_ROUND_UP( m_info.m_height , Filter.GetLevels() );
+	newInfo.m_width  = SHIFT_RIGHT_ROUND_UP( m_info.m_width  , levels );
+	newInfo.m_height = SHIFT_RIGHT_ROUND_UP( m_info.m_height , levels );
 
 	FloatImagePtr newImage( new FloatImage(newInfo,m_depth) );
 
@@ -557,8 +756,9 @@ FloatImagePtr FloatImage::CreateDownFiltered(const Filter & Filter) const
 
 			for(int y=0;y<newInfo.m_height;y++)
 			{
-				int srcY = y << Filter.GetLevels();
-				destCol[y * newInfo.m_width] = srcCol.ApplyAndClamp(Filter,srcY);
+				int srcY = y << levels;
+				//destCol[y * newInfo.m_width] = srcCol.Apply(Filter,srcY);
+				destCol[y * newInfo.m_width] = srcCol.ApplyCentered(Filter,srcY+offset);
 			}
 		}
 	}
@@ -571,10 +771,82 @@ FloatImagePtr FloatImage::CreateDownFiltered(const Filter & Filter) const
 	return newImage;
 }
 
+FloatImagePtr FloatImage::CreateHalvedBoxFilter() const
+{
+	//DeGammaCorrect();	
+	//ASSERT( m_info.m_gammaCorrected == false );
+
+	TextureInfo newInfo = m_info;
+	newInfo.m_width  = m_info.m_width  >> 1;
+	newInfo.m_height = m_info.m_height >> 1;
+
+	FloatImagePtr newImage( new FloatImage(newInfo,m_depth) );
+
+	for(int d=0;d<m_depth;d++)
+	{
+		for(int y=0;y<newInfo.m_height;y++)
+		{
+			int srcY = y << 1;
+
+			float * destRow = newImage->m_planes[d] + y * newInfo.m_width;
+
+			for(int x=0;x<newInfo.m_width;x++)
+			{
+				int srcX = x << 1;
+				
+				destRow[x] =
+					(this->GetSample(d,srcX,srcY)+
+					this->GetSample(d,srcX,srcY+1)+
+					this->GetSample(d,srcX+1,srcY)+
+					this->GetSample(d,srcX+1,srcY+1))*0.25f;
+			}
+		}
+	}
+
+	if ( m_info.m_usage == TextureInfo::eUsage_Normalmap )
+		newImage->Normalize();
+
+	return newImage;
+}
+
+FloatImagePtr FloatImage::CreateHalvedPointSampled() const
+{
+	//DeGammaCorrect();	
+	//ASSERT( m_info.m_gammaCorrected == false );
+
+	TextureInfo newInfo = m_info;
+	newInfo.m_width  = m_info.m_width  >> 1;
+	newInfo.m_height = m_info.m_height >> 1;
+
+	FloatImagePtr newImage( new FloatImage(newInfo,m_depth) );
+
+	for(int d=0;d<m_depth;d++)
+	{
+		for(int y=0;y<newInfo.m_height;y++)
+		{
+			int srcY = y << 1;
+
+			float * destRow = newImage->m_planes[d] + y * newInfo.m_width;
+
+			for(int x=0;x<newInfo.m_width;x++)
+			{
+				int srcX = x << 1;
+				
+				destRow[x] = this->GetSample(d,srcX,srcY);
+			}
+		}
+	}
+
+	if ( m_info.m_usage == TextureInfo::eUsage_Normalmap )
+		newImage->Normalize();
+
+	return newImage;
+}
+
 FloatImagePtr FloatImage::CreateSameSizeFiltered(const Filter & Filter) const
 {
 	//DeGammaCorrect();	
-	ASSERT( m_info.m_gammaCorrected == false );	
+	//ASSERT( m_info.m_gammaCorrected == false );	
 	ASSERT( Filter.IsOdd() );
 
 	FloatImagePtr tempImage( new FloatImage(m_info,m_depth) );
@@ -584,7 +856,10 @@ FloatImagePtr FloatImage::CreateSameSizeFiltered(const Filter & Filter) const
 
 	// the Filter Apply will start the Filter center at the given pixel
 	//	I want the Filter centered on the pixel
-	const int offset = - ((Filter.GetCenterWidth()+1)/2 - 1);
+	// offset for Apply() :
+	//const int offset = - ((Filter.GetCenterWidth()+1)/2 - 1);
+	// simpler offset for ApplyBase :
+	const int offset = - (Filter.GetWidth()/2);
 
 	// first fill tempImage by gFiltering in X only
 	int d;
@@ -597,7 +872,7 @@ FloatImagePtr FloatImage::CreateSameSizeFiltered(const Filter & Filter) const
 
 			for(int x=0;x<m_info.m_width;x++)
 			{
-				dest[x] = srcRow.ApplyAndClamp(Filter,x+offset);
+				dest[x] = srcRow.ApplyBase(Filter,x+offset);
 			}
 		}
 	}
@@ -613,7 +888,7 @@ FloatImagePtr FloatImage::CreateSameSizeFiltered(const Filter & Filter) const
 
 			for(int y=0;y<m_info.m_height;y++)
 			{
-				destCol[y * m_info.m_width] = srcCol.ApplyAndClamp(Filter,y+offset);
+				destCol[y * m_info.m_width] = srcCol.ApplyBase(Filter,y+offset);
 			}
 		}
 	}
@@ -623,15 +898,68 @@ FloatImagePtr FloatImage::CreateSameSizeFiltered(const Filter & Filter) const
 	return newImage;
 }
 
-FloatImagePtr FloatImage::CreateDoubledFiltered(const Filter & filter) const
+FloatImagePtr FloatImage::CreateSameSizeFilteredPlanes(const Filter * planeFilters) const
 {
 	//DeGammaCorrect();	
-	ASSERT( m_info.m_gammaCorrected == false );
-	ASSERT( filter.IsOdd() );
+	//ASSERT( m_info.m_gammaCorrected == false );	
+
+	FloatImagePtr tempImage = FloatImage::CreateEmpty(m_info,m_depth);
 
 	// @@@@ : eEdge_Shared not supported yet
 	ASSERT( m_info.m_eEdgeMode != TextureInfo::eEdge_Shared );
 
+	// first fill tempImage by gFiltering in X only
+	int d;
+	for(d=0;d<m_depth;d++)
+	{
+		// the Filter Apply will start the Filter center at the given pixel
+		//	I want the Filter centered on the pixel
+		const Filter & filter = planeFilters[d];
+		ASSERT( filter.IsOdd() );
+		//const int offset = - ((Filter.GetCenterWidth()+1)/2 - 1);
+	
+		for(int y=0;y<m_info.m_height;y++)
+		{
+			float * dest = tempImage->m_planes[d] + y * m_info.m_width;
+			FloatRow srcRow = GetRow(d,y);
+
+			for(int x=0;x<m_info.m_width;x++)
+			{
+				//dest[x] = srcRow.Apply(Filter,x+offset);
+				dest[x] = srcRow.ApplyCentered(filter,x);
+			}
+		}
+	}
+
+	FloatImagePtr newImage = FloatImage::CreateEmpty(m_info,m_depth);
+
+	for(d=0;d<m_depth;d++)
+	{
+		const Filter & Filter = planeFilters[d];
+		ASSERT( Filter.IsOdd() );
+		//const int offset = - ((Filter.GetCenterWidth()+1)/2 - 1);
+		
+		for(int x=0;x<m_info.m_width;x++)
+		{
+			float * destCol = newImage->m_planes[d] + x;
+			FloatRow srcCol = tempImage->GetColumn(d,x);
+
+			for(int y=0;y<m_info.m_height;y++)
+			{
+				//destCol[y * m_info.m_width] = srcCol.Apply(Filter,y+offset);
+				destCol[y * m_info.m_width] = srcCol.ApplyCentered(Filter,y);
+			}
+		}
+	}
+
+	tempImage = NULL;
+
+	return newImage;
+}
+
+
+FloatImagePtr FloatImage::CreateDoubledBoxFilter() const
+{
 	TextureInfo newInfo = m_info;
 	newInfo.m_width  = m_info.m_width*2;
 	newInfo.m_height = m_info.m_height*2;
@@ -649,8 +977,7 @@ FloatImagePtr FloatImage::CreateDoubledFiltered(const Filter & filter) const
 		}
 	}
 
-	return newImage->CreateSameSizeFiltered(filter);
-	//return newImage;
+	return newImage;
 }
 
 FloatImagePtr FloatImage::CreateNormalMapFromHeightMap() const
@@ -683,8 +1010,25 @@ FloatImagePtr FloatImage::CreateNormalMapFromHeightMap() const
 			const float SE = GetGreyAroundEdge( x+1, y-1 );
 			const float SW = GetGreyAroundEdge( x-1, y-1 );
 
-			float dx = ((2.f * W + NW + SW) - (2.f * E + NE + SE)) * 0.25f;
-			float dy = ((2.f * S + SW + SE) - (2.f * N + NE + NW)) * 0.25f;
+			/*
+			// Sobel :
+			// [1,2,1] taps 
+			float fE = (E + E + NE + SE) * 0.25f;
+			float fW = (W + W + NW + SW) * 0.25f;
+			float fN = (N + N + NW + NE) * 0.25f;
+			float fS = (S + S + SW + SE) * 0.25f;
+			/**/
+
+			// Scharr : 10,3,3 :
+			float fE = (10.f/16.f)* E + (NE + SE) * (3.f/16.f);
+			float fW = (10.f/16.f)* W + (NW + SW) * (3.f/16.f);
+			float fN = (10.f/16.f)* N + (NW + NE) * (3.f/16.f);
+			float fS = (10.f/16.f)* S + (SW + SE) * (3.f/16.f);
+			
+			// factor of 0.5 here is because taps are centered two pixels apart :
+			//	dx = (sample(+1) - sample(-1))/2
+			float dx = (fE - fW) * 0.5f;
+			float dy = (fN - fS) * 0.5f;
 
 			Vec3 normal( dx, dy, altitude );
 			normal.NormalizeFast();
@@ -743,13 +1087,24 @@ FloatImagePtr FloatImage::CreateRandomDownSampled() const
 
 /*static*/ FloatImagePtr FloatImage::CreateFromFile(const char * const fileName)
 {
-	BmpImagePtr im = BmpImage::Create(fileName);
+	FloatImagePtr ret;
+	
+	if ( strisame(extensionpart(fileName),"fim") )
+	{
+		ret = FloatImage::LoadFim(fileName);		
+	}
+	else
+	{
+		BmpImagePtr im = BmpImage::Create(fileName);
 
-	if ( im == NULL )
-		return FloatImagePtr(NULL);
+		if ( im == NULL )
+			return FloatImagePtr(NULL);
 
-	FloatImagePtr ret = CreateFromBmp(im.GetRef());
+		im->Depalettize();
 
+		ret = CreateFromBmp(im);
+	}
+	
 	if ( ret != NULL )
 	{
 		ret->m_info.m_fileName = fileName;
@@ -758,8 +1113,18 @@ FloatImagePtr FloatImage::CreateRandomDownSampled() const
 	return ret;
 }
 
-/*static*/ FloatImagePtr FloatImage::CreateFromBmp(const BmpImage & source)
+/*static*/ FloatImagePtr FloatImage::CreateFromBmp(BmpImagePtr pSource)
 {
+	if ( pSource->IsPalettized() )
+	{
+		// depal without mutating source :
+		//	(this is a stupid extra malloc and memcpy but whatever)
+		pSource = BmpImage::CreateCopy(pSource);
+		pSource->Depalettize();
+	}
+
+	const BmpImage & source = pSource.GetRef();
+
 	TextureInfo info;
 	source.GetTextureInfo(&info);
 
@@ -826,12 +1191,30 @@ BmpImagePtr FloatImage::CopyToBmp() const
 		to->Allocate8Bit(w,h);
 		for(int y=0;y<h;y++)
 		{
-			ubyte * ptr = to->m_pData + y * to->m_pitch;
+			uint8 * ptr = to->m_pData + y * to->m_pitch;
 			for(int x=0;x<w;x++)
 			{
 				float f = GetSample(0,x,y);
 				int i = ColorFTOI(f);
-				*ptr++ = Clamp(i,0,255);
+				*ptr++ = ClampTo8(i);
+			}
+		}
+	}
+	else if ( GetDepth() >= 4 )
+	{	
+		to->Allocate32Bit(w,h);
+		for(int y=0;y<h;y++)
+		{
+			uint8 * ptr = to->m_pData + y * to->m_pitch;
+			for(int x=0;x<w;x++)
+			{
+				ColorF cf = GetPixel(x + y*w);
+				ColorDW dw(ColorDW::eFromFloatSafe,cf);
+				ptr[0] = (uint8) dw.GetB();
+				ptr[1] = (uint8) dw.GetG();
+				ptr[2] = (uint8) dw.GetR();
+				ptr[3] = (uint8) dw.GetA();
+				ptr += 4;
 			}
 		}
 	}
@@ -840,14 +1223,14 @@ BmpImagePtr FloatImage::CopyToBmp() const
 		to->Allocate24Bit(w,h);
 		for(int y=0;y<h;y++)
 		{
-			ubyte * ptr = to->m_pData + y * to->m_pitch;
+			uint8 * ptr = to->m_pData + y * to->m_pitch;
 			for(int x=0;x<w;x++)
 			{
 				ColorF cf = GetPixel(x + y*w);
 				ColorDW dw(ColorDW::eFromFloatSafe,cf);
-				ptr[0] = dw.GetB();
-				ptr[1] = dw.GetG();
-				ptr[2] = dw.GetR();
+				ptr[0] = (uint8) dw.GetB();
+				ptr[1] = (uint8) dw.GetG();
+				ptr[2] = (uint8) dw.GetR();
 				ptr += 3;
 			}
 		}
@@ -868,7 +1251,7 @@ void FloatImage::ConvertRGBtoYUV()
 	{
 		ColorF cf = GetPixel(i);
 		ColorF out = MakeYUVFromRGB(cf);
-		SetPixel(i,cf);
+		SetPixel(i,out);
 	}
 }
 
@@ -884,10 +1267,475 @@ void FloatImage::ConvertYUVtoRGB()
 	{
 		ColorF cf = GetPixel(i);
 		ColorF out = MakeRGBFromYUV(cf);
-		SetPixel(i,cf);
+		SetPixel(i,out);
 	}
 }
+
+// util :
+double FloatImage::ComputeVariance(ColorF * pAverage) const
+{
+	const FloatImage * fim = this;
+	int w = fim->GetInfo().m_width;
+	int h = fim->GetInfo().m_height;
+	int depth = fim->GetDepth();
+	int count = w*h;
+	
+	if ( pAverage )
+	{
+		pAverage->Set(0,0,0,0);
+	}
+		
+	double totalVariance = 0;
+	
+	for(int p=0;p<depth;p++)
+	{
+		double sum = 0;	
+		double sumSqr = 0;	
+	
+		const float * plane = fim->GetPlane(p);
+		for(int i=0;i<count;i++)
+		{
+			sum += plane[i];
+			sumSqr += plane[i]*plane[i];
+		}
+		
+		double avg = sum/count;
+		double planeVariance = (sumSqr/count) - avg*avg;
+		totalVariance += planeVariance;
+		
+		if ( pAverage && p < 4 )
+		{
+			pAverage->MutableVec4()[p] = (float) (sum/count);
+		}
+	}
+	
+	return totalVariance;
+}
+
+//-----------------------------------------------------------------
+
+/*static*/ FloatImagePtr FloatImage::LoadFim(const char * fileName)
+{
+	FileRCPtr file = FileRC::Create(fileName,"rb");
+	if ( file == NULL )
+		return FloatImagePtr(NULL);
+		
+	FloatImagePtr ret = FloatImage::LoadFim(file);	
+	return ret;
+}
+
+bool FloatImage::SaveFim(const char * name) const
+{	
+	FileRCPtr file = FileRC::Create(name,"wb");
+	if ( file == NULL )
+	{
+		lprintf("Failed to write : %s\n",name);
+		return false;
+	}
+	
+	SaveFim(file);
+	
+	return true;
+}
+	
+	
+static const uint32 floatImage_Magic = 'flIm';
+static const uint32 floatImage_Version = 1;
+
+FloatImagePtr FloatImage::LoadFim(const FileRCPtr & stream)
+{
+	uint32 magic;
+	stream->IO(magic);
+	if ( magic != floatImage_Magic )
+	{
+		lprintf("Failed to get floatImage magic number!");
+		return FloatImagePtr(NULL);
+	}
+
+	uint32 version;
+	stream->IO(version);
+	if ( version != 1 )
+	{
+		lprintf("Bad floatImage version number!");
+		return FloatImagePtr(NULL);
+	}
+
+	TextureInfo info;
+	info.IO(stream.GetRef());
+
+	int depth;
+	stream->IO(depth);
+
+	FloatImagePtr ret = CreateEmpty(info,depth);
+	if ( ret == NULL )
+		return ret;
+
+	// read planes :
+	
+	int plane_bytes = sizeof(float) * info.m_width * info.m_height;
+	
+	for(int p=0;p<depth;p++)
+	{
+		float * plane = ret->Plane(p);
+		stream->Read(plane,plane_bytes);
+	}
+
+	return ret;
+}
+
+void FloatImage::SaveFim(const FileRCPtr & stream) const
+{
+	uint32 magic = floatImage_Magic;
+	stream->IO(magic);
+	uint32 version = floatImage_Version;
+	stream->IO(version);
+
+	const_cast<TextureInfo &>(GetInfo()).IO(stream.GetRef());
+
+	int depth = GetDepth();
+	stream->IO(depth);
+
+	// write planes :
+	
+	int plane_bytes = sizeof(float) * GetInfo().m_width * GetInfo().m_height;
+
+	for(int p=0;p<depth;p++)
+	{
+		const float * plane = GetPlane(p);
+		stream->Write(plane,plane_bytes);
+	}
+}
+
+bool FloatImagePtr6::Load(const FileRCPtr & stream)
+{
+	for(int i=0;i<6;i++)
+	{
+		data[i] = FloatImage::LoadFim(stream);
+		if ( data[i] == NULL )
+			return false;
+	}
+	return true;
+}
+
+void FloatImagePtr6::Save(const FileRCPtr & stream) const
+{
+	for(int i=0;i<6;i++)
+	{
+		data[i]->SaveFim(stream);
+	}
+}
+
+bool FloatImage::Clamp_Gamma_SaveByName(const char * fileName)
+{
+	ClampUnit();
+	ReGammaCorrect();
+	return SaveByName(fileName);
+}
+	
+bool FloatImage::SaveByName(const char * fileName) const
+{
+	FloatImagePtrC fim(this);
+	
+	if ( strisame(extensionpart(fileName),"fim") )
+	{
+		if ( ! fim->SaveFim(fileName) )
+		{
+			lprintf("Failed to write FIM : %s\n",fileName);
+			return false;
+		}
+	}
+	else
+	{
+		BmpImagePtr bmp = fim->CopyToBmp();
+		
+		if ( ! WriteByName(bmp,fileName) )
+		{
+			lprintf("Failed to write BMP : %s\n",fileName);
+			return false;
+		}
+	}
+	
+	return true;
+}
+
+double FloatImageMSE(const FloatImage * im1,const FloatImage * im2)
+{
+	double mse = 0;
+	
+	int w = MIN(im1->m_info.m_width ,im2->m_info.m_width );
+	int h = MIN(im1->m_info.m_height,im2->m_info.m_height);
+	int d = MIN(im1->m_depth,im2->m_depth);
+	
+	for(int y=0;y<h;y++)
+	{
+		for(int x=0;x<w;x++)
+		{
+			for(int p=0;p<d;p++)
+			{
+				float s1 = im1->GetSample(p,x,y);
+				float s2 = im2->GetSample(p,x,y);
+			
+				mse += fsquare(s1 - s2);
+			}
+		}
+	}
+	mse /= (w * h);
+	return mse;
+}
+	
 	
 //-----------------------------------------------------------------
 
+// optimization for gamma of 2.0 :
+inline float degamma_pow2(const float f)
+{
+	return f*f;
+}
+inline float regamma_pow2(const float f)
+{
+	return sqrtf(f);
+}
+
+void FloatImage_DeGammaCorrect_Pow2(FloatImage * fim)
+{
+	if ( ! fim->m_info.m_gammaCorrected )
+		return;
+
+	for(int d=0;d<fim->m_depth;d++)
+	{
+		float * plane = fim->m_planes[d];
+		int size = fim->m_info.m_width*fim->m_info.m_height;
+		for(int i=0;i<size;i++)
+		{
+			ASSERT( plane[i] >= 0.f && plane[i] <= 1.f );
+			plane[i] = degamma_pow2( plane[i] );
+		}
+	}
+
+	fim->m_info.m_gammaCorrected = false;
+}
+
+void FloatImage_ReGammaCorrect_Pow2(FloatImage * fim)
+{
+	if ( fim->m_info.m_gammaCorrected )
+		return;
+
+	// do NOT ReGamma for a heightmap or normal map !
+	if ( fim->m_info.m_usage == TextureInfo::eUsage_Heightmap ||
+		 fim->m_info.m_usage == TextureInfo::eUsage_Normalmap )
+		return;
+
+	for(int d=0;d<fim->m_depth;d++)
+	{
+		float * plane = fim->m_planes[d];
+		int size = fim->m_info.m_width*fim->m_info.m_height;
+		for(int i=0;i<size;i++)
+		{
+			ASSERT( plane[i] >= 0.f && plane[i] <= 1.f );
+			plane[i] = regamma_pow2( plane[i] );
+		}
+	}
+
+	fim->m_info.m_gammaCorrected = true;
+}
+
+void FloatImage_DeGammaCorrect_SRGB(FloatImage * fim)
+{
+	if ( ! fim->m_info.m_gammaCorrected )
+		return;
+
+	for(int d=0;d<fim->m_depth;d++)
+	{
+		float * plane = fim->m_planes[d];
+		int size = fim->m_info.m_width*fim->m_info.m_height;
+		for(int i=0;i<size;i++)
+		{
+			//ASSERT( plane[i] >= 0.f && plane[i] <= 1.f );
+			plane[i] = SRGB_To_Linear( plane[i] );
+		}
+	}
+
+	fim->m_info.m_gammaCorrected = false;
+}
+
+void FloatImage_ReGammaCorrect_SRGB(FloatImage * fim)
+{
+	if ( fim->m_info.m_gammaCorrected )
+		return;
+
+	// do NOT ReGamma for a heightmap or normal map !
+	if ( fim->m_info.m_usage == TextureInfo::eUsage_Heightmap ||
+		 fim->m_info.m_usage == TextureInfo::eUsage_Normalmap )
+		return;
+		
+	for(int d=0;d<fim->m_depth;d++)
+	{
+		float * plane = fim->m_planes[d];
+		int size = fim->m_info.m_width*fim->m_info.m_height;
+		for(int i=0;i<size;i++)
+		{
+			//ASSERT( plane[i] >= 0.f && plane[i] <= 1.f );
+			plane[i] = Linear_To_SRGB( plane[i] );
+		}
+	}
+
+	fim->m_info.m_gammaCorrected = true;
+}
+
+void FloatImage_ApplyColorMatrix(FloatImage * fim,const Mat3 & mat)
+{
+	int w = fim->m_info.m_width;
+	int h = fim->m_info.m_height;
+
+	for(int y=0;y<h;y++)
+	{
+		for(int x=0;x<w;x++)
+		{
+			int i = x + y * w;
+			ColorF color = fim->GetPixel(i);
+			Vec3 transformed = mat * color.AsVec3();
+			color.MutableVec3() = transformed;
+			fim->SetPixel(i,color);
+		}
+	}
+}
+
+/**
+
+using a 1-level "down-filter" gives you half-pel offsetting
+
+**/
+FloatImagePtr FloatImage_CreateHalfPelFilteredH(const FloatImage *src,const Filter & filter)
+{
+	//DeGammaCorrect();	
+	// meh let him do what he wants :
+	//ASSERT( m_info.m_gammaCorrected == false );
+	ASSERT( ! filter.IsOdd() );
+	ASSERT( filter.GetLevels() == 1 );
+
+	TextureInfo tempInfo = src->GetInfo();
+	int depth = src->GetDepth();
+	
+	FloatImagePtr tempImage( new FloatImage(tempInfo,depth) );
+
+	//ASSERT( m_info.m_eEdgeMode != TextureInfo::eEdge_Shared );
+
+	// first fill tempImage by gFiltering in X only
+	for(int d=0;d<depth;d++)
+	{
+		for(int y=0;y<tempInfo.m_height;y++)
+		{
+			float * dest = tempImage->m_planes[d] + y * tempInfo.m_width;
+			FloatRow srcRow = src->GetRow(d,y);
+
+			for(int x=0;x<tempInfo.m_width;x++)
+			{
+				//dest[x] = srcRow.ApplyAtCenter(filter,x);
+				dest[x] = srcRow.ApplyCentered(filter,x);
+			}
+		}
+	}
+
+	return tempImage;
+}
+
+FloatImagePtr FloatImage_CreateHalfPelFilteredV(const FloatImage *src,const Filter & filter)
+{
+	FloatImagePtr ptr(const_cast<FloatImage *>(src));
+	FloatImagePtr trans = FloatImage::CreateTranspose(ptr);
+	trans = FloatImage_CreateHalfPelFilteredH(trans.GetPtr(),filter);
+	return FloatImage::CreateTranspose(trans);
+}
+
+FloatImagePtr CreateProduct(const FloatImage * im1,const FloatImage * im2,float A )
+{
+	FloatImagePtr ret = FloatImage::CreateEmpty(im1->GetInfo(),im1->GetDepth());
+	ret->FillProduct(im1,im2,A);
+	return ret;
+}
+
+FloatImagePtr CreateProduct(FloatImagePtr im1,FloatImagePtr im2,float A )
+{
+	return CreateProduct(im1.GetPtr(),im2.GetPtr(),A);
+}
+
+FloatImagePtr CreateSelectOnePlane(FloatImagePtr im1,int p)
+{
+	FloatImagePtr ret = FloatImage::CreateEmpty(im1->GetInfo(),1);
+	ret->CopyPlane(0,im1.GetPtr(),p);
+	return ret;
+}
+
+FloatImagePtr CreateLinearCombo(float w1,FloatImagePtr im1,float w2,FloatImagePtr im2,float C)
+{
+	FloatImagePtr ret = FloatImage::CreateEmpty(im1->GetInfo(),im1->GetDepth());
+	ret->FillLinearCombo(w1,im1.GetPtr(),w2,im2.GetPtr(),C);
+	return ret;
+}
+
+cb::FloatImagePtr CreatePlaneSum(const cb::FloatImage * fim)
+{
+	cb::FloatImagePtr ret = cb::FloatImage::CreateEmpty(fim->GetInfo(),1);
+	int w = fim->GetInfo().m_width;
+	int h = fim->GetInfo().m_height;
+	int d = fim->GetDepth();
+	for LOOP(y,h)
+	{
+		for LOOP(x,w)
+		{
+			double sum = 0;
+			for LOOP(p,d)
+			{
+				sum += fim->GetSample(p,x,y);
+			}
+			ret->Sample(0,x,y) = (float) sum;
+		}
+	}
+	return ret;
+}
+
+cb::FloatImagePtr CreatePlaneSumSqr(const cb::FloatImage * fim)
+{
+	cb::FloatImagePtr ret = cb::FloatImage::CreateEmpty(fim->GetInfo(),1);
+	int w = fim->GetInfo().m_width;
+	int h = fim->GetInfo().m_height;
+	int d = fim->GetDepth();
+	for LOOP(y,h)
+	{
+		for LOOP(x,w)
+		{
+			double sum = 0;
+			for LOOP(p,d)
+			{
+				sum += fsquare( fim->GetSample(p,x,y) );
+			}
+			ret->Sample(0,x,y) = (float) sum;
+		}
+	}
+	return ret;
+}
+
+cb::FloatImagePtr CreatePlaneSumSqrSqrt(const cb::FloatImage * fim)
+{
+	cb::FloatImagePtr ret = cb::FloatImage::CreateEmpty(fim->GetInfo(),1);
+	int w = fim->GetInfo().m_width;
+	int h = fim->GetInfo().m_height;
+	int d = fim->GetDepth();
+	for LOOP(y,h)
+	{
+		for LOOP(x,w)
+		{
+			double sum = 0;
+			for LOOP(p,d)
+			{
+				sum += fsquare( fim->GetSample(p,x,y) );
+			}
+			ret->Sample(0,x,y) = (float) sqrt( sum );
+		}
+	}
+	return ret;
+}
+
+
 END_CB
+

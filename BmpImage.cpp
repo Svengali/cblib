@@ -3,9 +3,12 @@
 #include "cblib/File.h"
 #include "cblib/Util.h"
 #include "cblib/Color.h"
+#include "cblib/FileUtil.h"
+#include "BmpImageJpeg.h"
 
 #include <windows.h>
-#include <d3d9types.h> // for D3DFMT
+//#include <d3d8types.h> // for D3DFMT
+#include <d3d9.h> // for D3DFMT
 
 START_CB
 
@@ -18,27 +21,27 @@ namespace
 	
 	typedef struct tagBITMAPFILEHEADER {
 		WORD bfType; 
-		ulong bfSize; 
+		uint32 bfSize; 
 		WORD bfReserved1; 
 		WORD bfReserved2; 
-		ulong bfOffBits; 
+		uint32 bfOffBits; 
 	} BITMAPFILEHEADER;
 
 	typedef struct tagBITMAPINFOHEADER{ 
-		ulong biSize; 
+		uint32 biSize; 
 		LONG biWidth; 
 		LONG biHeight; 
 		WORD biPlanes; 
 		WORD biBitCount;
-		ulong biCompression; 
-		ulong biSizeImage; 
+		uint32 biCompression; 
+		uint32 biSizeImage; 
 		LONG biXPelsPerMeter; 
 		LONG biYPelsPerMeter; 
-		ulong biClrUsed; 
-		ulong biClrImportant; 
+		uint32 biClrUsed; 
+		uint32 biClrImportant; 
 	} BITMAPINFOHEADER;
 
-	typedef ulong FXPT2DOT30;
+	typedef uint32 FXPT2DOT30;
 	typedef struct tagCIEXYZ {
 		FXPT2DOT30 ciexyzX; 
 		FXPT2DOT30 ciexyzY; 
@@ -54,37 +57,37 @@ namespace
 	typedef CIEXYZTRIPLE* LPCIEXYZTRIPLE; 
 
 	typedef struct {
-		ulong        bV4Size;
+		uint32        bV4Size;
 		LONG         bV4Width;
 		LONG         bV4Height;
 		WORD         bV4Planes;
 		WORD         bV4BitCount;
-		ulong        bV4V4Compression;
-		ulong        bV4SizeImage;
+		uint32        bV4V4Compression;
+		uint32        bV4SizeImage;
 		LONG         bV4XPelsPerMeter;
 		LONG         bV4YPelsPerMeter;
-		ulong        bV4ClrUsed;
-		ulong        bV4ClrImportant;
-		ulong        bV4RedMask;
-		ulong        bV4GreenMask;
-		ulong        bV4BlueMask;
-		ulong        bV4AlphaMask;
-		ulong        bV4CSType;
+		uint32        bV4ClrUsed;
+		uint32        bV4ClrImportant;
+		uint32        bV4RedMask;
+		uint32        bV4GreenMask;
+		uint32        bV4BlueMask;
+		uint32        bV4AlphaMask;
+		uint32        bV4CSType;
 		CIEXYZTRIPLE bV4Endpoints;
-		ulong        bV4GammaRed;
-		ulong        bV4GammaGreen;
-		ulong        bV4GammaBlue;
+		uint32        bV4GammaRed;
+		uint32        bV4GammaGreen;
+		uint32        bV4GammaBlue;
 	} BITMAPV4HEADER, *PBITMAPV4HEADER;
-	const ulong BI_RGB        = 0L;
-	const ulong BI_RLE8       = 1L;
-	const ulong BI_RLE4       = 2L;
-	const ulong BI_BITFIELDS  = 3L;
+	const uint32 BI_RGB        = 0L;
+	const uint32 BI_RLE8       = 1L;
+	const uint32 BI_RLE4       = 2L;
+	const uint32 BI_BITFIELDS  = 3L;
 
 	typedef struct tagRGBQUAD { 
-		ubyte rgbBlue;
-		ubyte rgbGreen;
-		ubyte rgbRed;
-		ubyte rgbReserved;
+		uint8 rgbBlue;
+		uint8 rgbGreen;
+		uint8 rgbRed;
+		uint8 rgbReserved;
 	} RGBQUAD;
 #pragma pack(pop)
 
@@ -93,6 +96,215 @@ namespace
 
 static const int BM_TAG	= 0x4D42;		// 'BM'
 
+//-----------------------------------------------------------------------------
+
+/*static*/ BmpImagePtr BmpImage::CreateCopy( BmpImagePtr from )
+{
+	BmpImagePtr to = BmpImage::Create();
+
+	to->m_width = from->m_width;
+	to->m_height = from->m_height;
+	to->m_pitch = from->m_pitch;
+	to->m_format = from->m_format;
+	
+    to->m_bDeleteData    = true;
+    to->m_bDeletePalette = true;
+ 
+	if ( from->m_pData )
+	{
+		int size = from->GetBytesPerPel() * from->m_width * from->m_pitch;
+	
+		to->m_pData = new uint8 [size];
+		
+		memcpy(to->m_pData,from->m_pData,size);
+	}
+	
+	if ( from->m_pPalette )
+	{
+		to->m_pPalette = (ColorDW *) new ColorDW[256];
+		
+		memcpy(to->m_pPalette,from->m_pPalette,1024);
+	}
+	
+	return to;
+}
+
+
+// CreateCopyPortion can be larger or smaller; if larger extends by eEdgeMode
+BmpImagePtr BmpImage::CreateCopyPortion( BmpImagePtr from , 
+										int newW,int newH, 
+										TextureInfo::EEdgeMode eEdgeMode,
+										int baseX,int baseY)
+{
+	BmpImagePtr to = BmpImage::Create();
+
+	int bpp = from->GetBytesPerPel();
+
+	to->m_width = newW;
+	to->m_height = newH;
+	to->m_pitch = newW * bpp;
+	to->m_format = from->m_format;
+	
+    to->m_bDeleteData    = true;
+    to->m_bDeletePalette = true;
+ 
+	if ( from->m_pPalette )
+	{
+		to->m_pPalette = (ColorDW *) new ColorDW[256];
+		
+		memcpy(to->m_pPalette,from->m_pPalette,1024);
+	}
+	
+	if ( from->m_pData )
+	{
+		int size = bpp * to->m_width * to->m_pitch;
+		to->m_pData = new uint8 [size];
+		
+		for(int toY=0;toY<newH;toY++)
+		{
+			int fmY = TextureInfo::Index( toY + baseY, from->m_height, eEdgeMode);
+			
+			uint8 * fmRow = from->m_pData + fmY * from->m_pitch;
+			uint8 * toRow = to->m_pData + toY * to->m_pitch;
+			
+			for(int toX=0;toX<newW;toX++)
+			{
+				int fmX = TextureInfo::Index( toX + baseX, from->m_width, eEdgeMode);
+			
+				uint8 * fmPtr = fmRow + fmX * bpp;	
+				uint8 * toPtr = toRow + toX * bpp;	
+				memcpy(toPtr,fmPtr,bpp);
+			}
+		}
+	}
+		
+	return to;
+}
+
+/*
+
+ShittyMip = box filter , not gamma correct
+
+*/
+
+static inline void ShittyMip1(uint8 *to,uint8 *f1,uint8 *f2,uint8 *f3,uint8 *f4)
+{
+	*to = (*f1 + *f2 + *f3 + *f4 + 2)>>2;
+}
+
+static inline void ShittyMip(uint8 *to,int bpp, uint8 *f1,uint8 *f2,uint8 *f3,uint8 *f4)
+{
+	switch(bpp)
+	{
+	case 4:
+		ShittyMip1(to++,f1++,f2++,f3++,f4++);
+	case 3:
+		ShittyMip1(to++,f1++,f2++,f3++,f4++);
+	case 2:
+		ShittyMip1(to++,f1++,f2++,f3++,f4++);
+	case 1:
+		ShittyMip1(to++,f1++,f2++,f3++,f4++);
+		break;
+	NO_DEFAULT_CASE
+	}
+}
+
+BmpImagePtr BmpImage::CreateShittyMip( BmpImagePtr from ,
+												TextureInfo::EEdgeMode eEdgeMode )
+{
+	int bpp = from->GetBytesPerPel();
+	if ( bpp < 3 )
+		return BmpImagePtr(NULL);
+		
+	BmpImagePtr to = BmpImage::Create();
+		
+	int newW = (from->m_width + 1)>>1;
+	int newH = (from->m_height +1)>>1;
+
+	to->m_width = newW;
+	to->m_height = newH;
+	to->m_pitch = newW * bpp;
+	to->m_format = from->m_format;
+	
+	
+	if ( from->m_pData )
+	{
+		int size = bpp * to->m_width * to->m_pitch;
+		
+		to->m_pData = new uint8 [size];
+		to->m_bDeleteData    = true;
+		
+		for(int toY=0;toY<newH;toY++)
+		{
+			int fmY1 = toY * 2;
+			uint8 * fmRow1 = from->m_pData + fmY1 * from->m_pitch;
+			
+			int fmY2 = TextureInfo::Index( fmY1 + 1, from->m_height, eEdgeMode);
+			uint8 * fmRow2 = from->m_pData + fmY2 * from->m_pitch;
+			
+			uint8 * toRow = to->m_pData + toY * to->m_pitch;
+			
+			uint8 * fmPtr1 = fmRow1;
+			uint8 * fmPtr2 = fmRow2;
+			uint8 * toPtr = toRow;
+			int bpp2 = bpp+bpp;
+			
+			for(int countX = newW-1; countX--; )
+			{
+				ShittyMip(toPtr,bpp,fmPtr1,fmPtr1+bpp,fmPtr2,fmPtr2+bpp);
+				
+				toPtr += bpp;
+				fmPtr1 += bpp2;
+				fmPtr2 += bpp2;
+			}
+			
+			// last one to handle odds :
+			{
+				int toX = newW-1;
+				ASSERT( toPtr == toRow + toX * bpp );	
+				
+				int fmX1 = toX*2;
+				int fmX2 = TextureInfo::Index( fmX1 + 1, from->m_width, eEdgeMode);
+							
+				uint8 * fmPtr11 = fmRow1 + fmX1 * bpp;	
+				uint8 * fmPtr12 = fmRow1 + fmX2 * bpp;	
+				uint8 * fmPtr21 = fmRow2 + fmX1 * bpp;	
+				uint8 * fmPtr22 = fmRow2 + fmX2 * bpp;
+				
+				ShittyMip(toPtr,bpp,fmPtr11,fmPtr12,fmPtr21,fmPtr22);
+			}
+		}
+	}
+		
+	return to;
+}
+												
+BmpImagePtr BmpImage::CreateEmpty24b(int w,int h)
+{
+	BmpImagePtr ret = BmpImage::Create();
+	
+	ret->m_width		= w;
+	ret->m_height		= h;
+	ret->m_pitch		= w*3;
+    ret->m_format         = GetFormatForBytes(3);
+    int size = ret->m_pitch * ret->m_height;
+    ret->m_pData          = new uint8 [ size ];
+    ret->m_pPalette       = NULL;
+    ret->m_bDeleteData    = true;
+    ret->m_bDeletePalette = false;
+    
+    memset(ret->m_pData,0,size);
+    
+    return ret;
+}
+
+void BmpImage::FillZero()
+{
+	if ( m_pData )
+	{
+	    memset(m_pData,0,m_pitch*m_height);
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Name: BmpImage()
@@ -145,7 +357,7 @@ void BmpImage::Release()
 // Name: Load()
 // Desc: Attempts to load the given data as an image
 //-----------------------------------------------------------------------------
-bool BmpImage::Load( const void* pData, ulong cbData )
+bool BmpImage::Load( const void* pData, uint32 cbData )
 {
 
     // Try all known image loading subroutines
@@ -207,7 +419,7 @@ bool BmpImage::Load( const char * strFilename )
         return false;
 
     // Allocate memory
-    ulong dwFileSize = GetFileSize( hFile, NULL );
+    uint32 dwFileSize = GetFileSize( hFile, NULL );
     void* pFileData  = CBALLOC( dwFileSize );
 
     // Read it the file
@@ -234,26 +446,26 @@ bool BmpImage::Depalettize()
     if( NULL == m_pPalette )
         return true;
 
-    ulong* pNewData = new ulong[m_width*m_height];
+    uint32* pNewData = new uint32[m_width*m_height];
 
-    //ubyte*  pOldData = (ubyte*)pSrcData;
+    //uint8*  pOldData = (uint8*)pSrcData;
 
     // Loop through all texels and get 32-bit color from the 8-bit palette index
-    for( ulong y=0; y<m_height; y++ )
+    for( int y=0; y<m_height; y++ )
     {
-		ubyte*  pSrcData = (ubyte*)m_pData + y * m_pitch;
-		ulong*  pDstData = ((ulong*)pNewData) + y * m_width;
-        for( ulong x=0; x<m_width; x++ )
+		uint8*  pSrcData = (uint8*)m_pData + y * m_pitch;
+		uint32*  pDstData = ((uint32*)pNewData) + y * m_width;
+        for( int x=0; x<m_width; x++ )
         {
-            ubyte  index = *pSrcData++;
+            uint8  index = *pSrcData++;
 
 			*pDstData++ = m_pPalette[index].GetDW();
 
 			/*
-            ulong red   = m_pPalette[index].peRed;
-            ulong green = m_pPalette[index].peGreen;
-            ulong blue  = m_pPalette[index].peBlue;
-            ulong alpha = m_pPalette[index].peFlags;
+            uint32 red   = m_pPalette[index].peRed;
+            uint32 green = m_pPalette[index].peGreen;
+            uint32 blue  = m_pPalette[index].peBlue;
+            uint32 alpha = m_pPalette[index].peFlags;
 
             *pDstData++ = (alpha<<24) | (red<<16) | (green<<8) | (blue<<0);
             */
@@ -269,12 +481,12 @@ bool BmpImage::Depalettize()
     // Delete the old data, and assign the new data
     if( m_bDeleteData )
         delete[] m_pData;
-    m_pData          = (ubyte *)pNewData;
+    m_pData          = (uint8 *)pNewData;
     m_bDeleteData    = true;
 
     // The format is now A8R8G8B8
     m_format = D3DFMT_A8R8G8B8;
-    m_pitch  = m_width * sizeof(ulong);
+    m_pitch  = m_width * sizeof(uint32);
 
     return true;
 }
@@ -284,7 +496,7 @@ bool BmpImage::Depalettize()
 // Name: LoadBMP()
 // Desc: Attempts to load the given data as a BMP
 //-----------------------------------------------------------------------------
-bool BmpImage::LoadBMP( const void* pvData, ulong cbData )
+bool BmpImage::LoadBMP( const void* pvData, int cbData )
 {
     // Examine header
     if(cbData < sizeof(BITMAPFILEHEADER))
@@ -292,10 +504,10 @@ bool BmpImage::LoadBMP( const void* pvData, ulong cbData )
 
     BITMAPFILEHEADER *pFH = (BITMAPFILEHEADER *) pvData;
 
-    if(pFH->bfType != (('B') | ('M' << 8)) || pFH->bfSize > cbData)
+    if(pFH->bfType != (('B') | ('M' << 8)) || (int)pFH->bfSize > cbData)
         return false;
 
-    return LoadDIB((ubyte *) pvData + sizeof(BITMAPFILEHEADER), cbData - sizeof(BITMAPFILEHEADER));
+    return LoadDIB((uint8 *) pvData + sizeof(BITMAPFILEHEADER), cbData - sizeof(BITMAPFILEHEADER));
 }
 
 
@@ -304,7 +516,8 @@ D3DFORMAT BmpImage::GetFormatForBytes(int n)
 	switch(n)
 	{
 	case 1:
-        return D3DFMT_P8;
+		// ambiguous whether to return P8 or L8 here
+        return D3DFMT_L8;
     case 2:
         return D3DFMT_X1R5G5B5;
     case 3:
@@ -345,10 +558,10 @@ int BmpImage::GetBytesPerPel() const
 // Name: LoadDIB()
 // Desc: Attempts to load the given data as a DIB
 //-----------------------------------------------------------------------------
-bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
+bool BmpImage::LoadDIB( const void* pvData, int cbData )
 {
     UNALIGNED BITMAPINFOHEADER *pIH;
-    ulong     dwWidth, dwHeight, dwOffset, dwClrUsed;
+    int     dwWidth, dwHeight, dwOffset, dwClrUsed;
 
     if(cbData < sizeof(BITMAPINFOHEADER))
         return false;
@@ -358,16 +571,29 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
     if(pIH->biSize < sizeof(BITMAPINFOHEADER))
         return false;
 
-    dwWidth   = (ulong) (pIH->biWidth);
-    dwHeight  = (ulong) (pIH->biHeight > 0 ? pIH->biHeight : -pIH->biHeight);
-    dwClrUsed = (ulong) (pIH->biClrUsed);
+    dwWidth   = (int) (pIH->biWidth);
+    dwHeight  = (int) (pIH->biHeight > 0 ? pIH->biHeight : -pIH->biHeight);
+    dwClrUsed = (int) (pIH->biClrUsed);
 
-    if((pIH->biBitCount <= 8) && (0 == dwClrUsed))
-        dwClrUsed = (ulong) (1 << pIH->biBitCount);
+    if ( (pIH->biBitCount <= 8) )
+    {
+		int fullPaletteSize = 1 << pIH->biBitCount;
+		
+		if ( dwClrUsed == 0 )
+			dwClrUsed = fullPaletteSize;
+        else
+			dwClrUsed = MIN(dwClrUsed,fullPaletteSize);
+		// MIN to cover broken .bmp files that have biClrUsed set too big
+	}
+	else
+	{
+		// @@ cover Matt's fv.bmp which has dwClrUsed = 16M
+		dwClrUsed = 0;
+	}
+	
+    dwOffset  = (int) pIH->biSize + dwClrUsed * sizeof(uint32);
 
-    dwOffset  = (ulong) pIH->biSize + dwClrUsed * sizeof(ulong);
-
-    if(dwOffset > (ulong) cbData)
+    if(dwOffset > (int) cbData)
         return false;
 
     if(pIH->biPlanes != 1)
@@ -380,7 +606,7 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
 
 
     // Compute format
-    ulong dwB, dwG, dwR, dwA;
+    uint32 dwB, dwG, dwR, dwA;
     D3DFORMAT Format = D3DFMT_UNKNOWN;
 
     switch(pIH->biCompression)
@@ -466,7 +692,7 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
             break;
 
         default:
-            lprintf("LoadBMP: JPEG compression not supported");
+            //lprintf("LoadBMP: JPEG compression not supported");
             return false;
     }
 
@@ -479,20 +705,14 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
 
     if(D3DFMT_P8 == Format)
     {
-        ulong dwClrUsed = pIH->biClrUsed;
-
-        if(!dwClrUsed)
-            dwClrUsed = 1 << pIH->biBitCount;
-
         m_bDeletePalette = true;
 
         m_pPalette = new ColorDW[256];
         memset(m_pPalette,0xFF,sizeof(ColorDW)*256);
 
-        ulong dw;
-        RGBQUAD* prgb = (RGBQUAD*) (((ubyte *) pIH) + pIH->biSize);
+        RGBQUAD* prgb = (RGBQUAD*) (((uint8 *) pIH) + pIH->biSize);
 
-        for(dw = 0; dw < dwClrUsed; dw++, prgb++)
+        for(int dw = 0; dw < dwClrUsed; dw++, prgb++)
         {
             m_pPalette[dw].Set( prgb->rgbRed, prgb->rgbGreen, prgb->rgbBlue, 0xff );
         }
@@ -508,19 +728,19 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
         */
     }
 
-    ulong dwWidthBytes;
-    ulong dwSrcInc, dwDstInc;
+    int dwWidthBytes;
+    int dwSrcInc, dwDstInc;
 
     switch(pIH->biBitCount)
     {
         case 1:
             dwWidthBytes = dwWidth;
-            dwSrcInc = ((dwWidth >> 3) + 3) & ~3;
+            dwSrcInc = (((dwWidth+7) >> 3) + 3) & ~3;
             break;
 
         case 4:
             dwWidthBytes = dwWidth;
-            dwSrcInc = ((dwWidth >> 1) + 3) & ~3;
+            dwSrcInc = (((dwWidth+1) >> 1) + 3) & ~3;
             break;
 
         default:
@@ -529,10 +749,11 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
             break;
     }
 	
+	
     m_format  = Format;
-    m_pitch   = (ulong)((dwWidthBytes + 3) & ~3);
-    m_width   = (ulong)dwWidth;
-    m_height  = (ulong)dwHeight;
+    m_pitch   = (uint32)((dwWidthBytes + 3) & ~3);
+    m_width   = (uint32)dwWidth;
+    m_height  = (uint32)dwHeight;
                	
 	// BmpImage promotes 24 bit to 32 on load; that should be optional
 	//	32-bit is good for use in d3d textures
@@ -543,35 +764,35 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
     {
 		m_format = Format = D3DFMT_X8R8G8B8;
 		
-        ulong*          pdwDst;
+        uint32*          pdwDst;
         int             nStrideDst;
         UINT            i, j;
 
         dwWidthBytes = (dwWidth * (32 >> 3));
-        m_pitch      = (ulong)((dwWidthBytes + 3) & ~3);
+        m_pitch      = (uint32)((dwWidthBytes + 3) & ~3);
 
         m_bDeleteData = true;
 
-        m_pData = new ubyte[dwHeight * m_pitch];
+        m_pData = new uint8[dwHeight * m_pitch];
 
         if (pIH->biHeight < 0)
         {
-            pdwDst = (ulong*)m_pData;
+            pdwDst = (uint32*)m_pData;
             nStrideDst = m_pitch >> 2;
         }
         else
         {
-            pdwDst = (ulong*)((ubyte*)m_pData + m_pitch * (dwHeight - 1));
+            pdwDst = (uint32*)((uint8*)m_pData + m_pitch * (dwHeight - 1));
             nStrideDst = -(int)(m_pitch >> 2);
         }
 
         dwSrcInc = (dwWidth*3 + 3) & ~3;
 
-		UNALIGNED ubyte* pbSrcRow;
-        pbSrcRow = ((ubyte*)pvData) + dwOffset;
+		UNALIGNED uint8* pbSrcRow;
+        pbSrcRow = ((uint8*)pvData) + dwOffset;
         for (i = 0; i < dwHeight; i++)
         {
-			UNALIGNED ubyte* pbSrc;
+			UNALIGNED uint8* pbSrc;
 			pbSrc = pbSrcRow;
             for (j = 0; j < dwWidth; j++)
             {
@@ -590,8 +811,8 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
     if(pIH->biHeight < 0 && pIH->biBitCount >= 8)
     {
         // The data is in the correct format already in the file.
-        m_pData  = new ubyte[dwHeight * m_pitch];
-        memcpy( m_pData, ((ubyte *)pvData) + dwOffset, dwHeight * m_pitch );
+        m_pData  = new uint8[dwHeight * m_pitch];
+        memcpy( m_pData, ((uint8 *)pvData) + dwOffset, dwHeight * m_pitch );
         m_bDeleteData = true;
 
         return true;
@@ -601,26 +822,26 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
     // buffer which will contain the image..
 
     m_bDeleteData = true;
-    m_pData  = new ubyte[dwHeight * m_pitch];
+    m_pData  = new uint8[dwHeight * m_pitch];
 
-    UNALIGNED ubyte *pbSrc, *pbDest, *pbDestMin, *pbDestLim, *pbDestLine;
+    UNALIGNED uint8 *pbSrc, *pbDest, *pbDestMin, *pbDestLim, *pbDestLine;
 
-    pbSrc = ((ubyte *) pvData) + dwOffset;
+    pbSrc = ((uint8 *) pvData) + dwOffset;
 
     if(pIH->biHeight < 0)
     {
         dwDstInc = m_pitch;
-        pbDest = (ubyte *) m_pData;
+        pbDest = (uint8 *) m_pData;
     }
     else
     {
-        dwDstInc = 0 - (ulong)m_pitch;
-        pbDest = (ubyte *) m_pData + (dwHeight - 1) * m_pitch;
+        dwDstInc = - m_pitch;
+        pbDest = (uint8 *) m_pData + (dwHeight - 1) * m_pitch;
     }
 
     pbDestLine = pbDest;
-    pbDestMin = (ubyte *) m_pData;
-    pbDestLim = (ubyte *) m_pData + dwHeight * m_pitch;
+    pbDestMin = (uint8 *) m_pData;
+    pbDestLim = (uint8 *) m_pData + dwHeight * m_pitch;
 
     if(BI_RLE4 == pIH->biCompression)
     {
@@ -649,7 +870,7 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
 
                     default:
                         for(int i = 0; i < pbSrc[1]; i++)
-                            pbDest[i] = (ubyte)( (i & 1) ?  (pbSrc[2 + (i >> 1)] & 0x0f) : (pbSrc[2 + (i >> 1)] >> 4) );
+                            pbDest[i] = (uint8)( (i & 1) ?  (pbSrc[2 + (i >> 1)] & 0x0f) : (pbSrc[2 + (i >> 1)] >> 4) );
 
                         pbDest += pbSrc[1];
                         pbSrc += ((pbSrc[1] >> 1) + 1) & ~1;
@@ -659,7 +880,7 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
             else
             {
                 for(int i = 0; i < pbSrc[0]; i++)
-                    pbDest[i] = (ubyte)( (i & 1) ? (pbSrc[1] & 0x0f) : (pbSrc[1] >> 4) );
+                    pbDest[i] = (uint8)( (i & 1) ? (pbSrc[1] & 0x0f) : (pbSrc[1] >> 4) );
 
                 pbDest += pbSrc[0];
             }
@@ -719,8 +940,8 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
     {
         while(pbDest >= pbDestMin && pbDest < pbDestLim)
         {
-            for(UINT i = 0; i < dwWidth; i++)
-                pbDest[i] = ubyte((pbSrc[i >> 3] >> (7 - (i & 7))) & 1);
+            for(int i = 0; i < dwWidth; i++)
+                pbDest[i] = uint8((pbSrc[i >> 3] >> (7 - (i & 7))) & 1);
 
             pbDest += dwDstInc;
             pbSrc  += dwSrcInc;
@@ -733,8 +954,8 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
     {
         while(pbDest >= pbDestMin && pbDest < pbDestLim)
         {
-            for(UINT i = 0; i < dwWidth; i++)
-                pbDest[i] = (ubyte)( (i & 1) ? pbSrc[i >> 1] & 0x0f : (pbSrc[i >> 1] >> 4) );
+            for(int i = 0; i < dwWidth; i++)
+                pbDest[i] = (uint8)( (i & 1) ? pbSrc[i >> 1] & 0x0f : (pbSrc[i >> 1] >> 4) );
 
             pbDest += dwDstInc;
             pbSrc  += dwSrcInc;
@@ -765,20 +986,20 @@ bool BmpImage::LoadDIB( const void* pvData, ulong cbData )
 #pragma pack(1)
 struct TGAHEADER
 {
-    ubyte IDLength;
-    ubyte ColormapType;
-    ubyte ImageType;
+    uint8 IDLength;
+    uint8 ColormapType;
+    uint8 ImageType;
 
     WORD wColorMapIndex;
     WORD wColorMapLength;
-    ubyte bColorMapBits;
+    uint8 bColorMapBits;
 
     WORD wXOrigin;
     WORD wYOrigin;
     WORD wWidth;
     WORD wHeight;
-    ubyte PixelDepth;
-    ubyte ImageDescriptor;
+    uint8 PixelDepth;
+    uint8 ImageDescriptor;
 };
 #pragma pack()
 
@@ -789,13 +1010,13 @@ struct TGAHEADER
 // Name: LoadTGA()
 // Desc: Attempts to load the given data as a TGA file
 //-----------------------------------------------------------------------------
-bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
+bool BmpImage::LoadTGA( const void* pvData, int cbData )
 {
     // Validate header.  TGA files don't seem to have any sort of magic number
     // to identify them.  Therefore, we will proceed as if this is a real TGA
     // file, until we see something we don't understand.
 
-    ubyte*      pbData = (ubyte*)pvData;
+    uint8*      pbData = (uint8*)pvData;
     TGAHEADER* pFH    = (TGAHEADER*)pbData;
 
     if( cbData < sizeof(TGAHEADER) )
@@ -811,13 +1032,13 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
         return false;
 
 
-#pragma PRAGMA_MESSAGE("BAD : BmpImage promotes 24 bit to 32 on load; that should be optional")
+//#pragma PRAGMA_MESSAGE("BAD : BmpImage promotes 24 bit to 32 on load; that should be optional")
 	//	@@ dunno if it would work to just disable this block
 	//	 promoting 24->32 is pretty good by default cuz it makes me all nice and aligned
 	//	 though fatter in memory so w/e
 
     // Colormap size and format
-    UINT uColorMapBytes = ((UINT) pFH->bColorMapBits + 7) >> 3;
+    int uColorMapBytes = ((UINT) pFH->bColorMapBits + 7) >> 3;
     D3DFORMAT ColorMapFormat = D3DFMT_UNKNOWN;
 
     if(pFH->ColormapType)
@@ -834,7 +1055,7 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
 
 
     // Image size and format
-    UINT uBytes = ((UINT) pFH->PixelDepth + 7) >> 3;
+    int nBytes = ((UINT) pFH->PixelDepth + 7) >> 3;
     D3DFORMAT Format = D3DFMT_UNKNOWN;
 
     switch(pFH->ImageType & 0x03)
@@ -890,7 +1111,7 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
 
 
     // Color map
-    UINT cbColorMap = (UINT) pFH->wColorMapLength * uColorMapBytes;
+    int cbColorMap = (int) pFH->wColorMapLength * uColorMapBytes;
 
     if(cbData < cbColorMap)
         return false;
@@ -905,7 +1126,7 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
         m_bDeletePalette = true;
         memset(m_pPalette, 0xff, 256 * sizeof(PALETTEENTRY));
 
-        ubyte *pb = pbData;
+        uint8 *pb = pbData;
         ColorDW *pColor = m_pPalette + pFH->wColorMapIndex;
         ColorDW *pColorLim = pColor + pFH->wColorMapLength;
 
@@ -955,7 +1176,7 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
                     break;
 
                 case D3DFMT_A8R8G8B8:
-                    u = *((ulong *) pb);
+                    u = *((uint32 *) pb);
 
                     uA = (u >> 24) & 0xff;
                     uR = (u >> 16) & 0xff;
@@ -985,15 +1206,15 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
 
 
     // Image data
-    UINT cbImage;
+    int cbImage;
     if(Format == D3DFMT_X8R8G8B8)
-        cbImage = (UINT) pFH->wWidth * (UINT) pFH->wHeight * (uBytes+1);
+        cbImage = (int) pFH->wWidth * (int) pFH->wHeight * (nBytes+1);
     else
-        cbImage = (UINT) pFH->wWidth * (UINT) pFH->wHeight * uBytes;
+        cbImage = (int) pFH->wWidth * (int) pFH->wHeight * nBytes;
 
     m_format  = Format;
     m_pData   = pbData;
-    m_pitch   = (UINT) pFH->wWidth * uBytes;
+    m_pitch   = (int) pFH->wWidth * nBytes;
 
     m_width  = pFH->wWidth;
     m_height = pFH->wHeight;
@@ -1003,7 +1224,7 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
     {
         // Data is already in a format usable to D3D.. no conversion is necessary
         
-        m_pData = new ubyte[cbImage];
+        m_pData = new uint8[cbImage];
         memcpy( m_pData, pbData, min(cbData, cbImage) );
         m_bDeleteData = true;
 
@@ -1013,16 +1234,16 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
     else
     {
         // Image data is compressed, or does not have origin at top-left
-        m_pData = new ubyte[cbImage];
+        m_pData = new uint8[cbImage];
 
         m_bDeleteData = true;
 
 
-        ubyte *pbDestY = bTopToBottom ? (ubyte *) m_pData : ((ubyte *) m_pData + (pFH->wHeight - 1) * m_pitch);
+        uint8 *pbDestY = bTopToBottom ? (uint8 *) m_pData : ((uint8 *) m_pData + (pFH->wHeight - 1) * m_pitch);
 
         for(UINT uY = 0; uY < pFH->wHeight; uY++)
         {
-            ubyte *pbDestX = bLeftToRight ? pbDestY : (pbDestY + m_pitch - uBytes);
+            uint8 *pbDestX = bLeftToRight ? pbDestY : (pbDestY + m_pitch - nBytes);
 
             for(UINT uX = 0; uX < pFH->wWidth; )
             {
@@ -1050,24 +1271,24 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
 
                 while(uCount--)
                 {
-                    if(cbData < uBytes)
+                    if(cbData < nBytes)
                         return false;
 
-                    memcpy(pbDestX, pbData, uBytes);
+                    memcpy(pbDestX, pbData, nBytes);
 
                     if(!bRunLength)
                     {
-                        pbData += uBytes;
-                        cbData -= uBytes;
+                        pbData += nBytes;
+                        cbData -= nBytes;
                     }
 
-                    pbDestX = bLeftToRight ? (pbDestX + uBytes) : (pbDestX - uBytes);
+                    pbDestX = bLeftToRight ? (pbDestX + nBytes) : (pbDestX - nBytes);
                 }
 
                 if(bRunLength)
                 {
-                    pbData += uBytes;
-                    cbData -= uBytes;
+                    pbData += nBytes;
+                    cbData -= nBytes;
                 }
             }
 
@@ -1079,9 +1300,9 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
     {
         //convert from 24-bit R8G8B8 to 32-bit X8R8G8B8
         // do the conversion in-place
-        ubyte *pSrc, *pDst;
-        pSrc = (ubyte *)m_pData + (m_height)*(m_width*uBytes) - uBytes;
-        pDst = (ubyte *)m_pData + (m_height)*(m_width*(uBytes+1)) - (uBytes+1);
+        uint8 *pSrc, *pDst;
+        pSrc = (uint8 *)m_pData + (m_height)*(m_width*nBytes) - nBytes;
+        pDst = (uint8 *)m_pData + (m_height)*(m_width*(nBytes+1)) - (nBytes+1);
             
         while(pSrc >= m_pData)
         {
@@ -1092,7 +1313,7 @@ bool BmpImage::LoadTGA( const void* pvData, ulong cbData )
             pSrc -= 3;
             pDst -= 4;
         }
-        m_pitch   = m_width * (uBytes+1);
+        m_pitch   = m_width * (nBytes+1);
     }
 
     return true;
@@ -1117,9 +1338,9 @@ enum
 // Name: LoadPPM()
 // Desc: Attempts to load the given data as a PPM file
 //-----------------------------------------------------------------------------
-bool BmpImage::LoadPPM( const void* pvData, ulong cbData )
+bool BmpImage::LoadPPM( const void* pvData, int cbData )
 {
-    ubyte *pbData = (ubyte *)pvData;
+    uint8 *pbData = (uint8 *)pvData;
 
     // Check header
     bool bAscii;
@@ -1138,13 +1359,13 @@ bool BmpImage::LoadPPM( const void* pvData, ulong cbData )
     cbData -= 2;
 
     // Image data
-    UINT uMode   = PPM_WIDTH;
-    UINT uWidth  = 0;
-    UINT uHeight = 0;
-    UINT uMax    = 255;
+    int uMode   = PPM_WIDTH;
+    int uWidth  = 0;
+    int uHeight = 0;
+    int uMax    = 255;
 
-    ulong* pdw    = NULL;
-	ulong* pdwLim = NULL;
+    uint32* pdw    = NULL;
+	uint32* pdwLim = NULL;
 
     while(cbData)
     {
@@ -1199,7 +1420,7 @@ bool BmpImage::LoadPPM( const void* pvData, ulong cbData )
         else
         {
             // Number
-            UINT u = 0;
+            int u = 0;
 
             while(cbData && !isspace(*pbData))
             {
@@ -1228,15 +1449,15 @@ bool BmpImage::LoadPPM( const void* pvData, ulong cbData )
                     if(0 == uHeight)
                         return false;
 
-                    m_pData = new ubyte[uWidth * uHeight * sizeof(ulong)];
+                    m_pData = new uint8[uWidth * uHeight * sizeof(uint32)];
 
                     m_bDeleteData = true;
 
-                    pdw = (ulong *) m_pData;
+                    pdw = (uint32 *) m_pData;
                     pdwLim = pdw + uWidth * uHeight;
 
                     m_format = D3DFMT_X8R8G8B8;
-                    m_pitch  = uWidth * sizeof(ulong);
+                    m_pitch  = uWidth * sizeof(uint32);
 
                     m_width  = uWidth;
                     m_height = uHeight;
@@ -1311,14 +1532,14 @@ void BmpImage::MakeGreyPaletteL8() // convert P8 grey to L8
 	// it's grey !
 
     // Loop through all texels and get 32-bit color from the 8-bit palette index
-    for( ulong y=0; y<m_height; y++ )
+    for( int y=0; y<m_height; y++ )
     {
-	    ubyte * pData = m_pData + y * m_pitch;
-        for( ulong x=0; x<m_width; x++ )
+	    uint8 * pData = m_pData + y * m_pitch;
+        for( int x=0; x<m_width; x++ )
         {
-            ubyte  index = *pData;
+            uint8  index = *pData;
 
-			*pData++ = m_pPalette[index].GetR();
+			*pData++ = (uint8) m_pPalette[index].GetR();
         }
     }
 
@@ -1373,15 +1594,15 @@ void BmpImage::Force24Bit()
 	m_pData = new unsigned char [m_pitch * m_height];
 	m_bDeleteData = true;
 
-	for(int y=0;y<m_height;y++)
+	for(int y=0;y<(int)m_height;y++)
 	{
-		ubyte * ptr = ((ubyte *)m_pData) + y *m_pitch;
-		for(int x=0;x<m_width;x++)
+		uint8 * ptr = ((uint8 *)m_pData) + y *m_pitch;
+		for(int x=0;x<(int)m_width;x++)
 		{
 			ColorDW cdw = prev.GetColor(x,y);
-			ptr[0] = cdw.GetB();
-			ptr[1] = cdw.GetG();
-			ptr[2] = cdw.GetR();
+			ptr[0] = (uint8) cdw.GetB();
+			ptr[1] = (uint8) cdw.GetG();
+			ptr[2] = (uint8) cdw.GetR();
 			ptr += 3;
 		}
 	}
@@ -1410,7 +1631,7 @@ void BmpImage::Force32Bit()
 
 	for(int y=0;y<m_height;y++)
 	{
-		ubyte * ptr = ((ubyte *)m_pData) + y *m_pitch;
+		uint8 * ptr = ((uint8 *)m_pData) + y *m_pitch;
 		ColorDW * pul = (ColorDW *)ptr;
 		for(int x=0;x<m_width;x++)
 		{
@@ -1421,6 +1642,69 @@ void BmpImage::Force32Bit()
 	
 	// prev will now destruct
 	prev.Release();
+}
+
+void BmpImage::Force8BitGray()
+{
+	if ( m_format == D3DFMT_L8 )
+	{
+		return;
+	}
+	
+	// copy this
+	BmpImage prev;
+	Copy(&prev,this);
+	
+	m_pPalette = NULL;
+	m_bDeletePalette = false;
+	m_format = D3DFMT_L8;
+	m_pitch = m_width;
+	m_pData = new unsigned char [m_pitch * m_height];
+	m_bDeleteData = true;
+
+	for(int y=0;y<m_height;y++)
+	{
+		uint8 * ptr = ((uint8 *)m_pData) + y *m_pitch;
+		for(int x=0;x<m_width;x++)
+		{
+			ColorDW cdw = prev.GetColor(x,y);
+			int L = (cdw.GetR() + (cdw.GetG()<<1) + cdw.GetB() + 2)>>2;
+			*ptr++ = (uint8) L;
+		}
+	}
+	
+	// prev will now destruct
+	prev.Release();
+}
+
+void BmpImage::PutGInAlpha(BmpImage * from)
+{
+	if ( m_format != D3DFMT_A8R8G8B8 )
+	{
+		lprintf("PutGInAlpha : not 32 bit!\n");
+		return;
+	}
+
+	if ( m_width != from->m_width || m_height != from->m_height )
+	{
+		lprintf("PutGInAlpha : size mismatch!\n");
+		return;
+	}
+
+	// stuff G from "from" into my alpha
+
+	for(int y=0;y<m_height;y++)
+	{
+		uint8 * ptr = ((uint8 *)m_pData) + y *m_pitch;
+		for(int x=0;x<m_width;x++)
+		{
+			ColorDW cdw = from->GetColor(x,y);
+			int L = cdw.GetG();
+			ptr[3] = (uint8) L;
+		
+			ptr += 4;
+		}
+	}
 }
 
 void BmpImage::FlipVertical()
@@ -1455,6 +1739,19 @@ void BmpImage::FlipVerticalAndBGR()
 			cyy.Set( cyy.GetB(), cyy.GetG(), cyy.GetR(), cyy.GetA() );
 			SetColor(x,y,cyy);
 			SetColor(x,yy,cy);
+		}
+	}
+}
+
+void BmpImage::SwapBGR()
+{
+	for(int y=0;y<m_height;y++)
+	{
+		for(int x=0;x<m_width;x++)
+		{
+			ColorDW cy = GetColor(x,y);
+			cy.Set( cy.GetB(), cy.GetG(), cy.GetR(), cy.GetA() );
+			SetColor(x,y,cy);
 		}
 	}
 }
@@ -1512,6 +1809,12 @@ bool BmpImage::IsGrey8() const
 	return m_format == D3DFMT_L8;
 }
 
+bool BmpImage::IsPalettized() const
+{
+	return m_format == D3DFMT_P8;	
+}
+
+
 void	BmpImage::GetTextureInfo(TextureInfo * pInfo) const
 {
 	pInfo->Reset();
@@ -1519,7 +1822,8 @@ void	BmpImage::GetTextureInfo(TextureInfo * pInfo) const
 	pInfo->m_width = m_width;
 	pInfo->m_height = m_height;
 	pInfo->m_gammaCorrected = true;
-	pInfo->m_eEdgeMode = TextureInfo::eEdge_Mirror;
+	//pInfo->m_eEdgeMode = TextureInfo::eEdge_Mirror;
+	pInfo->m_eEdgeMode = TextureInfo::eEdge_Clamp;
 	pInfo->m_alpha = TextureInfo::eAlpha_None;
 	pInfo->m_usage = TextureInfo::eUsage_Color;
 	pInfo->m_usage = TextureInfo::eUsage_Color;
@@ -1553,13 +1857,13 @@ void BmpImage::Transpose()
 		return;
 	}
 	
-	ubyte * old = (ubyte *) m_pData;
+	uint8 * old = (uint8 *) m_pData;
 	bool oldDelete = m_bDeleteData;
 	int oldPitch = m_pitch;
 	
 	Swap(m_width,m_height);
 	
-	m_pData = new ubyte [m_width * m_height * 3];
+	m_pData = new uint8 [m_width * m_height * 3];
 	m_bDeleteData = true;
 	m_pitch = m_width * 3;
 	
@@ -1567,8 +1871,8 @@ void BmpImage::Transpose()
 	{
 		for(int x=0;x<m_width;x++)
 		{
-			ubyte * p1 = m_pData + y * m_pitch + x*3;
-			ubyte * p2 = old + x * oldPitch + y*3;
+			uint8 * p1 = m_pData + y * m_pitch + x*3;
+			uint8 * p2 = old + x * oldPitch + y*3;
 			
 			p1[0] = p2[0];
 			p1[1] = p2[1];
@@ -1582,12 +1886,12 @@ void BmpImage::Transpose()
 	}
 }
 
-void BmpImage::SetColor(const int x,const int y,const ColorDW c) const
+void BmpImage::SetColor(const int x,const int y,const ColorDW c)
 {
 	ASSERT( x >= 0 && x < m_width );
 	ASSERT( y >= 0 && y < m_height );
 
-	ubyte * ptr = (ubyte *) m_pData;
+	uint8 * ptr = (uint8 *) m_pData;
 	ptr += y * m_pitch;
 
 	switch(m_format)
@@ -1608,15 +1912,15 @@ void BmpImage::SetColor(const int x,const int y,const ColorDW c) const
 	case D3DFMT_R8G8B8:
 	{
 		ptr += x * 3;
-		ptr[0] = c.GetB();
-		ptr[1] = c.GetG();
-		ptr[2] = c.GetR();
+		ptr[0] = (uint8) c.GetB();
+		ptr[1] = (uint8) c.GetG();
+		ptr[2] = (uint8) c.GetR();
 		break;
 	}
 	case D3DFMT_L8:
 	{
 		int p = (c.GetR() + 2*c.GetG() + c.GetB() + 2)/4;
-		ptr[x] = (ubyte)p;
+		ptr[x] = (uint8)p;
 		break;
 	}
 	default:
@@ -1627,12 +1931,25 @@ void BmpImage::SetColor(const int x,const int y,const ColorDW c) const
 	return;
 }
 
+void BmpImage::FillSolidColor(const ColorDW c)
+{
+	int w = m_width;
+	int h = m_height;
+	for(int y=0;y<h;y++)
+	{
+		for(int x=0;x<w;x++)
+		{
+			SetColor(x,y,c);
+		}
+	}
+}
+	
 ColorDW	BmpImage::GetColor(const int x,const int y) const
 {
 	ASSERT( x >= 0 && x < m_width );
 	ASSERT( y >= 0 && y < m_height );
 
-	const ubyte * ptr = (const ubyte *) m_pData;
+	const uint8 * ptr = (const uint8 *) m_pData;
 	ptr += y * m_pitch;
 
 	switch(m_format)
@@ -1659,7 +1976,7 @@ ColorDW	BmpImage::GetColor(const int x,const int y) const
 	case D3DFMT_X1R5G5B5:
 	{
 		ptr += x * 2;
-		uword w = *((uword *)ptr);
+		uint16 w = *((uint16 *)ptr);
 		
 	}
 	*/
@@ -1710,6 +2027,31 @@ ColorDW	BmpImage::GetColorMirror(const int x,const int y) const
 	return GetColor(xx,yy);
 }
 
+ColorDW	BmpImage::GetColorMirrorDupeEdge(const int x,const int y) const
+{
+	int xx = x, yy =y;
+	
+	if ( xx < 0 ) // -1 -> 0
+	{
+		xx = -xx - 1;
+	}
+	else if ( xx >= m_width )
+	{
+		xx = 2*m_width - xx - 1;
+	}
+	
+	if ( yy < 0 )
+	{
+		yy = -yy - 1;
+	}
+	else if ( yy >= m_height )
+	{
+		yy = 2*m_height - yy - 1;
+	}
+	
+	return GetColor(xx,yy);
+}
+
 // u,v is from [0,0] to [w-1,h-1] ; 0,0 is the center of the first pixel
 void BmpImage::SampleBilinear(float * into,const float u,const float v) const
 {
@@ -1737,7 +2079,9 @@ void BmpImage::SampleBilinear(ColorF * into,const float u,const float v) const
 {
 	float f[4];
 	SampleBilinear(f,u,v);
-	into->Set( ColorITOF(f[0]), ColorITOF(f[1]), ColorITOF(f[2]), ColorITOF(f[3]) );
+	
+	// scale like ColorITOF : 
+	into->Set( (f[0])* (1.f/255.f), (f[1])* (1.f/255.f), (f[2])* (1.f/255.f), (f[3])* (1.f/255.f) );
 }
 	
 ColorDW BmpImage::SampleBilinear(const float u,const float v) const
@@ -1745,7 +2089,8 @@ ColorDW BmpImage::SampleBilinear(const float u,const float v) const
 	ColorDW ret;
 	float f[4];
 	SampleBilinear(f,u,v);
-	ret.Set( froundint(f[0]), froundint(f[1]), froundint(f[2]), froundint(f[3]) );
+	ret.Set( ftoi_round(f[0]), ftoi_round(f[1]), 
+			 ftoi_round(f[2]), ftoi_round(f[3]) );
 	return ret;
 }
 
@@ -1832,7 +2177,7 @@ bool BmpImage::WriteBMP(const char* outfile)
 		// flip vertically to write bottom up :
 		for(int y= height-1; y>=0; y--)
 		{
-			ubyte * ptr = m_pData + y*m_pitch;
+			uint8 * ptr = m_pData + y*m_pitch;
 			for(int x=0;x<width;x++)
 			{
 				fputc( *ptr++, fp );
@@ -1869,12 +2214,12 @@ bool BmpImage::WriteBMP(const char* outfile)
 }
 
 /** Write out the float image as a .tga file. */
-void BmpImage::WriteTGA(const char* outfile)
+bool BmpImage::WriteTGA(const char* outfile)
 {
 	FILE* fp = fopen(outfile, "wb");
 	if ( fp == NULL )
 	{
-		return;
+		return false;
 	}
 
 	int	width = m_width;
@@ -1902,6 +2247,128 @@ void BmpImage::WriteTGA(const char* outfile)
 	}
 
 	fclose(fp);
+
+	return true;
 }
 
+double ImageMSE(const BmpImage * im1,const BmpImage * im2)
+{
+	double mse = 0;
+	
+	int w = MIN(im1->m_width,im2->m_width);
+	int h = MIN(im1->m_height,im2->m_height);
+	
+	for(int y=0;y<h;y++)
+	{
+		for(int x=0;x<w;x++)
+		{
+			ColorDW dw1 = im1->GetColor(x,y);
+			ColorDW dw2 = im2->GetColor(x,y);
+		
+			mse += ColorDW::DistanceSqr(dw1,dw2);
+		}
+	}
+	mse /= (w * h);
+	return mse;
+}
+
+bool TryOpens(const char *filename, BmpImage *result)
+{
+	if ( result->Load(filename) )
+		return true;
+	
+	const char * ext = extensionpart(filename);
+	
+	if ( strisame(ext,"jpg") || strisame(ext,"jpeg") )
+		return LoadJpeg(filename,result);
+
+	if ( strisame(ext,"png") )
+		return LoadPNG(filename,result);
+
+	if ( strisame(ext,"gif") )
+		return LoadGIF(filename,result);
+		
+	return false;
+}
+
+bool LoadGeneric(const char *filename, BmpImage *result)
+{
+	if ( FileExists(filename) )
+		return TryOpens(filename,result);
+		
+	String s;
+	
+	s = filename;
+	s += ".bmp";
+	if ( FileExists(s.CStr()) )
+		return TryOpens(s.CStr(),result);
+	
+	s = filename;
+	s += ".tga";
+	if ( FileExists(s.CStr()) )
+		return TryOpens(s.CStr(),result);
+	
+	s = filename;
+	s += ".jpg";
+	if ( FileExists(s.CStr()) )
+		return TryOpens(s.CStr(),result);
+	
+	s = filename;
+	s += ".png";
+	if ( FileExists(s.CStr()) )
+		return TryOpens(s.CStr(),result);
+	
+	return false;
+}
+
+BmpImagePtr BmpImage::Create(const char * fileName)
+{
+	BmpImagePtr ret( new BmpImage );
+	if ( ret->LoadGeneric(fileName) )
+		return ret;
+	else
+		return BmpImagePtr(NULL);
+}
+
+bool WriteByName(BmpImagePtr bmp,const char *name)
+{
+	const char * ext = extensionpart(name);
+	
+	if ( strisame(ext,"tga") )
+	{
+		return bmp->WriteTGA(name);
+	}
+	else if ( strisame(ext,"bmp") )
+	{
+		return bmp->WriteBMP(name);
+	}
+	else if ( strisame(ext,"jpg") || strisame(ext,"jpeg") )
+	{
+		return WriteJpeg(name,bmp.GetPtr(),-1);
+	}
+	else if ( strisame(ext,"png") )
+	{
+		return WritePNG(name,bmp.GetPtr());
+	}
+	else
+	{
+		lprintf("warning : extension unknown, writing BMP : %s\n",ext);
+		return bmp->WriteBMP(name);
+	}
+}
+
+bool BmpImage::LoadGeneric(const char * filename)
+{
+	return cb::LoadGeneric(filename,this);
+}
+
+bool BmpImage::SaveByName( const char * filename)
+{
+	BmpImagePtr ptr(this);
+	return WriteByName( ptr, filename );
+}
+	
+	
 END_CB
+
+

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cblib/Vec3.h"
+#include "cblib/Vec3U.h"
 
 START_CB
 
@@ -56,6 +57,16 @@ struct SegmentResults
 	{
 		time = fclampunit(time);
 		normal.NormalizeSafe();
+	}
+	
+	bool Collided() const { return time != FLT_MAX; }
+	
+	void TakeEarlier(const SegmentResults & other)
+	{
+		if ( other.time < time )
+		{
+			*this = other;
+		}
 	}
 };
 
@@ -141,7 +152,6 @@ public:
 private:
 
 	void SetFromEnds(const Vec3 &fm,const Vec3 & to, const Vec3 * pNormal = NULL);
-	// will throw on a tiny segment !! 
 
 	void MakeInvNormal();
 
@@ -150,7 +160,7 @@ private:
 
 	Vec3	m_fm,m_to;
 	Vec3	m_normal;
-	Vec3	m_invNormal; // for gAxialBox
+	Vec3	m_invNormal; // for AxialBox
 	float	m_length;
 	float	m_invLength;
 	float	m_radius;
@@ -158,6 +168,18 @@ private:
 
 //}{=========================================================================================
 // Functions
+
+inline const Vec3 Segment::GetHitPoint(const float tHit) const
+{
+	ASSERT( IsValid() );
+	return MakeLerp( GetFm(), GetTo(), tHit );
+}
+
+inline const Vec3 Segment::GetCenter() const
+{
+	ASSERT( IsValid() );
+	return MakeAverage(m_fm,m_to);
+}
 
 inline float Segment::GetRadiusInDirection(const Vec3 & dir) const
 {

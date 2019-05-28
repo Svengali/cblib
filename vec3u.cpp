@@ -35,6 +35,22 @@ float GetAngleBetweenNormals(const Vec3 &a,const Vec3 & b)
 	ASSERT( fisinrange(angle,0.f,PIf) );
 	return angle;
 }
+//! SetPolarLerp is like SetAngularLerp but uses Z-up to prevent
+//!	 pitching of the normals
+void SetPolarLerp(Vec3 * pSlerp,const Vec3 & normal1,const Vec3 & normal2,const float t)
+{
+	float theta1,phi1;
+	float theta2,phi2;
+	GetPolarFromNormal(normal1,&theta1,&phi1);
+	GetPolarFromNormal(normal2,&theta2,&phi2);
+	
+	// theta is [0,2pi] and can wrap
+	float theta = flerpangle(theta1,theta2,t);
+	// phi is [0,pi] and cannot wrap
+	float phi = flerp(phi1,phi2,t);
+
+	SetNormalFromPolar(pSlerp,theta,phi);
+}
 
 bool SetAngularRotated(Vec3 * pSlerp,const Vec3 & normal1,const Vec3 & normal2,const float radians)
 {
@@ -48,7 +64,7 @@ bool SetAngularRotated(Vec3 * pSlerp,const Vec3 & normal1,const Vec3 & normal2,c
 	float angle;
 	qrotation.GetAxisAngleMod2Pi(&axis,&angle);
 
-	ASSERT( angle >= 0.f && angle <= CBPI );
+	ASSERT( angle >= 0.f && angle <= PI );
 
 	if ( angle <= radians )
 	{
@@ -103,7 +119,7 @@ void GetTwoPerp(const Vec3 & v,Vec3 *pv1,Vec3 *pv2)
 	float triple = TripleProduct(v,*pv1,*pv2);
 	if ( triple < 0.f )
 	{
-		Util::Swap(*pv1,*pv2);
+		Swap(*pv1,*pv2);
 	}
 	*/
 }
@@ -113,13 +129,24 @@ void SetRandomNormal(Vec3 * pv)
 	ASSERT(pv);
 	do
 	{
-		pv->x = frand(-1.f,1.f);
-		pv->y = frand(-1.f,1.f);
-		pv->z = frand(-1.f,1.f);
+		SetRandomInUnitCube(pv);
 	} while( pv->LengthSqr() > 1.f );
 	pv->NormalizeSafe();
 }
 
+void SetRandomInUnitCube(Vec3 * pv)
+{
+	ASSERT(pv);
+	pv->x = frandranged(-1.f,1.f);
+	pv->y = frandranged(-1.f,1.f);
+	pv->z = frandranged(-1.f,1.f);
+}
+
+//! returns v[GetLargestComponent(v)]
+float GetLargestComponentValue(const Vec3 & v)
+{
+	return v[GetLargestComponent(v)];
+}
 
 int GetLargestComponent(const Vec3 & v)
 {
@@ -145,11 +172,6 @@ int GetSmallestComponent(const Vec3 & v)
 		return 1;
 	else
 		return 2;
-}
-
-float GetLargestComponentValue(const Vec3 & v)
-{
-	return v[ GetLargestComponent(v) ];
 }
 
 void GetPolarFromNormal(const Vec3 & normal,float * pTheta, float * pPhi)
@@ -280,7 +302,7 @@ float GetAngle(const Vec3 & apex, const Vec3 & v0, const Vec3 & v1)
 
 	float angle = acosf_safe(cos_angle);
 
-	ASSERT( angle >= 0.f && angle <= CBPI );
+	ASSERT( angle >= 0.f && angle <= PI );
 
 	return angle;
 }
