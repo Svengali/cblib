@@ -33,8 +33,8 @@ You can do compile-time switches on TypeTraits like this :
 
 template <typename C_T> struct TypeTraits
 {
-	BoolAsType_True	hasReflection;
-	BoolAsType_False	isPrimitive;
+	BoolAsType_False	hasReflection;
+	BoolAsType_True 	isPrimitive;
 	BoolAsType_False	ioBytes;
 };
 

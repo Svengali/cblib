@@ -81,7 +81,8 @@ char * FindMatchingBrace(const char * start, char open, char close);
 
 // MultiLineStrChr
 char * MultiLineStrChr_SkipCppComments(const char * start,int c);
-char * TokToComma_CurlyBraced(char * ptr);
+char *TokToComma_CurlyBraced( char *ptr );
+char *TokToComma( char *ptr );
 
 // next = nexttok_skipquotes(cur,',') for csv parsing
 char * nexttok_skipquotes(char *str, char tok_delim);	/** modifies str! **/

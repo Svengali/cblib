@@ -3,6 +3,8 @@
 #include "Log.h"
 #include "Rand.h"
 
+#include <functional>
+
 START_CB
 //}{=====================================================================================================================
 
@@ -267,7 +269,7 @@ static bool FindSeedTetrahedron(
 
 //---------------------------------------------------------------------------
 
-struct EqualFlippedFunc : public std::binary_function<Edgei,Edgei,bool>
+struct EqualFlippedFunc : public cb::binary_function<Edgei,Edgei,bool>
 {
 	bool operator() (const Edgei &a,const Edgei &b) const
 	{
@@ -286,7 +288,8 @@ static void AddEdgeToHangingList(vector<Edgei> & hanging,
 	// see if it's in there already :
 	ASSERT( hanging.find(edge) == hanging.end() );
 	
-	vector<Edgei>::iterator it = hanging.find_if( std::bind1st( EqualFlippedFunc(), edge) );
+    
+	vector<Edgei>::iterator it = hanging.find_if( std::bind( EqualFlippedFunc(), edge, std::placeholders::_1 ) );
 	if ( it == hanging.end() )
 	{
 		hanging.push_back(edge);

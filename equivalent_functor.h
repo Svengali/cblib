@@ -18,7 +18,7 @@ START_CB
 	 says they are not different
 */
 template<class Comparison> struct equivalent_functor : 
-	public std::binary_function<typename Comparison::first_argument_type,typename Comparison::second_argument_type,bool>
+	public cb::binary_function<typename Comparison::first_argument_type,typename Comparison::second_argument_type,bool>
 {
 	bool operator()(const typename Comparison::first_argument_type & __x, const typename Comparison::second_argument_type & __y) const
 	{

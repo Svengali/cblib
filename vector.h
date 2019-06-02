@@ -237,7 +237,7 @@ public:
 	~vector() { }
 
 	// I don't have the normal (t_sizetype) constructor, just this (t_sizetype,value) constructor for clarity
-	vector(const size_type size,const t_entry & init) : parent_type(size,init)
+	vector(const vecsize_t size,const t_entry & init) : parent_type(size,init)
 	{
 	}
 

@@ -5,10 +5,58 @@
 #include "cblib/String.h"
 #include "cblib/Timer.h"
 #include "cblib/Util.h"
-#include "cblib/FileUtil.h"
+//#include "cblib/FileUtil.h"
 #include <stdio.h>
 
 START_CB
+
+
+//
+//#define wprintf wprintf_does_not_do_what_you_want
+
+// wsizeof replaces sizeof for wchar arrays
+#define wsizeof(str)	(sizeof(str)/sizeof(wchar))
+
+// myfopen tries not to fail
+//	it will do a retry loop and prompt for name changes if the fopen fails
+FILE *myfopen( const char *fname, const char *access, bool interactive = true );
+
+// fast version of "getc" for multithreaded lib :
+//	these are NOT thread safe, I assume that the file is only hit from one thread at a time
+//#define macrogetc(_stream)     (--(_stream)->_cnt >= 0 ? ((char)*(_stream)->_ptr++) : _filbuf(_stream))
+
+//#define macroputc(_c,_stream)  (--(_stream)->_cnt >= 0 \
+	//				? 0xff & (*(_stream)->_ptr++ = (char)(_c)) :  _flsbuf((_c),(_stream)))
+
+#define macrogetc(_stream) _fgetc_nolock(_stream)
+#define macroputc(_c,_stream) _fputc_nolock(_c, _stream)
+
+    // myfread is faster for small reads ?
+inline void myfread( void *ptr, size_t count, FILE *fp )
+{
+    char *p = (char *)ptr;
+    while( count-- )
+    {
+        *p++ = (char)macrogetc( fp );
+    }
+}
+
+inline void myfwrite( const void *ptr, size_t count, FILE *fp )
+{
+    const char *p = (const char *)ptr;
+    while( count-- )
+    {
+        // putc is a macro, don't use *p++ in it
+        macroputc( *p, fp );
+        p++;
+    }
+}
+
+
+#define fseek64 _fseeki64
+int64 ftell64( FILE *fp );
+
+
 
 /*
 	File

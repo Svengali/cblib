@@ -191,14 +191,14 @@ public:
 	// fast specialization of extend_copy for one addition (for push_back)
 	__forceinline void extend_copy(const t_entry & from)
 	{
-		if ( needmakefit(m_size+1) )
+		if ( parent_type::needmakefit(m_size+1) )
 		{
 			const t_sizetype oldsize = m_size;
 			const t_sizetype oldcapacity = capacity();
 			t_entry * pOld = makefit1(m_size + 1);
 			entry_array::copy_construct(begin() + m_size,from);
 			m_size ++;
-			makefit2(pOld, oldsize, oldcapacity);
+            parent_type::makefit2(pOld, oldsize, oldcapacity);
 		}
 		else
 		{
@@ -210,7 +210,7 @@ public:
 	// see notes on base extend_copy
 	__forceinline void extend_copy(const t_entry & from,const t_sizetype count)
 	{
-		if ( needmakefit(m_size+count) )
+		if ( parent_type::needmakefit(m_size+count) )
 		{
 			const t_sizetype oldsize = m_size;
 			const t_sizetype oldcapacity = capacity();

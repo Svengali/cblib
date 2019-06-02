@@ -97,7 +97,7 @@ template <typename t_iter>
 static inline typename t_iter::value_type
 iterator_min(t_iter b,t_iter e)
 {
-	t_iter::value_type ret = *b;
+	typename t_iter::value_type ret = *b;
 	t_iter p = b;
 	++p;
 	while ( p != e )
@@ -113,7 +113,7 @@ template <typename t_iter>
 static inline typename t_iter::value_type
 iterator_max(t_iter b,t_iter e)
 {
-	t_iter::value_type ret = *b;
+	typename t_iter::value_type ret = *b;
 	t_iter p = b;
 	++p;
 	while ( p != e )

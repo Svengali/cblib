@@ -78,7 +78,25 @@ namespace entry_array
 		}
 	}
 
-	//-----------------------------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------------------------
+
+    template <class Entry>
+    static inline void construct( Entry *pEntry )
+    {
+        new ( pEntry ) Entry();
+    }
+
+    //-----------------------------------------------------------------------------------------------
+
+    template <class Entry>
+    static inline void destruct( Entry *pEntry )
+    {
+        ASSERT( pEntry );
+
+        pEntry->~Entry();
+    }
+
+    //-----------------------------------------------------------------------------------------------
 
 	template <class Entry>
 	static inline void construct(Entry * pArray,const size_t size)
@@ -102,24 +120,6 @@ namespace entry_array
 			ASSERT(pArray);
 			destruct(pArray+i);
 		}
-	}
-
-	//-----------------------------------------------------------------------------------------------
-
-	template <class Entry>
-	static inline void construct(Entry * pEntry)
-	{
-		new (pEntry) Entry();
-	}
-
-	//-----------------------------------------------------------------------------------------------
-
-	template <class Entry>
-	static inline void destruct(Entry * pEntry)
-	{
-		ASSERT(pEntry);
-
-		pEntry->~Entry();
 	}
 
 	//-----------------------------------------------------------------------------------------------

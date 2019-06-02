@@ -348,29 +348,56 @@ char * MultiLineStrChr_SkipCppComments(const char * start,int c)
 	}
 }
 
-char * TokToComma_CurlyBraced(char * ptr)
+char *TokToComma( char *ptr )
 {
-	char * comma = strchr(ptr,',');
-	if ( comma == NULL )
-		return NULL;
+    ASSERT( false && "This is just borked" );
 
-	// skip over { } ; eg. handle "{a,b,c}," - I want to go to the comma
-	//	after the ending brace, not any , inside
-	char * brace = strchr(ptr,'{');
-	if ( brace != NULL && brace < comma )
-	{
-		char * brace2 = FindMatchingBrace(brace,'{','}');
-		if ( brace2 == NULL )
-		{
-			return NULL;
-		}
-		char * comma = strchr(brace2,',');
-		if ( comma == NULL )
-			return NULL;
-	}
+    char *comma = strchr( ptr, ',' );
+    if( comma == NULL )
+        return NULL;
 
-	*comma = 0;
-	return comma+1;
+    // skip over { } ; eg. handle "{a,b,c}," - I want to go to the comma
+    //	after the ending brace, not any , inside
+    char *brace = strchr( ptr, '{' );
+    if( brace != NULL && brace < comma )
+    {
+        char *brace2 = FindMatchingBrace( brace, '{', '}' );
+        if( brace2 == NULL )
+        {
+            return NULL;
+        }
+        char *comma = strchr( brace2, ',' );
+        if( comma == NULL )
+            return NULL;
+    }
+
+    *comma = 0;
+    return comma + 1;
+}
+
+char *TokToComma_CurlyBraced( char *ptr )
+{
+    char *comma = strchr( ptr, ',' );
+    if( comma == NULL )
+        return NULL;
+
+    // skip over { } ; eg. handle "{a,b,c}," - I want to go to the comma
+    //	after the ending brace, not any , inside
+    char *brace = strchr( ptr, '{' );
+    if( brace != NULL && brace < comma )
+    {
+        char *brace2 = FindMatchingBrace( brace, '{', '}' );
+        if( brace2 == NULL )
+        {
+            return NULL;
+        }
+        char *comma = strchr( brace2, ',' );
+        if( comma == NULL )
+            return NULL;
+    }
+
+    *comma = 0;
+    return comma + 1;
 }
 
 // myatof handles commas like "1,240.50"

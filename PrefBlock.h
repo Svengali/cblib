@@ -4,6 +4,7 @@
 #include "cblib/Token.h"
 #include "cblib/File.h"
 #include "cblib/String.h"
+#include "cblib/MoreUtil.h"
 //#include "cblib/StrUtil.h"
 #include "cblib/vecsortedpair.h"
 #include <stdio.h> // for sprintf

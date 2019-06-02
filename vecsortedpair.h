@@ -41,13 +41,13 @@ template <class t_vector,
 				t_multi >
 {
 public:
-	// lots of typedefs from parent class
-	typedef typename value_type::first_type		key_type;
-	typedef typename value_type::second_type		data_type;
+    typedef vecsorted< t_vector,
+        pair_first_bool_binary_functor<typename t_vector::value_type, t_comparefirst>,
+        t_multi > parent_type;
 
-	typedef vecsorted< t_vector , 
-				pair_first_bool_binary_functor<value_type,t_comparefirst> ,
-				t_multi > parent_type;
+    // lots of typedefs from parent class
+	typedef typename parent_type::value_type::first_type		key_type;
+	typedef typename parent_type::value_type::second_type		data_type;
 
 	typedef vecsortedpair<t_vector,t_comparefirst,t_multi> this_type;
 
@@ -57,14 +57,14 @@ public:
 	
 	//---------------------------------------------------------------------------
 
-	const_iterator	find(const key_type & key) const
+	typename parent_type::const_iterator	find(const key_type & key) const
 	{
-		const const_iterator b = begin();
-		const const_iterator e = end();
+		const parent_type::const_iterator b = parent_type::begin();
+		const parent_type::const_iterator e = parent_type::end();
 
-		const pair_key_bool_binary_functor< value_type , t_comparefirst > comparator;
+		const pair_key_bool_binary_functor< parent_type::value_type , t_comparefirst > comparator;
 
-		const const_iterator it = std::lower_bound(b,e,key,comparator);
+		const parent_type::const_iterator it = std::lower_bound(b,e,key,comparator);
 		
 		if ( it == e )
 			return e;
@@ -80,7 +80,7 @@ public:
 	}
 
 	// findrange only makes sense for multi-type vecsorteds
-	iterator_pair findrange(const key_type & key) const
+    typename parent_type::iterator_pair findrange(const key_type & key) const
 	{
 		return findrange_sub(key, BoolToType<t_multi == vecsorted_type::unique>() );
 	}
@@ -89,7 +89,7 @@ public:
 	{
 		// could be slightly more efficient ala binary_search;
 		//	currently has redundant checks of "end"
-		return ( find(key) != end() );
+		return ( find(key) != parent_type::end() );
 	}
 
 	void insert(const key_type & key,const data_type & data)
@@ -100,7 +100,7 @@ public:
 	}
 	// must include this insert wrapper because the added insert
 	//	hides the parent's form :
-	void insert(const value_type & val )
+	void insert(const typename parent_type::value_type & val )
 	{
 		// causes errors in VC ?
 		//parent_type::insert(val);
@@ -143,19 +143,19 @@ private:
 	// @@ findrange is a compile error if you're not multi :
 	//	?
 	//*
-	iterator_pair findrange_sub(const key_type & key, const BoolAsType_True & is_unique) const
+    typename parent_type::iterator_pair findrange_sub(const key_type & key, const BoolAsType_True & is_unique) const
 	{
-		const const_iterator it = find(key);
+		const parent_type::const_iterator it = find(key);
 		return iterator_pair(it,it);
 	}
 	/**/
 
-	iterator_pair findrange_sub(const key_type & key, const BoolAsType_False & is_multi) const
+    typename parent_type::iterator_pair findrange_sub(const key_type & key, const BoolAsType_False & is_multi) const
 	{
-		const const_iterator b = begin();
-		const const_iterator e = end();
-		const pair_key_bool_binary_functor< value_type , t_comparefirst > comparator;
-		const const_iterator it = std::lower_bound(b,e,key,comparator);
+		const typename parent_type::const_iterator b = parent_type::begin();
+		const typename parent_type::const_iterator e = parent_type::end();
+		const pair_key_bool_binary_functor< typename parent_type::value_type , t_comparefirst > comparator;
+		const typename parent_type::const_iterator it = std::lower_bound(b,e,key,comparator);
 		
 		if ( it == e )
 			return iterator_pair(e,e);
@@ -167,7 +167,7 @@ private:
 			return iterator_pair(e,e);
 		ASSERT( m_equivalent(it->first,key) );
 
-		const_iterator it_end = it+1;
+		typename parent_type::const_iterator it_end = it+1;
 		// I know val is <= *it_end
 		while( it_end != e && ! m_comparekeys(key,it_end->first) )
 		{
