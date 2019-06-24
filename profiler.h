@@ -159,8 +159,15 @@ END_CB
 static int s_index_##Name = cb::Profiler::Index(_Stringize(Name)); \
 cb::Profiler::AutoTimer profile_of_##Name(s_index_##Name,_Stringize(Name))
 
+#define PROFILE_FN(Name) \
+static int s_index_##Name = cb::Profiler::Index(_Stringize(Name)); \
+cb::Profiler::AutoTimer profile_of_##Name(s_index_##Name,_Stringize(Name))
+
+
 #else //}{
 
 #define PROFILE(Name)
+
+#define PROFILE_FN(Name)
 
 #endif //} FINAL
