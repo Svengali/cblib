@@ -9,8 +9,8 @@
 
 // MSVC iterator debugging fucks shit up because
 //	they try to run predicates both ways to ensure they are valid
-#undef _HAS_ITERATOR_DEBUGGING
-#define _HAS_ITERATOR_DEBUGGING	0
+//#undef _HAS_ITERATOR_DEBUGGING
+//#define _HAS_ITERATOR_DEBUGGING	0
 
 // STL BASICS
 //============================================================================
