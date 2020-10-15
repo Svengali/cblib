@@ -2,8 +2,8 @@
 // ENTRY ARRAY
 //============================================================================
 
-#include "cblib/Base.h"
-#include "cblib/Util.h"
+#include "Base.h"
+#include "Util.h"
 #include <new.h> // need this to get placement new
 
 START_CB

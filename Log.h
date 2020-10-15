@@ -1,8 +1,8 @@
 #pragma once
 
-#include "cblib/Base.h"
-//#include "cblib/safeprintf.h"
-#include "cblib/autoprintf.h"
+#include "Base.h"
+//#include "safeprintf.h"
+#include "autoprintf.h"
 
 /*
 

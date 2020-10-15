@@ -1,4 +1,4 @@
-#include "cblib/Rect.h"
+#include "Rect.h"
 #include <memory.h>
 
 START_CB

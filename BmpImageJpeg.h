@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cblib/BmpImage.h"
+#include "BmpImage.h"
 
 START_CB
 

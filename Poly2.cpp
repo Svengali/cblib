@@ -1,8 +1,8 @@
-#include "cblib/Base.h"
+#include "Base.h"
 #include "Poly2.h"
-#include "cblib/ConvexHullBuilder2d.h"
-#include "cblib/IntGeometry.h"
-#include "cblib/Vec2U.h"
+#include "ConvexHullBuilder2d.h"
+#include "IntGeometry.h"
+#include "Vec2U.h"
 #include <algorithm>
 
 START_CB

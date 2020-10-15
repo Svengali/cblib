@@ -9,8 +9,8 @@
 #define WINVER 0x0501
 #include "HookImportedFunctionByName.h"
 //       "HookImportedFunctionsByName.h"
-#include "cblib/Base.h"
-#include "cblib/Log.h"
+#include "../Base.h"
+#include "../Log.h"
 
 /*//////////////////////////////////////////////////////////////////////
                          File Specific Defines

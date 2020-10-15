@@ -1,9 +1,9 @@
 #pragma once
 
-#include "cblib/Base.h"
+#include "Base.h"
 #include <hash_map>
-#include "cblib/token.h"
-#include "cblib/hash_function.h"
+#include "token.h"
+#include "hash_function.h"
 
 #pragma warning(disable : 4996) // deprecated hash_map in MSVC 2003
 

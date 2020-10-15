@@ -19,9 +19,9 @@ this header works on 3d values, but extension to N dimensions is trivial
 
 *****************/
 
-#include "cblib/Base.h"
-#include "cblib/ComplexDouble.h"
-#include "cblib/Vec3.h"
+#include "Base.h"
+#include "ComplexDouble.h"
+#include "Vec3.h"
 
 START_CB
 

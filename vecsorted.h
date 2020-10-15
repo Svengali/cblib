@@ -17,9 +17,9 @@ see notes about why you want this in the cpp file
 
 //! \todo - document this more !
 
-#include "cblib/Base.h"
-#include "cblib/equivalent_functor.h"
-#include "cblib/vector.h"
+#include "Base.h"
+#include "equivalent_functor.h"
+#include "vector.h"
 #include <utility>
 #include <algorithm>
 

@@ -1,5 +1,5 @@
 #include "Base.h"
-#include "cblib/VecN.h"
+#include "VecN.h"
 
 START_CB
 

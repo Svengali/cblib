@@ -7,13 +7,13 @@ int g_histo_steps_found[HASH_HISTO_PROBE_COUNT] = { 0 };
 int g_histo_steps_notfound[HASH_HISTO_PROBE_COUNT] = { 0 };
 #endif
 
-#include "cblib/Log.h"
-#include "cblib/File.h"
-#include "cblib/FileUtil.h"
-#include "cblib/StrUtil.h"
-#include "cblib/autoprintf.h"
-#include "cblib/Token.h"
-#include "cblib/TokenHash.h"
+#include "Log.h"
+#include "File.h"
+#include "FileUtil.h"
+#include "StrUtil.h"
+#include "autoprintf.h"
+#include "Token.h"
+#include "TokenHash.h"
 
 #include <stdlib.h>
 #include <stdio.h>

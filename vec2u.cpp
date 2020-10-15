@@ -1,5 +1,5 @@
-#include "cblib/Vec2U.h"
-#include "cblib/Rand.h"
+#include "Vec2U.h"
+#include "Rand.h"
 
 START_CB
 

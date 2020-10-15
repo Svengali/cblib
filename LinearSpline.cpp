@@ -1,8 +1,8 @@
-#include "cblib/LinearSpline.h"
-#include "cblib/BezierSpline.h"
-#include "cblib/Vec2U.h"
-#include "cblib/Vec3U.h"
-#include "cblib/vector.h"
+#include "LinearSpline.h"
+#include "BezierSpline.h"
+#include "Vec2U.h"
+#include "Vec3U.h"
+#include "vector.h"
 
 START_CB
 

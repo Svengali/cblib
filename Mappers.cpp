@@ -1,8 +1,8 @@
-#include "cblib/Vec3U.h"
-#include "cblib/Vec2U.h"
-#include "cblib/Mat3.h"
-#include "cblib/Mappers.h"
-#include "cblib/FloatUtil.h"
+#include "Vec3U.h"
+#include "Vec2U.h"
+#include "Mat3.h"
+#include "Mappers.h"
+#include "FloatUtil.h"
 
 #if 0
 

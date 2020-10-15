@@ -1,10 +1,10 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Util.h"
-#include "cblib/RefCounted.h"
-#include "cblib/String.h"
-#include "cblib/PrefBlock.h"
+#include "Base.h"
+#include "Util.h"
+#include "RefCounted.h"
+#include "String.h"
+#include "PrefBlock.h"
 #include "cblib_config.h"
 
 START_CB

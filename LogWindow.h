@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Win32Util.h"
+#include "Base.h"
+#include "Win32Util.h"
 
 /*********
 

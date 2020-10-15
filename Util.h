@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Mem.h"
+#include "Base.h"
+#include "Mem.h"
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>

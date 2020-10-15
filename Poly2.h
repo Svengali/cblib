@@ -1,9 +1,9 @@
 #pragma once
 
-#include "cblib/Vec2.h"
-#include "cblib/Rect.h"
-#include "cblib/Plane2.h"
-#include "cblib/vector.h"
+#include "Vec2.h"
+#include "Rect.h"
+#include "Plane2.h"
+#include "vector.h"
 
 START_CB
 

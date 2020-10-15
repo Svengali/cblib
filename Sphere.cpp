@@ -1,8 +1,8 @@
-#include "cblib/Base.h"
-#include "cblib/Sphere.h"
-#include "cblib/Frame3.h"
-#include "cblib/Frame3Scaled.h"
-#include "cblib/Segment.h"
+#include "Base.h"
+#include "Sphere.h"
+#include "Frame3.h"
+#include "Frame3Scaled.h"
+#include "Segment.h"
 
 START_CB
 

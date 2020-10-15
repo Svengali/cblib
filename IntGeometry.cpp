@@ -1,8 +1,8 @@
 #include "IntGeometry.h"
-#include "cblib/AxialBox.h"
-#include "cblib/Vec3.h"
-#include "cblib/Vec2.h"
-#include "cblib/Rect.h"
+#include "AxialBox.h"
+#include "Vec3.h"
+#include "Vec2.h"
+#include "Rect.h"
 #include <limits.h>
 #include <float.h>
 

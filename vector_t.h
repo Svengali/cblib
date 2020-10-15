@@ -8,8 +8,8 @@ vector_t is a "tight" vector, which means size is equal to capacity at all times
 
 *************************/
 
-#include "cblib/vector_flex.h"
-#include "cblib/Util.h"
+#include "vector_flex.h"
+#include "Util.h"
 
 START_CB
 

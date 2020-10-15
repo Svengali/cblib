@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "cblib/Vec3.h"
-#include "cblib/Vec4.h"
+#include "Vec3.h"
+#include "Vec4.h"
 
 START_CB
 

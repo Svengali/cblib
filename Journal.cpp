@@ -1,5 +1,5 @@
-#include "cblib/Journal.h"
-#include "cblib/File.h"
+#include "Journal.h"
+#include "File.h"
 #include <conio.h> // for getch
 
 #define WIN32_LEAN_AND_MEAN

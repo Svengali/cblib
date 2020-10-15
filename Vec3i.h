@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Util.h"
-#include "cblib/FloatUtil.h"
+#include "Base.h"
+#include "Util.h"
+#include "FloatUtil.h"
 
 START_CB
 

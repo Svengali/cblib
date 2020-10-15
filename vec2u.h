@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Vec2.h"
-#include "cblib/Vec3.h"
+#include "Vec2.h"
+#include "Vec3.h"
 
 //! would normally be called Vec2Util , but abbreviated due to very common use
 //! Vec2U contains the Vec2 <-> Vec3 conversions (lifting and projection)

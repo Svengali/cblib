@@ -1,8 +1,8 @@
-#include "cblib/Base.h"
-#include "cblib/Frame3Scaled.h"
-#include "cblib/Vec3U.h"
-#include "cblib/Mat3Util.h"
-#include "cblib/Frame3Util.h"
+#include "Base.h"
+#include "Frame3Scaled.h"
+#include "Vec3U.h"
+#include "Mat3Util.h"
+#include "Frame3Util.h"
 
 START_CB
 

@@ -6,11 +6,11 @@
  *
  ************/
 
-#include <cblib/matchpat.h>
-#include <cblib/Util.h>
-#include <cblib/FileUtil.h>
-#include <string.h>
-#include <ctype.h>
+#include "matchpat.h"
+#include "Util.h"
+#include "FileUtil.h"
+#include "string.h"
+#include "ctype.h"
 
 //#pragma warning(disable : 4018) // signed/unsigned compare
 #pragma warning(disable : 4244) // conversion float/int/double

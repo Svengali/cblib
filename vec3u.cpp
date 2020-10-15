@@ -1,6 +1,6 @@
-#include "cblib/Vec3U.h"
-#include "cblib/Rand.h"
-#include "cblib/QuatUtil.h"
+#include "Vec3U.h"
+#include "Rand.h"
+#include "QuatUtil.h"
 
 START_CB
 

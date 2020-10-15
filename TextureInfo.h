@@ -5,9 +5,9 @@
 
 */
 
-#include "cblib/Base.h"
-#include "cblib/String.h"
-#include "cblib/File.h"
+#include "Base.h"
+#include "String.h"
+#include "File.h"
 
 typedef enum _D3DFORMAT D3DFORMAT;
 

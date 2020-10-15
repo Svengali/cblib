@@ -2,7 +2,7 @@
 #ifndef GALAXY_VOLUMEBUILDER_H
 #define GALAXY_VOLUMEBUILDER_H
 
-#include "cblib/Base.h"
+#include "Base.h"
 
 START_CB
 

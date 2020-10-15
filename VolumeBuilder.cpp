@@ -1,7 +1,7 @@
 #include "AxialBox.h"
 
 #include "VolumeBuilder.h"
-#include "cblib/Log.h"
+#include "Log.h"
 #include "Vec3.h"
 #include "Vec3U.h"
 #include "Vec2.h"
@@ -20,7 +20,7 @@
 #include "VolumeUtil.h"
 #include "SphereNormals.h"
 #include <limits.h>
-#include "cblib/vector.h"
+#include "vector.h"
 #include "External/MiniBall.h"
 
 START_CB

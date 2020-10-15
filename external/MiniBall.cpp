@@ -27,10 +27,10 @@
 //    http://www.inf.ethz.ch/personal/gaertner
 //
 
-#include "cblib/Base.h"
-#include "cblib/stl_basics.h"
-#include "cblib/Vec3.h"
-#include "cblib/Sphere.h"
+#include "../Base.h"
+#include "../stl_basics.h"
+#include "../Vec3.h"
+#include "../Sphere.h"
 
 USE_CB
 

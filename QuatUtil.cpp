@@ -1,8 +1,8 @@
-#include "cblib/Base.h"
-#include "cblib/QuatUtil.h"
-#include "cblib/Vec3U.h"
-#include "cblib/Rand.h"
-#include "cblib/Mat3Util.h"
+#include "Base.h"
+#include "QuatUtil.h"
+#include "Vec3U.h"
+#include "Rand.h"
+#include "Mat3Util.h"
 
 START_CB
 

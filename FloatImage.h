@@ -1,13 +1,13 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/TextureInfo.h"
-#include "cblib/FloatRow.h"
-#include "cblib/Filter.h"
-#include "cblib/Color.h"
-#include "cblib/SPtr.h"
-#include "cblib/Rect.h"
-#include "cblib/File.h"
+#include "Base.h"
+#include "TextureInfo.h"
+#include "FloatRow.h"
+#include "Filter.h"
+#include "Color.h"
+#include "SPtr.h"
+#include "Rect.h"
+#include "File.h"
 
 START_CB
 

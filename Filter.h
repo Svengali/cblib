@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/FloatUtil.h"
+#include "Base.h"
+#include "FloatUtil.h"
 
 
 //---------------------------------------------------------------------------

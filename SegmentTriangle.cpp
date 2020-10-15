@@ -1,10 +1,10 @@
-#include "cblib/SegmentTriangle.h"
-#include "cblib/Segment.h"
-#include "cblib/Sphere.h"
-#include "cblib/Vec3U.h"
-#include "cblib/FloatUtil.h"
-#include "cblib/Rand.h"
-#include "cblib/Log.h"
+#include "SegmentTriangle.h"
+#include "Segment.h"
+#include "Sphere.h"
+#include "Vec3U.h"
+#include "FloatUtil.h"
+#include "Rand.h"
+#include "Log.h"
 
 START_CB
 

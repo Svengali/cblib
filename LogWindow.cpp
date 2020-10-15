@@ -5,14 +5,14 @@
 #define SELECTED_ALLOCATOR	New_Allocator
 
 #include "logwindow.h"
-#include "cblib/Base.h"
-#include "cblib/Log.h"
-#include "cblib/Threading.h"
-#include "cblib/Threading.h"
-#include "cblib/Win32Util.h"
-#include "cblib/StrUtil.h"
-#include "LF/NodeAllocator.h"
-#include "LF/LFSPSC2.h"
+#include "Base.h"
+#include "Log.h"
+#include "Threading.h"
+#include "Threading.h"
+#include "Win32Util.h"
+#include "StrUtil.h"
+//#include "LF/NodeAllocator.h"
+//#include "LF/LFSPSC2.h"
 #include <stdio.h>
 
 START_CB
@@ -114,8 +114,10 @@ static windowData * g_windowData = NULL;
 static int g_screenSizeX = 0;
 static int g_screenSizeY = 0;
 
+/*
 static SPSC_FIFO2 g_fifo;
 static New_Allocator<SPSC_FIFO2_Node>	g_allocator;
+*/
 
 //-----------------------------
 // these variables are atomic and shared :
@@ -572,12 +574,13 @@ int visible;
 
 void Internal_PushFIFO(char * str)
 {
-	void * data = (void *) str;
-	SPSC_FIFO2_PushData(&g_fifo,&g_allocator,data);
+	//void * data = (void *) str;
+	//SPSC_FIFO2_PushData(&g_fifo,&g_allocator,data);
 }
 
 void Internal_PopFIFO()
 {
+    /*
 	void * data;
 	while( (data = SPSC_FIFO2_PopData(&g_fifo)) != NULL )
 	{
@@ -586,7 +589,8 @@ void Internal_PopFIFO()
 		Internal_Puts(str);
 		
 		MyStrFree(str);
-	}	
+	}
+	*/
 }		
 
 LRESULT FAR PASCAL mainWindowProc( HWND windowH, unsigned msg,
@@ -1023,7 +1027,7 @@ void LogWindow::Open(int cmdShow)
 	g_event = CreateEvent(NULL,FALSE,FALSE,NULL);
 	#endif
 	
-	SPSC_FIFO2_Open(&g_fifo,&g_allocator);
+	//SPSC_FIFO2_Open(&g_fifo,&g_allocator);
 	
 	LogWindowInternal::g_cmdShow = cmdShow;
 	
@@ -1075,9 +1079,9 @@ void LogWindow::Close()
 	g_event = 0;
 	#endif
 	
-	SPSC_FIFO2_Flush(&g_fifo,&g_allocator);
-	SPSC_FIFO2_Close(&g_fifo,&g_allocator);
-	g_allocator.Finalize();
+	//SPSC_FIFO2_Flush(&g_fifo,&g_allocator);
+	//SPSC_FIFO2_Close(&g_fifo,&g_allocator);
+	//g_allocator.Finalize();
 }
 
 void LogWindow::Printf(const char* pMessage, ...)

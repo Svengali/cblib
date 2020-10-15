@@ -1,8 +1,8 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Win32Util.h"
-#include "cblib/SPtr.h"
+#include "Base.h"
+#include "Win32Util.h"
+#include "SPtr.h"
 //#include <windows.h>
 
 START_CB

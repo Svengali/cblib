@@ -1,10 +1,10 @@
 #pragma once
 
-#include "cblib/Reflection.h"
-#include "cblib/PrefBlock.h"
-#include "cblib/String.h"
-#include "cblib/SPtr.h"
-#include "cblib/FileUtil.h"
+#include "Reflection.h"
+#include "PrefBlock.h"
+#include "String.h"
+#include "SPtr.h"
+#include "FileUtil.h"
 
 #include <crtdefs.h>
 //typedef long time_t;

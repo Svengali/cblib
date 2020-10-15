@@ -4,7 +4,7 @@
     Description: Implements the metered section synchronization object
 ************************************************************/
 //#define WIN32_LEAN_AND_MEAN
-#include "cblib/Base.h"
+#include "../Base.h"
 #include <windows.h>
 #include <tchar.h>
 #include <stdlib.h>

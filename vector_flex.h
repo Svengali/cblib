@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/entry_array.h"
+#include "Base.h"
+#include "entry_array.h"
 
 // toggle here :
 // vector always does bounds checks in debug

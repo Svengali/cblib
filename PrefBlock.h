@@ -1,12 +1,12 @@
 #pragma once
 
-#include "cblib/SPtr.h"
-#include "cblib/Token.h"
-#include "cblib/File.h"
-#include "cblib/String.h"
-#include "cblib/MoreUtil.h"
-//#include "cblib/StrUtil.h"
-#include "cblib/vecsortedpair.h"
+#include "SPtr.h"
+#include "Token.h"
+#include "File.h"
+#include "String.h"
+#include "MoreUtil.h"
+//#include "StrUtil.h"
+#include "vecsortedpair.h"
 #include <stdio.h> // for sprintf
 
 START_CB

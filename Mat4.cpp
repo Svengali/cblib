@@ -1,4 +1,4 @@
-#include "cblib/Base.h"
+#include "Base.h"
 #include "Mat4.h"
 
 START_CB
@@ -78,7 +78,7 @@ void Mat4::GetFrame3Scaled(Frame3Scaled * pXFS) const
 // tests :
 
 #include "Renderer/gConversionsD3D.h"
-#include "cblib/Mat3Util.h"
+#include "Mat3Util.h"
 #include "Core/Log.h"
 #include <stdio.h>
 
@@ -216,7 +216,7 @@ void Mat4_Test()
 	puts("success!");
 }
 
-#include "cblib/Timer.h"
+#include "Timer.h"
 
 void Mat4_Time()
 {

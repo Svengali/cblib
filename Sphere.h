@@ -12,11 +12,11 @@
 
 #pragma once
 
-#include "cblib/Util.h"
-#include "cblib/FloatUtil.h"
-#include "cblib/Plane.h"
-#include "cblib/Vec3.h"
-#include "cblib/Vec3U.h"
+#include "Util.h"
+#include "FloatUtil.h"
+#include "Plane.h"
+#include "Vec3.h"
+#include "Vec3U.h"
 
 START_CB
 

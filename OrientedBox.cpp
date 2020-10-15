@@ -1,4 +1,4 @@
-#include "cblib/Base.h"
+#include "Base.h"
 #include "OrientedBox.h"
 #include "Segment.h"
 #include "Frame3.h"
@@ -9,7 +9,7 @@
 #include <stdlib.h>
 //#include "gOBBCompact.h"
 
-#include "cblib/VolumeUtil.h"
+#include "VolumeUtil.h"
 
 START_CB
 

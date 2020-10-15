@@ -1,5 +1,5 @@
-#include "cblib/Util.h"
-#include "cblib/Log.h"
+#include "Util.h"
+#include "Log.h"
 
 #include <string.h>
 #include <stdlib.h>

@@ -3,8 +3,8 @@
 #include "FloatImage.h"
 #include "Filter.h"
 #include "BmpImage.h"
-#include "cblib/vec2.h"
-#include "cblib/vec3.h"
+#include "vec2.h"
+#include "vec3.h"
 
 START_CB
 

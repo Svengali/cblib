@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Vec3.h"
+#include "Base.h"
+#include "Vec3.h"
 
 START_CB
 

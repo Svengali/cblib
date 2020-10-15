@@ -1,6 +1,8 @@
 #pragma once
 
-#include <cblib/hashtable.h>
+#define _SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS
+
+#include "hashtable.h"
 
 START_CB
 
@@ -14,3 +16,4 @@ public:
 };
 
 END_CB
+

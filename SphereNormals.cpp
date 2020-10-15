@@ -1,4 +1,4 @@
-#include "cblib/SphereNormals.h"
+#include "SphereNormals.h"
 
 /**
 

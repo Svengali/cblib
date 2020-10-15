@@ -15,8 +15,8 @@
 // STL BASICS
 //============================================================================
 
-#include "cblib/Base.h"
-//#include "cblib/Util.h" // need Util for min/max
+#include "Base.h"
+//#include "Util.h" // need Util for min/max
 
 //! I hack my STL to call StlAlloc & StlFree instead of some
 //	damn ass allocator

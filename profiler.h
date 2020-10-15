@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Timer.h"
+#include "Base.h"
+#include "Timer.h"
 #include "cblib_config.h"
 
 /*****************

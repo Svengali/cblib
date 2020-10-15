@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Link.h"
+#include "Base.h"
+#include "Link.h"
 
 START_CB
 

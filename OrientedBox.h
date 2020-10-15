@@ -17,10 +17,10 @@
 */
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Vec3.h"
-#include "cblib/Mat3.h"
-#include "cblib/Plane.h"
+#include "Base.h"
+#include "Vec3.h"
+#include "Mat3.h"
+#include "Plane.h"
 
 START_CB
 

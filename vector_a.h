@@ -5,7 +5,7 @@
 
 *************************/
 
-#include "cblib/vector_flex.h"
+#include "vector_flex.h"
 
 START_CB
 

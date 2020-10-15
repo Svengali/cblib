@@ -2,7 +2,7 @@
 #ifndef GALAXY_GREEDYALLOCATOR_H
 #define GALAXY_GREEDYALLOCATOR_H
 
-#include <cblib/Base.h>
+#include "Base.h"
 
 START_CB
 

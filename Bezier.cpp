@@ -1,10 +1,10 @@
 
-#include "cblib/Bezier.h"
-#include "cblib/VolumeBuilder.h"
-#include "cblib/Sphere.h"
-#include "cblib/AxialBox.h"
-//#include "cblib/vector_a.h"
-#include "cblib/vector.h"
+#include "Bezier.h"
+#include "VolumeBuilder.h"
+#include "Sphere.h"
+#include "AxialBox.h"
+//#include "vector_a.h"
+#include "vector.h"
 #include <string.h> // for memcpy
 
 START_CB

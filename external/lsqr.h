@@ -63,9 +63,9 @@ weighted LSQR can be done just by multiplying SQRT(W) onto both A and b before s
 /* Include files */
 /*---------------*/
 
-#include "cblib/Base.h"
-#include "cblib/array.h"
-#include "cblib/vector.h"
+#include "../Base.h"
+#include "../array.h"
+#include "../vector.h"
 #include <stdio.h>
 
 START_CB

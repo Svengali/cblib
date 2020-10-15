@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/vector.h"
+#include "Base.h"
+#include "vector.h"
 #include <algorithm>
 //#include "DebugUtil/Profiler.h"
 

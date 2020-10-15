@@ -2,9 +2,9 @@
 
 // see RefCounted.* for more notes
 
-#include "cblib/RefCounted.h"
-#include "cblib/SPtr.h"
-#include "cblib/Util.h"
+#include "RefCounted.h"
+#include "SPtr.h"
+#include "Util.h"
 
 // DEBUG_WEAKPTR_CACHE stores an m_ptr member in WeakPtr
 //	just for inspection in the debugger windows

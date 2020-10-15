@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "cblib/Util.h"
-#include "cblib/Vec3.h"
-#include "cblib/Frame3.h"
-#include "cblib/Mat3Util.h"
+#include "Util.h"
+#include "Vec3.h"
+#include "Frame3.h"
+#include "Mat3Util.h"
 
 START_CB
 

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/FloatUtil.h" // cuz I use doubles
+#include "Base.h"
+#include "FloatUtil.h" // cuz I use doubles
 
 START_CB
 

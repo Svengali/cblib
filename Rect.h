@@ -1,8 +1,8 @@
 #pragma once
 
-#include "cblib/Util.h"
-#include "cblib/Vec2.h"
-#include "cblib/Vec2i.h"
+#include "Util.h"
+#include "Vec2.h"
+#include "Vec2i.h"
 
 START_CB
 

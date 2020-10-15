@@ -35,10 +35,10 @@
 
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Util.h"
-//#include "cblib/CRC.h"
-#include "cblib/Hashes.h"
+#include "Base.h"
+#include "Util.h"
+//#include "CRC.h"
+#include "Hashes.h"
 
 // @@ toggle here :
 #define DEBUG_STRINGKEY_HOLD_STRING
@@ -47,7 +47,7 @@
 //	in static Token's
 
 #ifdef DEBUG_STRINGKEY_HOLD_STRING
-#include "cblib/String.h"
+#include "String.h"
 #endif
 
 START_CB

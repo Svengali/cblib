@@ -1,6 +1,6 @@
-#include "cblib/Vec3i.h"
-#include "cblib/File.h"
-#include "cblib/Log.h"
+#include "Vec3i.h"
+#include "File.h"
+#include "Log.h"
 
 START_CB
 

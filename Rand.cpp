@@ -1,8 +1,8 @@
-#include "cblib/Rand.h"
-#include "cblib/Timer.h"
-//#include "cblib/Journal.h"
+#include "Rand.h"
+#include "Timer.h"
+//#include "Journal.h"
 #include <stdlib.h>
-#include "cblib/FloatUtil.h"
+#include "FloatUtil.h"
 
 START_CB
 

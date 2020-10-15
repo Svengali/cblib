@@ -1,10 +1,10 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include <cblib/stl_basics.h>
-#include <cblib/vector.h>
-#include <cblib/FloatUtil.h> // for intlog2ceil
-#include <cblib/hash_function.h>
+#include "Base.h"
+#include "stl_basics.h"
+#include "vector.h"
+#include "FloatUtil.h" // for intlog2ceil
+#include "hash_function.h"
 
 /*
 // uncomment to enable probe histogram

@@ -1,13 +1,13 @@
-#include <cblib/inc.h>
-#include <cblib/Win32Util.h>
-#include <cblib/File.h>
-#include <cblib/vector.h>
-#include <conio.h>
+#include "inc.h"
+#include "Win32Util.h"
+#include "File.h"
+#include "vector.h"
+#include "conio.h"
 #include <stdlib.h>
 #include <direct.h>
 #include <stdio.h>
 #include <time.h>
-#include "cblib/DirChangeWatcher.h"
+#include "DirChangeWatcher.h"
 
 START_CB
 

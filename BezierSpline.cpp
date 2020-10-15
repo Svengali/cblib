@@ -1,6 +1,6 @@
-#include "cblib/BezierSpline.h"
-#include "cblib/Vec2U.h"
-#include "cblib/Log.h"
+#include "BezierSpline.h"
+#include "Vec2U.h"
+#include "Log.h"
 #include <malloc.h> // for alloca
 
 #pragma warning(disable :4701) // the darn STL

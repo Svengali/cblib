@@ -223,8 +223,8 @@ void ConvexHullBuilder2d::Make2d(
 
 #if 0 //{
 
-#include "cblib/gRand.h"
-#include "cblib/Log.h"
+#include "gRand.h"
+#include "Log.h"
 
 void ConvexHullBuilder2d_Test()
 {

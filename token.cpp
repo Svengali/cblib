@@ -1,6 +1,6 @@
-#include "cblib/Token.h"
-#include "cblib/String.h"
-#include "cblib/File.h"
+#include "Token.h"
+#include "String.h"
+#include "File.h"
 
 START_CB
 

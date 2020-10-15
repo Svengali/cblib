@@ -4,11 +4,11 @@
 #include <io.h>
 #include <errno.h>
 
-#include "cblib/FileUtil.h"
-#include "cblib/Win32Util.h"
-#include "cblib/Log.h"
-#include "cblib/Timer.h"
-#include "cblib/File.h"
+#include "FileUtil.h"
+#include "Win32Util.h"
+#include "Log.h"
+#include "Timer.h"
+#include "File.h"
 
 START_CB
 

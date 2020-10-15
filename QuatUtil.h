@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "cblib/Quat.h"
+#include "Quat.h"
 
 START_CB
 

@@ -3,8 +3,8 @@
 // MatNM template NxM matrix
 //	acts on a VecN generic vector
 
-#include "cblib/Base.h"
-#include "cblib/VecN.h"
+#include "Base.h"
+#include "VecN.h"
 #include <string.h> // for memset
 
 //}{=======================================================================

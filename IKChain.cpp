@@ -1,7 +1,7 @@
-#include "cblib/IKChain.h"
-#include "cblib/Quat.h"
-#include "cblib/QuatUtil.h"
-#include "cblib/Vec2.h"
+#include "IKChain.h"
+#include "Quat.h"
+#include "QuatUtil.h"
+#include "Vec2.h"
 
 START_CB
 

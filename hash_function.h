@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cblib/Base.h>
-#include <cblib/Hashes.h>
+#include "Base.h"
+#include "Hashes.h"
 
 /****
 

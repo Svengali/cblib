@@ -22,18 +22,18 @@
 #include <string.h>
 #include <math.h>
 
-#include "cblib/Base.h"
-#include "cblib/Util.h"
-#include "cblib/Rand.h"
-#include "cblib/Journal.h"
-#include "cblib/Log.h"
-#include "cblib/String.h"
-#include "cblib/File.h"
-#include "cblib/FloatUtil.h"
-#include "cblib/stl_basics.h"
-#include "cblib/vector.h"
-#include "cblib/RefCounted.h"
-#include "cblib/SPtr.h"
+#include "Base.h"
+#include "Util.h"
+#include "Rand.h"
+#include "Journal.h"
+#include "Log.h"
+#include "String.h"
+#include "File.h"
+#include "FloatUtil.h"
+#include "stl_basics.h"
+#include "vector.h"
+#include "RefCounted.h"
+#include "SPtr.h"
 
 #define WIN32_LEAN_AND_MEAN
 

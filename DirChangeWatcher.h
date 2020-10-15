@@ -1,9 +1,9 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Sptr.h"
-#include <cblib/vector.h>
-#include <cblib/String.h>
+#include "Base.h"
+#include "Sptr.h"
+#include "vector.h"
+#include "String.h"
 
 START_CB
 

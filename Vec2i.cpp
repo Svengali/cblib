@@ -1,5 +1,5 @@
-#include "cblib/Vec2i.h"
-#include "cblib/Log.h"
+#include "Vec2i.h"
+#include "Log.h"
 
 START_CB
 

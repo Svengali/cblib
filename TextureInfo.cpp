@@ -1,7 +1,7 @@
 #include "TextureInfo.h"
-#include "cblib/Log.h"
-#include "cblib/Util.h"
-#include "cblib/File.h"
+#include "Log.h"
+#include "Util.h"
+#include "File.h"
 
 #include <windows.h>
 //#include <d3d8types.h> // for D3DFMT

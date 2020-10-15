@@ -1,8 +1,8 @@
-#include "cblib/Base.h"
-#include "cblib/SemiRandomGenerator.h"
-#include "cblib/Timer.h"
-#include "cblib/FloatUtil.h"
-#include "cblib/Rand.h"
+#include "Base.h"
+#include "SemiRandomGenerator.h"
+#include "Timer.h"
+#include "FloatUtil.h"
+#include "Rand.h"
 
 START_CB
 

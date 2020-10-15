@@ -1,5 +1,5 @@
 #include "hash_table.h"
-#include <cblib/Log.h>
+#include "Log.h"
 #include "String.h"
 
 USE_CB

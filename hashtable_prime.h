@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cblib/stl_basics.h>
-#include <cblib/vector.h>
-#include <cblib/FloatUtil.h> // for intlog2ceil
-#include <cblib/hash_function.h>
-#include <cblib/hash_table.h>
+#include <stl_basics.h>
+#include <vector.h>
+#include <FloatUtil.h> // for intlog2ceil
+#include <hash_function.h>
+#include <hash_table.h>
 
 /***********
 

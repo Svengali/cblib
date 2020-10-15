@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Log.h"
-#include "cblib/String.h"
+#include "Log.h"
+#include "String.h"
 
 START_CB
 

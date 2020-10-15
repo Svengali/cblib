@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "cblib/Mat3.h"
+#include "Mat3.h"
 
 START_CB
 

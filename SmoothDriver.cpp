@@ -1,8 +1,8 @@
 #include "SmoothDriver.h"
-#include "cblib/inc.h"
-#include "cblib/Log.h"
-#include "cblib/vec3u.h"
-#include "cblib/FloatUtil.h"
+#include "inc.h"
+#include "Log.h"
+#include "vec3u.h"
+#include "FloatUtil.h"
 
 START_CB
 

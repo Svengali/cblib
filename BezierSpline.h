@@ -6,10 +6,10 @@ a BezierSpline is just a bunch of Bezier curves,
 with piecewise linear time control for how they fit together
 
 */
-#include "cblib/Bezier.h"
-#include "cblib/Sphere.h"
-#include "cblib/AxialBox.h"
-#include "cblib/vector.h"
+#include "Bezier.h"
+#include "Sphere.h"
+#include "AxialBox.h"
+#include "vector.h"
 
 START_CB
 

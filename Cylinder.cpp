@@ -1,6 +1,6 @@
-#include "cblib/Cylinder.h"
-#include "cblib/Vec2U.h"
-#include "cblib/Vec3U.h"
+#include "Cylinder.h"
+#include "Vec2U.h"
+#include "Vec3U.h"
 
 START_CB
 

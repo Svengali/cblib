@@ -1,12 +1,12 @@
 #include "Poly3.h"
-#include "cblib/Log.h"
-#include "cblib/Vec3U.h"
-#include "cblib/Poly2.h"
-#include "cblib/Mat3.h"
-#include "cblib/Frustum.h"
-#include "cblib/Sphere.h"
-#include "cblib/Segment.h"
-#include "cblib/VolumeBuilder.h"
+#include "Log.h"
+#include "Vec3U.h"
+#include "Poly2.h"
+#include "Mat3.h"
+#include "Frustum.h"
+#include "Sphere.h"
+#include "Segment.h"
+#include "VolumeBuilder.h"
 #include <algorithm>
 
 START_CB

@@ -1,6 +1,6 @@
 #include "Base.h"
-#include "cblib/Vec3.h"
-#include "cblib/Log.h"
+#include "Vec3.h"
+#include "Log.h"
 #include <stddef.h>
 
 START_CB

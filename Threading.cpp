@@ -3,7 +3,7 @@
 #include <intrin.h>
 
 #ifdef CB_64
-#include <cblib/cblib_x64_asm.h>
+#include "cblib_x64_asm.h"
 #endif
 
 extern "C"

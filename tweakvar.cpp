@@ -1,10 +1,10 @@
 #include "tweakvar.h"
-#include "cblib/vector.h"
-#include "cblib/String.h"
-#include "cblib/SPtr.h"
-#include "cblib/FileUtil.h"
-#include "cblib/Log.h"
-#include "cblib/MoreUtil.h"
+#include "vector.h"
+#include "String.h"
+#include "SPtr.h"
+#include "FileUtil.h"
+#include "Log.h"
+#include "MoreUtil.h"
 
 /*************
 

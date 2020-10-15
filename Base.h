@@ -6,6 +6,8 @@
 
 // @@@@ TODO : should have a release build with ASSERTS where the assert just logs
 
+#define _SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS
+
 #pragma warning(disable : 4127) // conditional is constant
 #pragma warning(disable : 4100) // unreferenced formal parameter
 #pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union

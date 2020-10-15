@@ -1,11 +1,11 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/SPtr.h"
-#include "cblib/String.h"
-#include "cblib/Timer.h"
-#include "cblib/Util.h"
-//#include "cblib/FileUtil.h"
+#include "Base.h"
+#include "SPtr.h"
+#include "String.h"
+#include "Timer.h"
+#include "Util.h"
+//#include "FileUtil.h"
 #include <stdio.h>
 
 START_CB

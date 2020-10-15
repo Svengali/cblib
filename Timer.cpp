@@ -1,11 +1,11 @@
-#include "cblib/Timer.h"
-#include "cblib/Log.h"
-#include "cblib/FloatUtil.h"
-//#include "cblib/Util.h"
+#include "Timer.h"
+#include "Log.h"
+#include "FloatUtil.h"
+//#include "Util.h"
 //#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <math.h>
-#include "cblib/stl_basics.h"
+#include "stl_basics.h"
 #include <algorithm>
 
 //for CallNtPowerInformation

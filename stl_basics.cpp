@@ -1,5 +1,5 @@
-#include "cblib/stl_basics.h"
-#include "cblib/SmallAllocator_Greedy.h"
+#include "stl_basics.h"
+#include "SmallAllocator_Greedy.h"
 
 START_CB
 

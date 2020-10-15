@@ -1,11 +1,11 @@
 #pragma once
 
-#include "cblib/stl_basics.h"
+#include "stl_basics.h"
 
 // GET RID OF ME
 #if 0
 
-#include "cblib/Base.h"
+#include "Base.h"
 #include <functional>
 
 START_CB

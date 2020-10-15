@@ -1,8 +1,8 @@
-#include "cblib/Util.h"
-#include "cblib/File.h"
-#include "cblib/FileUtil.h"
-#include "cblib/Log.h"
-#include "cblib/Win32Util.h"
+#include "Util.h"
+#include "File.h"
+#include "FileUtil.h"
+#include "Log.h"
+#include "Win32Util.h"
 
 #include <string.h>
 #include <stdio.h>

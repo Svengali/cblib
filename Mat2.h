@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Vec2.h"
+#include "Base.h"
+#include "Vec2.h"
 
 START_CB
 

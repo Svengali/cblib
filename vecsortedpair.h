@@ -19,9 +19,9 @@ declare like :
 
 //! \todo - document this more !
 
-#include "cblib/Base.h"
-#include "cblib/vecsorted.h"
-#include "cblib/Util.h"
+#include "Base.h"
+#include "vecsorted.h"
+#include "Util.h"
 #include "stl_basics.h"
 #include <algorithm>
 

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/stl_basics.h"
-#include "cblib/RefCounted.h"
-#include "cblib/vector.h"
+#include "Base.h"
+#include "stl_basics.h"
+#include "RefCounted.h"
+#include "vector.h"
 
 #define WIN32_LEAN_AND_MEAN
 #ifndef _WIN32_WINNT

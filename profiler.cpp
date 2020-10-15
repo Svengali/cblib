@@ -1,10 +1,10 @@
-#include "cblib/Base.h"
-#include "cblib/Profiler.h"
-#include "cblib/Vector.h"
-#include "cblib/Vecsortedpair.h"
-#include "cblib/Vector_s.h"
-#include "cblib/Log.h"
-#include "cblib/File.h"
+#include "Base.h"
+#include "Profiler.h"
+#include "Vector.h"
+#include "Vecsortedpair.h"
+#include "Vector_s.h"
+#include "Log.h"
+#include "File.h"
 
 #define PROFILE_RECORDS
 //#define PROFILE_NODES

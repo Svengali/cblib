@@ -1,12 +1,12 @@
 #include "Win32NameMapping.h"
 
-#include <cblib/inc.h>
-#include <cblib/vector.h>
-#include <cblib/Log.h>
-#include <cblib/LogUtil.h>
-#include <cblib/FileUtil.h>
-#include <cblib/MoreUtil.h>
-#include <cblib/Win32Util.h>
+#include "inc.h"
+#include "vector.h"
+#include "Log.h"
+#include "LogUtil.h"
+#include "FileUtil.h"
+#include "MoreUtil.h"
+#include "Win32Util.h"
 
 #include <windows.h>
 #include <direct.h>

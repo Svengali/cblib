@@ -1,10 +1,10 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/TypeTraits.h"
-#include "cblib/Log.h"		// just for the PrintMembers functor
-#include "cblib/File.h"		// just for the IOMembers functor
-#include "cblib/PrefBlock.h" // just for the IOPrefs functor
+#include "Base.h"
+#include "TypeTraits.h"
+#include "Log.h"		// just for the PrintMembers functor
+#include "File.h"		// just for the IOMembers functor
+#include "PrefBlock.h" // just for the IOPrefs functor
 
 START_CB
 

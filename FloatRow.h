@@ -1,8 +1,8 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/TextureInfo.h"
-#include "cblib/Filter.h"
+#include "Base.h"
+#include "TextureInfo.h"
+#include "Filter.h"
 
 START_CB
 

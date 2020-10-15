@@ -11,10 +11,10 @@
 */
 
 #include "lsqr.h"
-#include "cblib/Base.h"
-#include "cblib/Log.h"
-#include "cblib/Util.h"
-#include "cblib/FloatUtil.h"
+#include "../Base.h"
+#include "../Log.h"
+#include "../Util.h"
+#include "../FloatUtil.h"
 #include <stdlib.h>
 #include <math.h>
 #include <limits.h>

@@ -4,12 +4,12 @@
 // don't go through debug memory system, it uses us !!
 #define FROM_MEMORY_CPP
 
-#include "cblib/Base.h"
-#include "cblib/SmallAllocator_Greedy.h"
-#include "cblib/Log.h"
-#include "cblib/MemTrack.h"
-#include "cblib/Threading.h"
-#include "cblib/LF/LFSList.h"
+#include "Base.h"
+#include "SmallAllocator_Greedy.h"
+#include "Log.h"
+#include "MemTrack.h"
+#include "Threading.h"
+//#include "LF/LFSList.h"
 
 #include <stdlib.h> // for malloc
 
@@ -329,8 +329,8 @@ namespace SmallAllocator_Greedy
 			m_nHunkSize = size;
 			m_nChunks = (c_SmallChunk_MemHunkSize/m_nHunkSize);
 		
-			//InitializeSListHead(&m_freeList);
-			LFSList_Open(&m_freeList);
+			InitializeSListHead(&m_freeList);
+			//LFSList_Open(&m_freeList);
 		
 			InitializeCriticalSectionAndSpinCount(&m_critsec,SpinBackOff::SpinBackOff_Spins);
 		
@@ -348,8 +348,8 @@ namespace SmallAllocator_Greedy
 			
 			ChunkBlock * pCurHunk = m_pHunks;
 			m_pHunks = NULL;
-			LFSList_Close(&m_freeList);
-			//InterlockedFlushSList(&m_freeList);
+			//LFSList_Close(&m_freeList);
+			InterlockedFlushSList(&m_freeList);
 			
 			LeaveCriticalSection(&m_critsec);
 						
@@ -399,8 +399,8 @@ namespace SmallAllocator_Greedy
 			void * ptr;
 			for(;;)
 			{
-				//ptr = InterlockedPopEntrySList(&m_freeList);
-				ptr = (void *) LFSList_Pop(&m_freeList);
+				ptr = InterlockedPopEntrySList(&m_freeList);
+				//ptr = (void *) LFSList_Pop(&m_freeList);
 				if ( ptr == NULL )
 				{
 					Extend();
@@ -433,8 +433,8 @@ namespace SmallAllocator_Greedy
 			#endif
 
 			// lockfree push :
-			//InterlockedPushEntrySList(&m_freeList,(PSLIST_ENTRY)p);
-			LFSList_Push(&m_freeList,(LFSNode *)p);
+			InterlockedPushEntrySList(&m_freeList,(PSLIST_ENTRY)p);
+			//LFSList_Push(&m_freeList,(LFSNode *)p);
 
 			//CB_SCOPE_CRITICAL_SECTION(m_critsec);
 			//((FreeChunk *) p)->m_pNext = m_pFree;
@@ -459,13 +459,16 @@ namespace SmallAllocator_Greedy
 		{
 			EnterCriticalSection(&m_critsec);
 			
+			/*
+			// PORT LF Possibly missing functionality here
 			// see if there was a double entry and somebody else already extended us :
-			//if ( ! InterlockedIsEmptySList(&m_freeList) )
-			if ( ! LFSList_IsEmpty(&m_freeList) )
+			if ( ! InterlockedIsEmptySList(&m_freeList) )
+			//if ( ! LFSList_IsEmpty(&m_freeList) )
 			{
 				LeaveCriticalSection(&m_critsec);
 				return;
 			}
+			*/
 			
 			// okay, note that even though we have a critsec, other people can be
 			//	doing Push/Pop on our freelist !
@@ -507,8 +510,8 @@ namespace SmallAllocator_Greedy
 			ptr += (m_nChunks-1) * m_nHunkSize;
 			for(int i=0;i<m_nChunks;i++)
 			{
-				//InterlockedPushEntrySList (&m_freeList,(PSLIST_ENTRY)ptr);
-				LFSList_Push(&m_freeList,(LFSNode *)ptr);
+				InterlockedPushEntrySList (&m_freeList,(PSLIST_ENTRY)ptr);
+				//LFSList_Push(&m_freeList,(LFSNode *)ptr);
 				ptr -= m_nHunkSize;
 			}
 			
@@ -518,8 +521,8 @@ namespace SmallAllocator_Greedy
 		//-------------------------------------------------------------------------
 		// data :
 
-		//DECL_ALIGN(16) SLIST_HEADER		m_freeList; // align 16 btw
-		LF_ALIGN_TO_CACHE_LINE LFSList		m_freeList; // align 16 btw
+		DECL_ALIGN(16) SLIST_HEADER		m_freeList; // align 16 btw
+		//LF_ALIGN_TO_CACHE_LINE LFSList		m_freeList; // align 16 btw
 		
 		LF_ALIGN_TO_CACHE_LINE CRITICAL_SECTION	m_critsec;
 
@@ -535,9 +538,9 @@ namespace SmallAllocator_Greedy
 
 	COMPILER_ASSERT( sizeof(void *) == 8 );
 	COMPILER_ASSERT( sizeof(SLIST_ENTRY) == 16 );
-	COMPILER_ASSERT( sizeof(LFSNode) == 8 );
+	//COMPILER_ASSERT( sizeof(LFSNode) == 8 );
 	COMPILER_ASSERT( sizeof(ULONGLONG) == 8 );
-	COMPILER_ASSERT( sizeof(LFSList) == 16 || sizeof(LFSList) == 8 );
+	//COMPILER_ASSERT( sizeof(LFSList) == 16 || sizeof(LFSList) == 8 );
 	COMPILER_ASSERT( sizeof(RTL_CRITICAL_SECTION) == 40 );
 	COMPILER_ASSERT( sizeof(SmallChunkAllocator) >= 64 );
 	// Grr size is changed by DO_STATS

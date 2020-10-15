@@ -37,10 +37,10 @@ there could be some merit to using an allocator that tells you the size you got
 
 *************************/
 
-#include "cblib/Base.h"
-#include "cblib/vector_flex.h"
-#include "cblib/stl_basics.h"
-#include "cblib/Util.h"
+#include "Base.h"
+#include "vector_flex.h"
+#include "stl_basics.h"
+#include "Util.h"
 
 // you can define CB_VECTOR_MAX_GROW_BYTES yourself before including vector.h if you like
 #ifndef CB_VECTOR_MAX_GROW_BYTES

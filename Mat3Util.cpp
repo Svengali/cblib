@@ -1,9 +1,9 @@
-#include "cblib/Base.h"
-#include "cblib/Mat3Util.h"
-#include "cblib/Rand.h"
-#include "cblib/QuatUtil.h"
-#include "cblib/Log.h"
-//#include "cblib/Basis.h"
+#include "Base.h"
+#include "Mat3Util.h"
+#include "Rand.h"
+#include "QuatUtil.h"
+#include "Log.h"
+//#include "Basis.h"
 
 START_CB
 

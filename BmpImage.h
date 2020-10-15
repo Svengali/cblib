@@ -1,9 +1,9 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Color.h"
-#include "cblib/TextureInfo.h"
-#include "cblib/RefCounted.h"
+#include "Base.h"
+#include "Color.h"
+#include "TextureInfo.h"
+#include "RefCounted.h"
 
 // I use some Windoze types and Windowsisms, but this module should actually be OS-independent
 typedef enum _D3DFORMAT D3DFORMAT;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/Vec3.h"
-#include "cblib/Vec3U.h"
+#include "Vec3.h"
+#include "Vec3U.h"
 
 START_CB
 

@@ -1,6 +1,6 @@
-#include "cblib/Cone.h"
-#include "cblib/Frame3.h"
-#include "cblib/Sphere.h"
+#include "Cone.h"
+#include "Frame3.h"
+#include "Sphere.h"
 
 START_CB
 

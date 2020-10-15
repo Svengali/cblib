@@ -2,9 +2,9 @@
 #ifndef GALAXY_CONVEXHULLBUILDER3D_H
 #define GALAXY_CONVEXHULLBUILDER3D_H
 
-#include "cblib/Base.h"
-#include "cblib/vector.h"
-#include "cblib/Vec3i.h"
+#include "Base.h"
+#include "vector.h"
+#include "Vec3i.h"
 
 START_CB
 

@@ -1,9 +1,9 @@
-#include "cblib/PrefBlock.h"
-//#include "cblib/StrUtil.h"
-#include "cblib/FileUtil.h"
-//#include "cblib/ResMgr.h"
-#include "cblib/Log.h"
-#include "cblib/MoreUtil.h"
+#include "PrefBlock.h"
+//#include "StrUtil.h"
+#include "FileUtil.h"
+//#include "ResMgr.h"
+#include "Log.h"
+#include "MoreUtil.h"
 
 START_CB
 

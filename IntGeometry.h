@@ -9,9 +9,9 @@ with integers.  Most of the real work is in Vec2i and Vec3i
 
 */
 
-#include "cblib/Base.h"
-#include "cblib/Vec3i.h"
-#include "cblib/Vec2i.h"
+#include "Base.h"
+#include "Vec3i.h"
+#include "Vec2i.h"
 
 START_CB
 

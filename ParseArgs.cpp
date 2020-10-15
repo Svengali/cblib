@@ -1,8 +1,8 @@
 #include "ParseArgs.h"
-#include <cblib/tweakvar.h>
-#include <cblib/log.h>
-#include <cblib/strutil.h>
-#include <ctype.h>
+#include "tweakvar.h"
+#include "log.h"
+#include "strutil.h"
+#include "ctype.h"
 
 START_CB
 

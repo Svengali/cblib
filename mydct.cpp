@@ -1,5 +1,5 @@
 #include "mydct.h"
-#include "cblib/Base.h"
+#include "Base.h"
 #include <stdlib.h>
 
 START_CB

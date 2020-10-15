@@ -1,9 +1,9 @@
 #pragma once
 
-#include "cblib/Vec3.h"
-#include "cblib/Vec3U.h"
-#include "cblib/IKChain.h"
-#include "cblib/vector.h"
+#include "Vec3.h"
+#include "Vec3U.h"
+#include "IKChain.h"
+#include "vector.h"
 
 START_CB
 

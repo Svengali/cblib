@@ -1,11 +1,11 @@
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Util.h"
-#include "cblib/StrUtil.h"
-#include "cblib/safeprintf.h"
-//#include "cblib/vector.h" // ICK this is just for function protos
-//#include "cblib/stl_basics.h" // need vecto
+#include "Base.h"
+#include "Util.h"
+#include "StrUtil.h"
+#include "safeprintf.h"
+//#include "vector.h" // ICK this is just for function protos
+//#include "stl_basics.h" // need vecto
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -332,7 +332,7 @@ END_CB
 // need to make sure we see the generic template decl before we overload
 
 /*
-#include "cblib/stl_basics.h"
+#include "stl_basics.h"
 
 CB_STL_BEGIN
 

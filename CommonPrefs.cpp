@@ -1,11 +1,11 @@
 #include "CommonPrefs.h"
 // some standard PrefIO's :
-#include "cblib/Vec2.h"
-#include "cblib/Vec3.h"
-#include "cblib/AxialBox.h"
-#include "cblib/Sphere.h"
-#include "cblib/Color.h"
-#include "cblib/Rect.h"
+#include "Vec2.h"
+#include "Vec3.h"
+#include "AxialBox.h"
+#include "Sphere.h"
+#include "Color.h"
+#include "Rect.h"
 
 START_CB
 
@@ -117,7 +117,7 @@ END_CB
 // Test :
 #if 0 //{
 
-#include "cblib/AxialBox.h"
+#include "AxialBox.h"
 
 USE_CB
 
@@ -157,7 +157,7 @@ void PrefIO(PrefBlock & block,MyStruct2 & me)
 	block.IO("poo2",&me.box);
 }
 
-#include "cblib/Prefs.h"
+#include "Prefs.h"
 
 SPtrFwd(MyPref);
 class MyPref : public Prefs

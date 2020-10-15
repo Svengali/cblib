@@ -1,6 +1,6 @@
-#include "cblib/Base.h"
-#include "cblib/Mat3.h"
-#include "cblib/Vec3U.h"
+#include "Base.h"
+#include "Mat3.h"
+#include "Vec3U.h"
 
 START_CB
 

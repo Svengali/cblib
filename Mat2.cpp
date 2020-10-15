@@ -1,5 +1,5 @@
-#include "cblib/Base.h"
-#include "cblib/Mat2.h"
+#include "Base.h"
+#include "Mat2.h"
 
 START_CB
 

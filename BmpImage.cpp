@@ -1,9 +1,9 @@
 #include "BmpImage.h"
-#include "cblib/Log.h"
-#include "cblib/File.h"
-#include "cblib/Util.h"
-#include "cblib/Color.h"
-#include "cblib/FileUtil.h"
+#include "Log.h"
+#include "File.h"
+#include "Util.h"
+#include "Color.h"
+#include "FileUtil.h"
 #include "BmpImageJpeg.h"
 
 #include <windows.h>

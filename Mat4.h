@@ -30,11 +30,11 @@
 
 #pragma once
 
-#include "cblib/Base.h"
-#include "cblib/Vec4.h"
-#include "cblib/Mat3.h"
-#include "cblib/Frame3.h"
-#include "cblib/Frame3Scaled.h"
+#include "Base.h"
+#include "Vec4.h"
+#include "Mat3.h"
+#include "Frame3.h"
+#include "Frame3Scaled.h"
 
 START_CB
 

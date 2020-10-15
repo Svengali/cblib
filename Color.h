@@ -1,9 +1,9 @@
 #pragma once
 
-#include "cblib/Util.h"
-#include "cblib/FloatUtil.h"
-#include "cblib/Vec3.h"
-#include "cblib/Vec4.h"
+#include "Util.h"
+#include "FloatUtil.h"
+#include "Vec3.h"
+#include "Vec4.h"
 
 START_CB
 

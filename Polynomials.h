@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cblib/Base.h>
-#include <cblib/Log.h>
+#include "Base.h"
+#include <Log.h>
 
 START_CB
 

@@ -1,13 +1,13 @@
 #include "Base.h"
-#include "cblib/VolumeUtil.h"
-#include "cblib/Mat3.h"
-#include "cblib/Frame3Scaled.h"
-#include "cblib/Sphere.h"
-#include "cblib/AxialBox.h"
-#include "cblib/Cylinder.h"
-#include "cblib/OrientedBox.h"
-#include "cblib/Segment.h"
-#include "cblib/Mat3Util.h"
+#include "VolumeUtil.h"
+#include "Mat3.h"
+#include "Frame3Scaled.h"
+#include "Sphere.h"
+#include "AxialBox.h"
+#include "Cylinder.h"
+#include "OrientedBox.h"
+#include "Segment.h"
+#include "Mat3Util.h"
 
 START_CB
 

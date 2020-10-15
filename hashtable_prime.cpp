@@ -1,5 +1,6 @@
 #include "hashtable.h"
 
+/*
 START_CB
 
 // prime table stolen from khash which stole it from STLport hash_map
@@ -30,3 +31,5 @@ static void test1()
 	
 	test.erase( test.find(0) );
 }
+
+*/

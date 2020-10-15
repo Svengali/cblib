@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cblib/RefCounted.h"
-#include "cblib/SPtr.h"
+#include "RefCounted.h"
+#include "SPtr.h"
 
 START_CB
 
