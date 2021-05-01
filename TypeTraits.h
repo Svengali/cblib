@@ -45,6 +45,7 @@ template <> struct TypeTraits<type>\
 	BoolAsType_True	isPrimitive;\
 	BoolAsType_True	ioBytes;	\
 };
+
 #define TT_DECLARE_ISPODCLASS(type)		\
 template <> struct TypeTraits<type>\
 {									\
