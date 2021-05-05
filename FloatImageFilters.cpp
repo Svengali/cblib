@@ -24,7 +24,7 @@ float GetMedian5x5(const FloatImage * fim,int x,int y,int p)
 	const float * fromP = fim->GetPlane(p) + y * w + x;
 			
 	// 5x5 neighborhood
-	float vals[24];
+	float vals[25];
 	vals[0] = fromP[ -w-w-2];
 	vals[1] = fromP[ -w-w-1];
 	vals[2] = fromP[ -w-w  ];
