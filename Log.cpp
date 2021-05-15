@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdarg.h>
+#include <hash_map>
     
 /***********
 
@@ -20,7 +21,7 @@ START_CB
 //--------------------------------------------------
 // Log state in static vars :
 
-static const char * c_defaultLogDir = "c:\\logs";
+static const char * c_defaultLogDir = "logs";
 
 static int s_logState = CB_LOG_DEFAULT_STATE;
 static int s_verbosity = CB_LOG_DEFAULT_VERBOSITY;
@@ -409,14 +410,50 @@ t_rtlLogCallback * LogGetCallback()
 
 //-----------------------------------------------------------
 
+static std::hash_map< const char *, std::string > s_fileToCat;
+static std::string s_defaultString = "unk";
+
 void lprintf_file_line(const char * file,const int line)
 {
     // don't log file & line in the middle of a couple of prints without EOLs
     if ( (s_logState & CB_LOG_FILE_LINE) && s_logIsAtEOL )
     {
-        rawlprintf("%s(%d) : ",file,line);
-        s_logIsAtEOL = false;
+        rawlprintf("%s(%d)\n",file,line);
+        //s_logIsAtEOL = true;
     }
+
+    // TODO CONFIG
+
+    const auto catIt = s_fileToCat.find(file);
+    std::string &cat = s_defaultString;
+
+    if( catIt != s_fileToCat.end() )
+    {
+      cat = catIt->second;
+    }
+    else
+    {
+      std::string fullFile( file );
+
+      const auto slashBeforeFile = fullFile.find_last_of( '\\' );
+
+      const auto lastSlash = fullFile.find_last_of( '\\', slashBeforeFile - 1 );
+
+      const auto lastDirectoryLen = slashBeforeFile - lastSlash - 1;
+
+      std::string newCat = fullFile.substr( lastSlash + 1, min( lastDirectoryLen, 8 ) );
+
+      s_fileToCat[file] = newCat;
+
+      lprintf_file_line( file, line );
+
+      return;
+    }
+
+
+    autolprintf( "%-8s| ", cat.c_str() );
+
+
 }
 
 void vsnprintfdynamic(cb::vector<char> * pBuf,const char * fmt,va_list args)
