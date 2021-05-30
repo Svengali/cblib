@@ -258,12 +258,9 @@ public:
 class autoprintf_LogString
 {
 public:
-	void operator << (const String & rhs)
-	{
-		//lprintf(rhs.CStr());
-		rawlprintf("%s",rhs.CStr());
-	}
+  void operator << ( const String &rhs );
 };
+
 
 #define autolprintf NS_CB::autoprintf_LogString() << NS_CB::autoToString
 

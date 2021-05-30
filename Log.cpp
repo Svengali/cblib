@@ -9,6 +9,7 @@
 #include <time.h>
 #include <stdarg.h>
 #include <hash_map>
+#include <mutex>
     
 /***********
 
@@ -410,12 +411,27 @@ t_rtlLogCallback * LogGetCallback()
 
 //-----------------------------------------------------------
 
+std::recursive_mutex s_mtxLog;
+
+
+void autoprintf_LogString::operator << ( const String &rhs )
+{
+  std::lock_guard guard( s_mtxLog );
+
+  rawlprintf( "%s", rhs.CStr() );
+}
+
+
+
+
 static std::hash_map< const char *, std::string > s_fileToCat;
 static std::string s_defaultString = "unk";
 
 void lprintf_file_line(const char * file,const int line)
 {
-    // don't log file & line in the middle of a couple of prints without EOLs
+  std::lock_guard guard( s_mtxLog );
+  
+  // don't log file & line in the middle of a couple of prints without EOLs
     if ( (s_logState & CB_LOG_FILE_LINE) && s_logIsAtEOL )
     {
         rawlprintf("%s(%d)\n",file,line);
