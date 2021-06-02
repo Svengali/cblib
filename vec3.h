@@ -442,6 +442,18 @@ __forceinline const Vec3 operator - (const Vec3 & u,const Vec3 & v) // subtract
 	return Vec3( u.x - v.x , u.y - v.y , u.z - v.z );
 }
 
+
+__forceinline const Vec3 operator + ( const Vec3 &u, const float f ) // add
+{
+	return Vec3( u.x + f, u.y + f, u.z + f );
+}
+
+__forceinline const Vec3 operator - ( const Vec3 &u, const float f ) // subtract
+{
+	return Vec3( u.x - f, u.y - f, u.z - f );
+}
+
+
 //}===========================================================================================
 
 END_CB

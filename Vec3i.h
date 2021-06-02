@@ -70,6 +70,18 @@ public:
 	
 	//-------------------------------------------------------------------
 	
+	template<typename TSUB>
+	TSUB operator +( const TSUB &v ) const
+	{
+		return TSUB( x + v.x, y + v.y, z + v.z );
+	}
+
+	template<typename TSUB>
+	TSUB operator -( const TSUB &v ) const
+	{
+		return TSUB( x - v.x, y - v.y, z - v.z );
+	}
+
 	bool IsValid() const;
 	bool IsSafeToSquare64() const;
 	static bool ProductIsSafe64(const Vec3i & u,const Vec3i & v);
@@ -78,6 +90,14 @@ public:
 	int64	LengthSqr() const;
 	//double Length() const;
 		
+	//-------------------------------------------------------------------
+	// Make Calls
+
+	static const Vec3i MakeMin( const Vec3i &a, const Vec3i &b );
+	static const Vec3i MakeMax( const Vec3i &a, const Vec3i &b );
+
+
+
 	//-------------------------------------------------------------------
 	// Set mutators
 
@@ -296,11 +316,13 @@ __forceinline const Vec3i operator * (const Vec3i & v,const int f) // scale
 	return Vec3i( f * v.x , f * v.y , f * v.z );
 }
 
+/*
 __forceinline const Vec3i operator + (const Vec3i & u,const Vec3i & v) // add
 {
 	ASSERT( u.IsValid() && v.IsValid() );
 	return Vec3i( u.x + v.x , u.y + v.y , u.z + v.z );
 }
+*/
 
 __forceinline const Vec3i operator - (const Vec3i & u,const Vec3i & v) // subtract
 {
@@ -325,6 +347,27 @@ inline int64 DistanceSqr(const Vec3i & a,const Vec3i &b)
 	const int64 w = a.z - b.z;
 	return u*u + v*v + w*w;
 }
+
+
+__forceinline const Vec3i Vec3i::MakeMin( const Vec3i &a, const Vec3i &b )
+{
+	ASSERT( a.IsValid() && b.IsValid() );
+	return Vec3i(
+		MIN( a.x, b.x ),
+		MIN( a.y, b.y ),
+		MIN( a.z, b.z )
+	);
+}
+__forceinline const Vec3i Vec3i::MakeMax( const Vec3i &a, const Vec3i &b )
+{
+	ASSERT( a.IsValid() && b.IsValid() );
+	return Vec3i(
+		MAX( a.x, b.x ),
+		MAX( a.y, b.y ),
+		MAX( a.z, b.z )
+	);
+}
+
 
 // AreaSqr return the square of (twice the area) of the triangle (a,b,c)
 int64	AreaSqr( const Vec3i & a, const Vec3i & b, const Vec3i & c );
@@ -388,6 +431,7 @@ __forceinline void SetTriangleCross(Vec3i64 * pVec, const Vec3i & a, const Vec3i
 	
 	SetCross(pVec,e1,e2);
 }
+
 
 //}===========================================================================================
 

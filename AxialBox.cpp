@@ -566,7 +566,10 @@ bool AxialBox::IntersectSurface(const Segment& seg, SegmentResults * pResults) c
 
 	for (int axis = 0; axis < 3; axis++)
 	{
-		float axisLimit = GetExtent()[axis] + seg.GetRadius();
+		const auto ext = GetExtent();
+		const auto extAxis = ext[axis];
+
+		float axisLimit = extAxis + seg.GetRadius();
 
 		if (seg.GetNormal()[axis] > 0)
 		{

@@ -178,7 +178,7 @@ inline float LABf( float x )
 	}
 	else
 	{
-		return pow( x, 1.0f/3.0f );
+		return powf( x, 1.0f/3.0f );
 	}
 }
 
