@@ -425,6 +425,11 @@ __forceinline const Vec3 operator ^ (const Vec3 & u,const Vec3 & v)
 		u.x * v.y - u.y * v.x );
 }
 
+__forceinline const Vec3 mult( const Vec3 &l, const Vec3 &r )
+{
+	return Vec3( l.x * r.x, l.y * r.y, l.z * r.z );
+}
+
 __forceinline const Vec3 operator / (const Vec3 & v,const float f) // scale
 {
 	ASSERT( f != 0.f );
