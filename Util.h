@@ -242,14 +242,14 @@ t_to & same_size_bit_cast_u( t_fm & from )
 
 // check_value_cast just does a static_cast and makes sure you didn't wreck the value
 template <typename t_to, typename t_fm>
-t_to check( const t_fm & from )
+t_to check_core( const t_fm & from )
 {
 	t_to to = static_cast<t_to>(from);
 	ASSERT( static_cast<t_fm>(to) == from );
 	return to;
 }
 
-#define check_value_cast check
+#define check_value_cast check_core
 
 // check_int_cast : common simple case of check_value_cast
 template <typename t_fm>
