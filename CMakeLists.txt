@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0.0)
 
-include(${CMAKE_TOOLS_DIR}/Macros.cmake)
+#include(${CMAKE_TOOLS_DIR}/Macros.cmake)
+include(Macros.cmake)
 
 project(cblib VERSION 0.1.0)
 
